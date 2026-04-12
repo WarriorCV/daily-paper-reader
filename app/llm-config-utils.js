@@ -11,7 +11,7 @@
   const MY_CONFIG = {
     baseUrl: 'https://gpt-agent.cc/v1',
     model: 'MiniMax-M2.7',
-    apiKey: 'sk-f8bMKUmgQlZcCEpBGnGxEoba7gw4hsR9bbxeS8fa20lKL2nY'
+    apiKey: ''
   };
 
   const normalizeText = (value) => String(value || '').trim();
