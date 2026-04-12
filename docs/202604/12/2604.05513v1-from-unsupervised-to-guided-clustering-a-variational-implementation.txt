@@ -1,0 +1,1514 @@
+Title: From Unsupervised to Guided Clustering: A Variational Implementation
+
+URL Source: https://arxiv.org/pdf/2604.05513v1
+
+Published Time: Wed, 08 Apr 2026 00:38:41 GMT
+
+Number of Pages: 39
+
+Markdown Content:
+# From Unsupervised to Guided Clustering: A Variational Implementation 
+
+## Violaine Courrier ∗
+
+## Withings, Inria, Université de Lille, CNRS and Christophe Biernacki Inria, Université de Lille, CNRS 
+
+Abstract 
+
+Clustering is viewed as an unsupervised technique, but in practice it requires guidance to uncover meaningful structures. We formalize this with guided clustering, a paradigm that uses a guiding variable to steer the discovery process, and introduce the Guided Clustering Variational Autoencoder (GCVAE) as its deep generative realization. GCVAE learns a latent space structured as a Gaussian Mixture Model by optimizing a variational objective that forces the representation to be maximally informative about the guiding variable. This framework allows the resulting clustering to be reoriented by changing the guiding variable, yielding clusters that are meaningful for the specified context. Experiments on public (MNIST-SVHN) and proprietary connected health devices data demonstrate GCVAE’s ability to discover coherent and task-relevant clusters in complex settings. 
+
+Keywords: clustering, variational inference 
+
+> ∗
+
+Corresponding author: violaine.courrier@inria.fr 
+
+1
+
+> arXiv:2604.05513v1 [stat.ME] 7 Apr 2026
+
+# 1 Introduction 
+
+Clustering is never a purely unsupervised task. In practice, analysts implicitly guide the discovery process through choices of parameters, distance metrics, or feature selection to find “interesting” results. This hands-on necessity stems from a more fundamental challenge: the inherent ambiguity of the clustering task itself. A single dataset can contain multiple, equally valid partitions, and the most meaningful one depends entirely on the analytical goal. Without an explicit objective, the search for a relevant partition relies on an often informal trial-and-error guidance. We argue that this external knowledge should not be an afterthought, but a formal component of the model definition. We propose to formalize this via the so-called guided clustering . In this new paradigm, the guiding variable is not the end goal but rather the lens through which we discover the most relevant and coherent partition of the data. We propose a specific implementation of this novel guided clustering approach using a deep generative model that learns to compress the input into a representation that is simultaneously organized into a discrete mixture of clusters and optimized to be maximally predictive of the guiding variable. The Guided Clustering Variational Autoencoder (GCVAE) model directly addresses the limitations of prior works by learning non-linear, structurally meaningful clusters within a compact space tailored by the guiding variable. 
+
+# 2 Related works 
+
+The inherent ambiguity of unsupervised clustering often necessitates guidance to discover partitions that are relevant to a specific analytical context. The guiding principle can be broadly categorized based on its source: either internal to the data itself or provided by an external, contextual variable. 2Internal guidance seeks to find structure by modifying the input data x. The moti-vation is that not all features are equally relevant. This has led to variable selection techniques in model-based clustering that identify a feature subset to best reveal latent groups [ Raftery and Dean, 2006 , Maugis et al., 2009 , Maugis et al., 2011 ]. More advanced frameworks, like Multi-Partition Clustering, concurrently discover multiple valid partitions, each defined by a different feature subset [ Marbac and Vandewalle, 2019 ]. While powerful, these methods are fundamentally introspective, defining “interesting” clusters based solely on the statistical properties of the input data x.In contrast, external guidance aligns the clustering process with an extrinsic goal. The necessity of utilizing auxiliary information to resolve the ambiguity of unsupervised repre-sentation learning has been formally established in frameworks such as Identifiable VAEs (iVAE) [ Khemakhem et al., 2020 ]. However, while iVAE leverages auxiliary variables to recover continuous latent factors (disentanglement), our focus is on discovering discrete structures. In this context, the most direct form of guidance is semi-supervised clus-tering, where the discovery is steered by observing a subset of the actual cluster labels [Kingma et al., 2014, Maaløe et al., 2017] or pairwise constraints [Basu et al., 2008]. How-ever, this approach inherently requires partial access to the ground truth partition, which is often unavailable in exploratory settings. When the cluster labels are unobserved, guidance must instead come from a contextual variable. The most explicit form of this approach, and the focus of this work, is predictive clustering [ Chickering et al., 2000 ]. This paradigm reframes clustering as a tool for supervised discov-ery, where the objective is to cluster x into groups that are predictive of a target variable y.The pursuit of this objective has led to the development of diverse methods. For instance, the Predictive Clustering Trees (PCTs), which adapt decision tree algorithms to recursively partition the joint data space [ Blockeel et al., 2000 , Stepišnik and Kocev, 2021 ]. Another 3distinct, probabilistic approach is the family of Finite Mixture of Regression (FMR) models, which assume the data arises from subpopulations each governed by its own regression model linking x to y [Khalili and Chen, 2007, Marbac et al., 2022]. We distinguish our proposed guided clustering paradigm from standard predictive clustering, where the primary metric is prediction accuracy and low performance is typically viewed as a failure. In contrast, guided clustering (our proposal) views the guiding variable not as a target to be perfectly predicted, but as a lens to steer the discovery process. From this perspective, the goal is meaningful organization: even a weak predictor can successfully structure the latent space into clusters that are relevant to the context defined by y.Despite their conceptual differences, these methods have a common limitation: they operate directly in the raw feature space x. This direct approach struggles with the curse of dimen-sionality and fails to capture complex non-linearities. Specifically, PCTs are constrained by greedy, axis-aligned splits, while FMRs are limited by strong parametric assumptions that are often too rigid for real-world data. This challenge motivates a paradigm shift towards deep representation learning, mapping data x to a compact latent space z to overcome the limitations of operating in the raw data space. More specifically, we adopt a deep generative modeling perspective. The central idea is to discover latent clusters in x that are generative of the target y. This requires a framework capable of learning a compact, non-linear representation of the data that is structured for this generative-predictive task. The Variational Autoencoder (VAE) [ Kingma and Welling, 2014 ] serves as a cornerstone for such representation learning, inspiring a diverse range of models. Models like VaDE [ Jiang et al., 2016 ] and GMVAE [ Dilokthanakul et al., 2016 ] learn latent representations for clustering. However, their objective is to reconstruct x, meaning the latent space is structured to preserve information about x alone. Architectures like Conditional VAEs (CVAEs) [ Sohn et al., 2015 ], Multimodal VAEs (MVAEs) [ Wu and Goodman, 2018 ], and 4Characteristic Capturing VAEs (CCVAEs) [ Joy et al., 2020 ] successfully incorporate exter-nal information; however, it is used to condition the generation of x or to learn a joint space across modalities. No existing paradigm fully synthesizes deep representation learning with the specific guided clustering goal. To bridge this gap, we draw inspiration from the Variational Information Bottleneck (VIB) [ Alemi et al., 2017 ]. This framework provides a principled way to extract a representation that is maximally relevant to a target variable while filtering out unrelated noise. However, VIB views the latent space as a compressed encoding computed downstream from the input. Our approach adapts this information-theoretic balance into a deep generative framework. Instead of merely filtering the input, we assume the latent clusters are the pre-existing underlying structure that generates the guiding variable. This shift allows us to use the input not just to predict a target, but to uncover the latent groups that caused it. We realize this paradigm with the so-called Guided Clustering Variational AutoEncoder (GCVAE), which structures the latent space as a probabilistic mixture of components. By optimizing this generative structure to be maximally informative about the guiding variable, GCVAE forces the representation to be both predictively relevant and organized into meaningful clusters. 
+
+# 3 Contribution 
+
+Our primary contributions are: 
+
+• We propose and formalize guided clustering, a framework that reframes the role of contextual information in unsupervised learning. It shifts the objective from using clusters to predict a variable, to using a variable which actively guides the discovery of meaningful data partitions. 5• We introduce the Guided Clustering Variational Autoencoder (GCVAE), a deep generative model that operationalizes our paradigm. Its core technical innovation is the integration of a probabilistic mixture structure directly into a guided variational framework, forcing the model to learn a latent space that is both clustered and maximally informative about the guiding variable. 
+
+• Empirical validation on open-source and private real-world datasets, demonstrating that our model discovers coherent clusters, even in high-dimensional and non-linear settings. The remainder of the paper is organized as follows. Section 4 details the generative process, inference model, and objective function of GCVAE. In Section 5, we present our comprehensive experimental evaluation, and finally, we conclude in Section 6. 
+
+# 4 The variational implementation of the model 
+
+To operationalize the guided clustering paradigm, we propose the Guided Clustering Variational Autoencoder (GCVAE), a deep generative model designed to discover a latent cluster structure in data x that is maximally informative for a guiding variable y.The model architecture is built on two core principles. First, it uses an inference model (encoder) to learn a compressed latent representation z of the input x. This representation is optimized to act as an information bottleneck, retaining only the information from x
+
+that is necessary for the second component: a generative model (decoder) that predicts the guiding variable y from z.Crucially, the latent space is not unstructured. We model its distribution as a Gaussian Mixture Model (GMM). This imposes a distinct cluster structure, forcing the informative bottleneck z to be organized into a discrete mixture of components c.6Formally, for an input x = ( x1, ..., xn), with xi ∈ Rdx , and a corresponding guiding variable 
+
+y = ( y1, ..., yn), with yi ∈ Rdy , our model learns a continuous latent variable z = ( z1, ..., zn),with zi ∈ RJ , and infers a discrete cluster assignment c = ( c1, ..., c n) with ci ∈ { 1, ..., K },with n the number of observations. We assume that (xi, yi, zi, c i) are independent and identically distributed. For simplicity, we will omit the index i in the rest of this paper when there is no ambiguity. Figure 1 provides a graphical overview of this architecture. The following subsections detail the probabilistic formulation of the generative process, the inference model, and the final training objective. 
+
+Figure 1: Overview of the GCVAE model. Diamond-shaped units denote latent variables, while round ones denote observations. 
+
+## 4.1 Generative model 
+
+The generative process of our model consists of the following steps: 1. Choose a cluster c using a Multinomial distribution: 
+
+pπ(c) = Cat (c; π). (1) 2. Generate a latent vector z conditioned on the cluster c using a spherical Gaussian 7distribution: 
+
+pμc,σc (z|c) = N (z; μc, σ2 
+
+> c
+
+I). (2) 3. Generate the variable y from the latent vector z:
+
+pθ(y|z) = N (y; fθ(z), I). (3) Here, π = ( π1, ..., π K ) ∈ [0 , 1] K , with πc the prior probability for cluster c, ∑Kc=1 πc = 1 ,
+
+μc = {μc,j }j=1 ,...,J and σc = {σc,j }j=1 ,...,J are respectively the mean and the diagonal covariance of the multivariate normal distribution corresponding to cluster c, J is the dimension of the latent space, I is an identity matrix, fθ(z) is a network with input z and parametrized by θ.
+
+Figure 2: A graphical representation of the generative process, with the GMM in Equation 2 (left) and the decoder in Equation 3 (right). Following the structure of established deep generative clustering models [ Jiang et al., 2016 ,Dilokthanakul et al., 2016 ], we assume: pθ(y|z, c ) = pθ(y|z). According to the generative process above, illustrated in Figure 2, the joint probability of the model is given by: 
+
+pΘ(z, c, y) = pΘ(y|z)pΘ(z|c)pΘ(c) (4) with Θ = {μ1, ..., μK , σ1, ..., σK , π 1, ..., π K , θ}.84.2 Inference model 
+
+To estimate the generative parameters Θ, a standard VAE procedure would typically infers latent variables from the same data it intends to reconstruct, seeking the posterior pΘ(z, c|y).In contrast, the guided clustering paradigm is built on an informational asymmetry: the encoder must learn to map the input features x to a latent space that mimics the structure of the ideal posterior conditioned on y, as illustrated in Figure 1. We therefore define the inference task as finding the variational approximation qϕ(z, c|x)
+
+[ Blei et al., 2017 ] that best captures this ideal structure. Ideally, we would minimize the Kullback-Leibler divergence between our variational approximation and this target posterior, which gives us the central hypothesis of the guided clustering: 
+
+min  
+
+> ϕ
+
+KL [qϕ(z, c|x) || pΘ(z, c|y)] . (5) For the implementation, we illustrate the encoder structure in Figure 3. We assume a classical mean-field approximation for the variational distribution: 
+
+qϕ(z, c|x) = qϕ(z|x)q(c|x) (6) with 
+
+qϕ(zi|xi) = N (zi; ˜ μi, ˜σ2 
+
+> i
+
+I), (7) 
+
+[ ˜ μi, log ˜ σi] = gϕ(xi) (8) where ˜μi ∈ RJ , ˜σi ∈ RJ+ for i ∈ { 1, ..., n }. Here, gϕ is a neural network parameterized by 
+
+ϕ, and the detail of the estimation of q(c|x) is described in Section 4.3. 9Figure 3: A graphical representation of the inference model. 
+
+## 4.3 Estimation loss 
+
+Minimizing the divergence in Equation 5 is equivalent to maximizing the Evidence Lower Bound (ELBO): KL [qϕ(z, c|x) || pΘ(z, c|y)] = KL [qϕ(z, c|x) || pΘ(z, c)] − Eqϕ(z,c|x)[log pΘ(y|z, c)] + log pΘ(y)
+
+⇒ log pΘ(y) ≥ ELBO Θ,ϕ(x, y, z, c) = Eqϕ(z,c|x)[log pΘ(y|z, c)] − KL [qϕ(z, c|x) || pΘ(z, c)] .
+
+Remark Minimizing the divergence 5 thus compels the inference model to satisfy two competing goals: it must organize the data x into the structural constraints of the mixture prior pΘ(z, c), while simultaneously retaining sufficient information to reconstruct the guiding variable y.While this standard formulation provides a rigorous lower bound on the log-likelihood, we want a more flexible control over the information flow. Specifically, we need to regulate how much information from x is compressed into the latent structure (z, c) versus how much is used to predict y.To control this trade-off, we frame the learning problem as a constrained optimization task, following the β-VAE framework [ Higgins et al., 2017 ]. We condition the inference model on x while targeting the reconstruction of y. The goal is to maximize the reconstruction quality of y while constraining the information capacity of the latent representation learned from x, using Kullback–Leibler divergence (KL-divergence). With ϵβ specifying the strength 10 of the applied constraint, this can be formally stated as: 
+
+max  
+
+> Θ,ϕ
+
+Eqϕ(z,c|x)[log pΘ(y|z, c)] subject to KL [qϕ(z, c|x)|| pΘ(z, c)] < ϵ β .
+
+Rewriting it as a Lagrangian under the KKT conditions [ Kuhn and Tucker, 1951 ], we obtain: 
+
+FΘ,ϕ,β (x, y, z, c) = Eqϕ(z,c|x)[log pΘ(y|z, c)] − β (KL [qϕ(z, c|x)|| pΘ(z, c)] − ϵβ )
+
+where the KKT multiplier β is the regularisation coefficient. Still following the β-VAE article principle and formulation, we can derive the final ELBO: 
+
+FΘ,ϕ,β (x, y, z, c) ≥ L Θ,ϕ,β (x, y, z, c) = Eqϕ(z,c|x)[log pθ(y|z, c)] − β KL [qϕ(z, c|x)|| pΘ(z, c)] .
+
+By adjusting β, we can prioritize the discovery of a structured latent space that is not just a passthrough for the data, but an effective information bottleneck. Importantly, the introduction of this weighting factor does not impact the theoretical convergence properties discussed in Section 4.4. The ELBO can then be developed as below (cf. Appendix A): 
+
+LΘ,ϕ,β (x, y, z, c) ≃ − 1
+
+L
+
+> L
+
+∑
+
+> l=1
+> n
+
+∑
+
+> i=1
+
+|| yi − fθ(z(l) 
+
+> i
+
+)|| 22
+
++ β
+
+> n
+
+∑
+
+> i=1
+
+−12
+
+> K
+
+∑
+
+> c=1
+
+q(c|xi)
+
+> J
+
+∑
+
+> j=1
+
+(
+
+log σ2 
+
+> c,j
+
++ ˜σ2
+
+> i,j
+
+σ2
+
+> c,j
+
++(˜ μi,j − μc,j )2
+
+σ2
+
+> c,j
+
+)
+
++
+
+> K
+
+∑
+
+> c=1
+
+q(c|xi) log πc +12
+
+> J
+
+∑
+
+> j=1
+
+(1 + log ˜ σ2 
+
+> i,j
+
+) −
+
+> K
+
+∑
+
+> c=1
+
+q(c|xi) log q(c|xi)
+
+
+
+with z(l) 
+
+> i
+
+∼ N ( ˜μi, ˜σ2 
+
+> i
+
+I), and [ ˜μi, log ˜ σ2 
+
+> i
+
+] = gϕ(xi) with ˜μi = {˜μi,j }j=1 ,...,J and ˜σi =
+
+{˜σi,j }j=1 ,...,J . Recall that J is the dimension of zi.We finally approximate q(c|x) using the SGVB estimator (cf. Appendix B), where L is the number of Monte Carlo samples: 
+
+q(c|x) = Eqϕ(z|x)[pΘ(c|z)] ≃ 1
+
+L
+
+> L
+
+∑
+
+> l=1
+
+pΘ(z(l)|c)pΘ(c)
+
+∑Kc′=1 pΘ(z(l)|c′)pΘ(c′).
+
+11 To encourage sharp clusters assignment while maintaining the differentiability of the model, we employ the Gumbel-Softmax reparameterization trick. This provides a differentiable approximation to sampling from the categorical distribution q(c|x), thereby ensuring that gradients can flow through the entire model. 
+
+## 4.4 Consistency 
+
+To establish the theoretical validity of our estimator, we analyze the convergence properties of the GCVAE. We utilize the framework of Generalized Variational Inference (GVI) [ Knoblauch et al., 2019 ], which generalizes standard Bayesian inference to posterior beliefs derived from arbitrary loss functions. Our analysis relies on the frequentist consistency results established in Theorem 2 of [ Knoblauch, 2019 ]. By applying this framework to the specific structure of the GCVAE, we can state the following: 
+
+Proposition 1 (GCVAE consistency) . Let ψ = {Θ, ϕ} ∈ Ψ denote the complete set of learnable global parameters in the GCVAE model. If the data are i.i.d. and Ψ is compact, the estimator ˆψn converges to a point mass at the population-optimal parameter ψ∗ as number of observations n → ∞ .
+
+The proof is available in [ Knoblauch, 2019 ]. The direct application of this theorem is non-trivial due to the non-standard nature of our mixed variational family, which involves both continuous and discrete latent variables. As the rigorous verification of these conditions is rarely detailed in the literature, we provide a full verification in Appendix C. 
+
+# 5 Experiments 
+
+In this section, we evaluate the performance of the GCVAE on two datasets. The model has been implemented in Python using Pytorch [ Paszke et al., 2019 ], and the code is available 12 at https://github.com/vcourrier/gcvae. 
+
+## 5.1 Practical implementation guidelines 
+
+To effectively apply the GCVAE in practice, specific attention must be paid to the architec-tural choices and the optimization of the ELBO. While the generative framework is agnostic to the specific family of neural networks used, the choice of hyperparameters impacts the model’s ability to uncover meaningful cluster structures. 
+
+Initializating GMM In this work, pre-training is used to initialize GMM parameters 
+
+(πc, μc, σc), a common practice in deep clustering [ Jiang et al., 2016 , Xie et al., 2016 ]. We pretrain the model without the clusters in the latent space, leading to the following ELBO: 
+
+Lpretrain  
+
+> Θ,ϕ,β
+
+(x, y, z, c) = Eqϕ(z|x)[log pΘ(y|z)] − β KL [qϕ(z|x)||N (z; 0 J , I)] 
+
+with 0J a vector null of dimension J.After pretraining the encoder and decoder for a few epochs, we can fit a GMM in the latent space to initialize its parameters. 
+
+Network architectures and the information bottleneck The encoder and decoder functions ( gϕ and fθ) can be parameterized using various architectures suited to the data modality, such as Multilayer Perceptrons (MLPs), Convolutional Neural Networks (CNNs), Recurrent Neural Networks (RNNs)... However, from a statistical perspective, we caution against the use of excessively complex networks. If the encoder capacity is too high, the network may “absorb” the data’s structure into its parameters, rendering the latent space z
+
+a simple passthrough rather than a structured representation. To ensure the model learns robust clusters, we design the networks to act as an effective information bottleneck. By intentionally constraining the network capacity (e.g., reducing the number of layers or units), we force the model to compress the essential features of x into the latent clusters c and 13 variable z to maximize the predictive accuracy of y. This parsimonious approach ensures that the clustering structure captures the signal rather than the network weights. 
+
+The regularization parameter β The coefficient β controls the trade-off between the reconstruction fidelity of the guiding variable and the adherence of the latent space to the GMM prior. In our experiments, we observe that a small weighting ( β < 1) typically yields a more tractable optimization problem [ Burgess et al., 2018 ]. This prevents the complex KL-divergence term associated with the GMM from dominating the loss. Multiple techniques can be used to find a suitable β, via standard grid search or KL annealing [Fu et al., 2019], where β is gradually increased during training. 
+
+Optimization and hyperparameters The model parameters are estimated using the Adam optimizer [ Kingma and Ba, 2014 ], a standard for stochastic gradient-based optimiza-tion. Beyond β, the key hyperparameters requiring selection include the learning rate, the dimensions of the neural networks, and the number of latent clusters K. The choice of K
+
+may be driven by prior domain knowledge (as seen in our clinical application) or determined via model selection criteria compatible with the VAE framework. 
+
+## 5.2 MNIST-SVHN dataset 
+
+Figure 4: Example of SVHN (top) and MNIST (bottom) data. 
+
+Dataset We evaluate our proposed approach on a dataset composed of paired MNIST and black-and-white SVHN images, with the SVHN image as our input x and the MNIST 14 image as our guiding variable y, where each pair represents the same digit class, following the methodology introduced in the MMVAE model [ Shi et al., 2019 ]. Each instance of a digit class (in either dataset) is randomly paired with 30 instances of the same digit class from the other dataset. We use the standard training partitions of MNIST and SVHN (see details in the respective datasets description). As illustrated in Figure 4, the dataset presents a variety of styles, making the task of capturing the digit classes challenging. 
+
+Implementation details For this experiment, we use CNNs for the encoder of SVHN, and a MLP for the decoder of MNIST. The latent space dimension is set to 20. For learning, we use the Adam optimizer [ Kingma and Ba, 2014 ]. We set β = 0 .1. During the pre-training, we use a learning rate of 0.0001 and run it for 5 epochs. During the training, we use a learning rate of 0.0005 for the parameters of the encoder and decoder, and 0.0005 
+
+too for the parameters of the GMM, and set the number of clusters to 10 , run it for 50 epochs. 
+
+Impact of the guiding variable To assess the influence of the predictive variable on our model’s clustering performance, we conduct experiments on a multitude of clustering methods. Consistent with prior research in image clustering, we evaluate performance using global classification accuracy (ACC), where a cluster-to-class mapping is determined via the Hungarian algorithm [ Kuhn, 1955 ]. Without a guiding variable y, with the same model but reconstructing x, the model achieves an ACC of 11 .6% (average on 10 runs). In contrast, using the MNIST data as the guiding variable significantly improves the ACC to 62 .1%(average on 10 runs). 
+
+Comparison on standard benchmarks 
+
+15 Table 1: ACC on standard clustering benchmarks.               
+
+> Model ACC
+> Clustering models with image-specific transformations
+> DTI K-means [Monnier et al., 2020] 44.5% SCAE [Kosiorek et al., 2019] 55.3% DTI GMM [Monnier et al., 2020] 57.4% ACOL-GAR [Kilinc and Uysal, 2018] 76.8%
+> Clustering models with domain-agnostic designs
+> GMM [Dempster et al., 1977] 11.6% DEC [Xie et al., 2016] 11.9% K-means [MacQueen, 1967] 12.2% DeepCluster-v2 [Caron et al., 2020] 20.6% VaDE [Jiang et al., 2016] 30.8% MFCVAE [Falck et al., 2021] 56.3% IMSAT [Hu et al., 2017] 57.3%
+> GCVAE (our proposal) 62.1%
+
+To quantify the value added by the guiding variable y, we contrast the performance of GCVAE against established unsupervised clustering methods. We categorize these baselines into two groups based on their reliance on domain-specific knowledge (Table 1). In the first category, models rely on image-specific transformations or architectures, ef-fectively acting as implicit guidance. DTI [ Monnier et al., 2020 ] incorporates spatial or morphological transformations, SCAE [ Kosiorek et al., 2019 ] segments images into part tem-plates before reasoning about “object capsules”, and ACOL-GAR [ Kilinc and Uysal, 2018 ]applies domain-specific transformations to generate pseudo parent classes and achieves high performance. Notably, ACOL-GAR achieves the highest performance on this benchmark 16 (76.8%), surpassing GCVAE (62.1%). However, this superiority stems from “hard-coded” domain knowledge: the method relies on invariances specific to visual data to generate super-vision. While highly effective for images, this reliance makes such methods less transferable to non-visual tasks (e.g., tabular or sensor data) where such domain-specific invariants are unknown or undefined. In the second category, domain-agnostic methods seek broader applicability without depend-ing on extensive image transformations. This includes classical approaches like GMM [ Dempster et al., 1977 ] and K-means [ MacQueen, 1967 ], as well as deep methods like DEC [ Xie et al., 2016 ], VaDE [ Jiang et al., 2016 ], MFCVAE [ Falck et al., 2021 ], IMSAT [ Hu et al., 2017 ], [ Caron et al., 2018 ] and DeepCluster-v2 [ Caron et al., 2020 ]. As shown in Table 1, these methods struggle to recover the digit classes solely from raw pixel statistics, with accuracies ranging from 11.6% to 57.3%. GCVAE achieves 62.1% ACC, surpassing these domain-agnostic models by leveraging the guiding variable exclusively in the generative process. This comparison highlights the specific niche of GCVAE: while it may not outperform specialized models equipped with extensive domain-specific augmentations (like ACOL-GAR), it significantly outperforms generic unsupervised methods by effectively leveraging the guiding variable y. This offers a flexible solution that provides structure to complex data without requiring the manual design of domain-specific transformations. 
+
+Visualization of the clusters during the training Figure 5 shows the t-SNE [ van der Maaten and Hinton, 2008 ] visualizations of our model’s latent space at different training epochs ( 1, 5, 10 , 25 , 50 ) for 5, 000 SVHN training examples. Each point in the plot corresponds to the latent vector of a single image, colored according to its ground-truth label. Initially, after the pretraining step, the latent-space representation is relatively unstructured. By epoch 5, clusters begin to appear, indicating that our model is starting to learn features 17 Figure 5: t-SNE visualisations at different epoch during the training of 5, 000 training images. that help separate different digit classes. As training continues, these clusters become increasingly well-defined, and data points sharing the same label gather into tighter, more distinct regions. Notably, the boundaries between clusters also grow clearer, suggesting that the learned representations reflect class-specific properties more effectively over time. Overall, this progressive separation of clusters highlights how the guided training procedure refines the latent-space vectors over time to achieve better discrimination among different labels in an unsupervised setting. 18 5.3 Sleep dataset 
+
+Dataset To demonstrate the operational utility of our guided clustering paradigm, we apply GCVAE to a real-life dataset derived from Withings’ proprietary data. Withings is a French company in the field of digital health, known for designing and manufacturing a wide range of connected health devices 1. The experiment is designed to demonstrate how a guiding variable can help recover meaningful and coherent subgroups from complex data. While this dataset allows us to showcase our method’s properties, the discovered subgroups are intended as a methodological proof-of-concept rather than a definitive clinical finding. Furthermore, the dataset has not undergone rigorous debiasing procedures. Our analyses are based on sleep data collected from 50 , 000 individuals, with each contribut-ing one night of data. All personally identifiable information has been removed in compliance with GDPR guidelines. We use seven features for the input vector x: sleep_duration , bmi ,
+
+age , light_sleep_duration , deep_sleep_duration , nb_sleep_interruptions , and avg_night_hr .The guiding variable y explored is the apnea_hypopnea_index , a standard clinical metric that quantifies sleep apnea severity by measuring the number of breathing interruptions per hour of sleep. A detailed overview of the dataset, including feature descriptions and Apnea-Hypopnea Index (AHI) categorization, is provided in Appendix D. We split the dataset into train, test, and validation sets of repartition 70 %, 20 % and 10 % respectively. 
+
+Implementation details The objective is to demonstrate that using the Apnea-Hypopnea Index (AHI) as a guiding variable y allows the model to discover more clinically coherent partitions of the user data x than an unguided approach. We set K = 3 clusters to search for distinct user phenotypes. For a principled comparison, we contrast our GCVAE (which learns a mapping x 7 → y)
+
+> 1https://www.withings.com/us/en/
+
+19 with a unguided baseline. This baseline uses the same architecture but is adapted for a different task. It receives the concatenated input (x, y) and is trained to find a clustered representation that reconstructs both variables. This comparison allows us to differentiate between finding structure in the joint (x, y) space versus finding structure within x that is relevant to y.For this experiment, we use MLPS in the encoder and the decoder. For learning, we use the Adam optimizer, as before. During the pre-training ( 5 epochs), we use a learning rate of 
+
+0.0005 and a β of 0.001 . During the training ( 50 epochs), we use a learning rate of 0.0001 
+
+for the parameters of the encoder and decoder, and 0.00001 for the parameters of the GMM, and a β of 0.01 .
+
+Figure 6: Distribution of the AHI within each cluster discovered by the unguided model. Note the significant overlap between the distributions for Cluster 1 and Cluster 2. 
+
+Results and analysis The unguided baseline, with direct access to AHI as an input, partitions the data based on its most prominent features. An analysis of the cluster profiles (see Appendix E for the full table) shows that the model excels at isolating a high-level of AHI cohort in Cluster 3, a task simplified by the direct visibility of y. For the remaining population, however, the model does not find further AHI-related structure. It defaults to 20 partitioning users based on the next largest source of variance: sleep duration. Consequently, Clusters 1 and 2 have nearly identical AHI profiles but represent different sleep behaviors. The AHI distributions in Figure 6 visually confirm this: while Cluster 3 is distinct, the distributions for Clusters 1 and 2 are almost perfectly overlapping. In contrast, GCVAE uses y not as an input to be partitioned, but as a lens to find the most meaningful structure within x. It is tasked with discovering groups of patients whose features in x are collectively indicative of different AHI levels. The resulting cluster profiles (see Appendix E for detailed profiles) reveal three coherent subgroups that align with a known clinical gradient of risk: 
+
+• Cluster 1 (Low-Risk): A group whose profile in x (lowest age and BMI, most deep sleep) corresponds to a low AHI. 
+
+• Cluster 2 (Intermediate-Risk): A transitional group whose profile in x indicates a moderately increased clinical risk. 
+
+• Cluster 3 (High-Risk): A cohort whose profile in x (highest age and BMI, least deep sleep) corresponds to a high AHI. 
+
+Figure 7: Distribution of the AHI within each cluster discovered by the GCVAE model. 21 Figure 7 visualizes this result. The AHI distributions are clearly ordered, though they exhibit overlap. This overlap is a direct reflection of the challenging inference task. Unlike the baseline, which directly observes y, GCVAE must infer AHI severity from complex patterns in x. The overlap thus represents the inherent uncertainty of this relationship in real-world data. Crucially, this clustering is achieved solely from the sleep biometrics 
+
+x; unlike the baseline, the GCVAE does not have access to the guiding variable y (AHI) during inference. The key achievement is that the model successfully learned to use the guidance from y to organize x into a coherent and clinically-aligned structure. 
+
+# 6 Conclusion 
+
+We introduced guided clustering , a paradigm that formalizes the implicit guidance inherent in any practical clustering analysis. We argue that for discovery to be meaningful, the analytical context must be explicitly integrated into the model’s optimization objective, rather than being relegated to an informal, trial-and-error process. The Guided Clustering Variational Autoencoder (GCVAE) is presented as one effective deep generative realization of this principle, though the paradigm itself is model-agnostic. As an implementation of this paradigm, we proposed the GCVAE. We demonstrated that by optimizing a latent representation to be maximally informative about a guiding variable, GCVAE discovers clusters that are not only coherent but also meaningful for a given analytical task. Our experiments on both public and proprietary datasets confirmed its ability to uncover relevant structures, outperforming domain-agnostic methods and revealing clinically coherent user subgroups. This paradigm opens several avenues for future work. The GCVAE itself can be extended by replacing its encoder and decoder with more sophisticated models, such as Graph Neural Networks or Transformers, to apply guided clustering to graph-structured or sequential 22 data. By formally incorporating a guiding signal into the optimization objective, our approach provides a principled method for navigating the inherent ambiguity of what constitutes a “good” cluster, ensuring the discovered partitions are aligned with a specific analytical goal. We believe this formalization of guidance is a promising step toward developing models that can discover relevant, human-interpretable structures within vast, unannotated datasets. 
+
+Data availability The MNIST and SVHN datasets analyzed during the current study are available in the public domain via the torchvision library. The sleep dataset used in this study is proprietary to Withings and is not publicly available due to participant privacy and GDPR restrictions; however, details are provided in the article in Appendix D. 
+
+Funding This work was supported by the Association Nationale de la Recherche et de la Technologie (ANRT) under CIFRE grant, and a private partner in the digital health sector. 
+
+Competing interests The first author is employed by a private partner. The second author declares no competing interests. 
+
+Author contributions 
+
+• First author: Conceptualization, methodology, software, data curation, investigation and vizualization, writing - original draft. 
+
+• Second author: Conceptualization, writing - review & editing, supervision. 
+
+# References 
+
+[Alemi et al., 2017] Alemi, A. A., Fischer, I., Dillon, J. V., and Murphy, K. (2017). Deep variational information bottleneck. International Conference on Learning Representations .23 [Basu et al., 2008] Basu, S., Davidson, I., and Wagstaff, K., editors (2008). Constrained Clustering: Advances in Algorithms, Theory, and Applications . Chapman and Hall/CRC, New York. [Blei et al., 2017] Blei, D. M., Kucukelbir, A., and McAuliffe, J. D. (2017). Variational inference: A review for statisticians. Journal of the American Statistical Association ,112(518):859–877. [Blockeel et al., 2000] Blockeel, H., De Raedt, L., and Ramon, J. (2000). Top-down induc-tion of clustering trees. Proc. 15th Intl. Conf. on Machine Learning .[Burgess et al., 2018] Burgess, C. P., Higgins, I., Pal, A., Matthey, L., Watters, N., Des-jardins, G., and Lerchner, A. (2018). Understanding disentangling in β-vae. arXiv preprint arXiv:1804.03599 .[Caron et al., 2018] Caron, M., Bojanowski, P., Joulin, A., and Douze, M. (2018). Deep clustering for unsupervised learning of visual features. In Proceedings of the European conference on computer vision (ECCV) , pages 132–149. [Caron et al., 2020] Caron, M., Misra, I., Mairal, J., Goyal, P., Bojanowski, P., and Joulin, A. (2020). Unsupervised learning of visual features by contrasting cluster assignments. 
+
+Advances in neural information processing systems , 33:9912–9924. [Chickering et al., 2000] Chickering, D. M., Heckerman, D., Meek, C., Platt, J. C., and Thiesson, B. (2000). Goal-oriented clustering. Technical Report, MSR-TR-200-82 .[Dempster et al., 1977] Dempster, A. P., Laird, N. M., and Rubin, D. B. (1977). Maximum likelihood from incomplete data via the EM algorithm. Journal of the Royal Statistical Society: Series B , 39:1–38. [Dilokthanakul et al., 2016] Dilokthanakul, N., Mediano, P. A. M., Garnelo, M., Lee, M. C. H., Salimbeni, H., Arulkumaran, K., and Shanahan, M. (2016). Deep unsupervised 24 clustering with gaussian mixture variational autoencoders. CoRR , abs/1611.02648. [Falck et al., 2021] Falck, F., Zhang, H., Willetts, M., Nicholson, G., Yau, C., and Holmes, C. C. (2021). Multi-facet clustering variational autoencoders. In Ranzato, M., Beygelzimer, A., Dauphin, Y., Liang, P., and Vaughan, J. W., editors, Advances in Neural Information Processing Systems , volume 34, pages 8676–8690. Curran Associates, Inc. [Fu et al., 2019] Fu, H., Li, C., Liu, X., Gao, J., Celikyilmaz, A., and Carin, L. (2019). Cyclical annealing schedule: A simple approach to mitigating kl vanishing. arXiv preprint arXiv:1903.10145 .[Higgins et al., 2017] Higgins, I., Matthey, L., Pal, A., Burgess, C., Glorot, X., Botvinick, M., Mohamed, S., and Lerchner, A. (2017). beta-VAE: Learning basic visual concepts with a constrained variational framework. In International Conference on Learning Representations .[Hu et al., 2017] Hu, W., Miyato, T., Tokui, S., Matsumoto, E., and Sugiyama, M. (2017). Learning discrete representations via information maximizing self-augmented training. In 
+
+International conference on machine learning , pages 1558–1567. PMLR. [Jiang et al., 2016] Jiang, Z., Zheng, Y., Tan, H., Tang, B., and Zhou, H. (2016). Variational deep embedding: A generative approach to clustering. CoRR , abs/1611.05148. [Joy et al., 2020] Joy, T., Schmon, S. M., Torr, P. H. S., Siddharth, N., and Rainforth, T. (2020). Capturing label characteristics in vaes. In International Conference on Learning Representations .[Khalili and Chen, 2007] Khalili, A. and Chen, J. (2007). Variable selection in finite mixture of regression models. Journal of the American Statistical Association , 102(479):1025–1038. [Khemakhem et al., 2020] Khemakhem, I., Kingma, D., Monti, R., and Hyvarinen, A. (2020). Variational autoencoders and nonlinear ica: A unifying framework. In International 
+
+25 conference on artificial intelligence and statistics , pages 2207–2217. PMLR. [Kilinc and Uysal, 2018] Kilinc, O. and Uysal, I. (2018). Learning latent representations in neural networks for clustering through pseudo supervision and graph-based activity regularization. In International Conference on Learning Representations .[Kingma and Ba, 2014] Kingma, D. and Ba, J. (2014). Adam: A method for stochastic optimization. International Conference on Learning Representations .[Kingma et al., 2014] Kingma, D. P., Rezende, D. J., Mohamed, S., and Welling, M. (2014). Semi-supervised learning with deep generative models. Advances in neural information processing systems , 27. [Kingma and Welling, 2014] Kingma, D. P. and Welling, M. (2014). Auto-encoding varia-tional bayes. In Bengio, Y. and LeCun, Y., editors, ICLR .[Kirk et al., 2017] Kirk, V., Baughn, J., D’Andrea, L., Friedman, N., Galion, A., Garetz, S., Hassan, F., Wrede, J., Harrod, C. G., and Malhotra, R. K. (2017). American academy of sleep medicine position paper for the use of a home sleep apnea test for the diagnosis of osa in children. Journal of Clinical Sleep Medicine , 13(10):1199–1203. [Knoblauch, 2019] Knoblauch, J. (2019). Frequentist consistency of generalized variational inference. arXiv preprint arXiv:1912.04946 .[Knoblauch et al., 2019] Knoblauch, J., Jewson, J., and Damoulas, T. (2019). Generalized variational inference: Three arguments for deriving new posteriors. arXiv preprint arXiv:1904.02063 .[Kosiorek et al., 2019] Kosiorek, A., Sabour, S., Teh, Y. W., and Hinton, G. E. (2019). Stacked capsule autoencoders. In Wallach, H., Larochelle, H., Beygelzimer, A., d 'Alché-Buc, F., Fox, E., and Garnett, R., editors, Advances in Neural Information Processing Systems , volume 32. Curran Associates, Inc. 26 [Kuhn, 1955] Kuhn, H. W. (1955). The Hungarian Method for the Assignment Problem. 
+
+Naval Research Logistics Quarterly , 2(1–2):83–97. [Kuhn and Tucker, 1951] Kuhn, H. W. and Tucker, A. W. (1951). Nonlinear Program-ming. In Proceedings of the Second Berkeley Symposium on Mathematical Statistics and Probability , volume 2, pages 481–493. University of California Press. [Maaløe et al., 2017] Maaløe, L., Fraccaro, M., and Winther, O. (2017). Semi-supervised generation with cluster-aware generative models. arXiv preprint arXiv:1704.00637 .[MacQueen, 1967] MacQueen, J. B. (1967). Some methods for classification and analysis of multivariate observations. In Cam, L. M. L. and Neyman, J., editors, Proc. of the fifth Berkeley Symposium on Mathematical Statistics and Probability , volume 1, pages 281–297. University of California Press. [Marbac et al., 2022] Marbac, M., Sedki, M., Biernacki, C., and Vandewalle, V. (2022). Simultaneous Semiparametric Estimation of Clustering and Regression. Journal of Computational and Graphical Statistics , 31(2):477–485. Publisher: Informa UK Limited. [Marbac and Vandewalle, 2019] Marbac, M. and Vandewalle, V. (2019). A tractable multi-partitions clustering. Computational Statistics & Data Analysis , 132:167–179. [Maugis et al., 2009] Maugis, C., Celeux, G., and Martin-Magniette, M.-L. (2009). Variable selection for clustering with Gaussian mixture models. Biometrics , 65(3):701–709. [Maugis et al., 2011] Maugis, C., Celeux, G., and Martin-Magniette, M.-L. (2011). Vari-able selection in model-based discriminant analysis. Journal of Multivariate Analysis ,102(10):1374–1387. [Monnier et al., 2020] Monnier, T., Groueix, T., and Aubry, M. (2020). Deep transformation-invariant clustering. Advances in neural information processing systems , 33:7945–7955. 27 [Paszke et al., 2019] Paszke, A., Gross, S., Massa, F., Lerer, A., Bradbury, J., Chanan, G., Killeen, T., Lin, Z., Gimelshein, N., Antiga, L., et al. (2019). Pytorch: An imperative style, high-performance deep learning library. Advances in neural information processing systems , 32. [Raftery and Dean, 2006] Raftery, A. E. and Dean, N. (2006). Variable selection for model-based clustering. Journal of the American Statistical Association , 101(473):168–178. [Shi et al., 2019] Shi, Y., Paige, B., Torr, P., et al. (2019). Variational mixture-of-experts autoencoders for multi-modal deep generative models. Advances in neural information processing systems , 32. [Sohn et al., 2015] Sohn, K., Lee, H., and Yan, X. (2015). Learning structured output representation using deep conditional generative models. In Cortes, C., Lawrence, N., Lee, D., Sugiyama, M., and Garnett, R., editors, Advances in Neural Information Processing Systems , volume 28. Curran Associates, Inc. [Stepišnik and Kocev, 2021] Stepišnik, T. and Kocev, D. (2021). Oblique predictive clus-tering trees. Knowledge-Based Systems , 227:107228. [van der Maaten and Hinton, 2008] van der Maaten, L. and Hinton, G. (2008). Visualizing data using t-SNE. Journal of Machine Learning Research , 9:2579–2605. [Wu and Goodman, 2018] Wu, M. and Goodman, N. (2018). Multimodal generative models for scalable weakly-supervised learning. Advances in neural information processing systems ,31. [Xie et al., 2016] Xie, J., Girshick, R., and Farhadi, A. (2016). Unsupervised deep em-bedding for clustering analysis. In International conference on machine learning , pages 478–487. PMLR. 28 SUPPLEMENTARY MATERIAL 
+
+# A Development of the ELBO 
+
+## A.1 Terms of the ELBO 
+
+Using Equation 6, we can decompose the ELBO in five terms: 
+
+LΘ,ϕ,β (x, y, z, c) = Eqϕ(z|x)[log pΘ(y|z)] − β KL [qϕ(z, c|x)|| pΘ(z|c)pΘ(c)] = Eqϕ(z|x)[log pΘ(y|z)] + β (
+
+Eqϕ(z,c|x)[log pΘ(z|c)] + Eqϕ(z,c|x)[log pΘ(c)] − Eqϕ(z,c|x)[log qϕ(z|x)] − Eqϕ(z,c|x)[log q(c|x)] )
+
+.
+
+1st term 
+
+Eqϕ(z,c|x)[log pΘ(y|z)] = 
+
+∫ ∑
+
+> c
+
+qϕ(z|x)q(c|x) log pΘ(y|z)dz
+
+=
+
+∫
+
+qϕ(z|x) log pΘ(y|z)dz
+
+= Eqϕ(z|x)[log pΘ(y|z)] = Eqϕ(z|x)
+
+log 
+
+ 1
+
+√
+
+(2 π)dy
+
+exp( −12|| y − fθ(z)|| 2)
+
+
+
+= −dy
+
+2 log(2 π) − 12Eqϕ(z|x)
+
+[
+
+|| y − fθ(z)|| 2]
+
+.
+
+Using the SGVB estimator, we can approximate it as: 
+
+Eqϕ(z|x)[log pΘ(y|z)] ∝ − 1
+
+L
+
+> L
+
+∑
+
+> l=1
+> n
+
+∑
+
+> i=1
+
+|| yi − fθ(z(l) 
+
+> i
+
+)|| 22
+
+with z(l) 
+
+> i
+
+∼ N (z; ˜μi, ˜σ2 
+
+> i
+
+I), and [ ˜μi, log ˜ σ2 
+
+> i
+
+] = gϕ(xi). L is the number of Monte Carlo samples in the SGVB estimator. 2nd term 
+
+Eqϕ(z,c|x)[log pΘ(z|c)] = 
+
+∫ ∑
+
+> c
+
+qϕ(z|x)q(c|x) log pΘ(z|c)dz
+
+= ∑
+
+> c
+
+q(c|x)
+
+∫
+
+N (z; ˜ μ, ˜σ2I) log N (z; μc, σ2 
+
+> c
+
+I)dz.
+
+Using Lemma A.1 in Appendix A.2, we have: 
+
+Eqϕ(z,c|x)[log pΘ(z|c)] = − ∑
+
+> c
+
+q(c|x)
+
+ J
+
+2 log(2 π) + 12
+
+> J
+
+∑
+
+> j=1
+
+(
+
+log σ2 
+
+> cj
+
+− ˜σ2
+
+> j
+
+σ2
+
+> cj
+
+− (˜ μj − μcj )2
+
+σ2
+
+> cj
+
+)
+
+= −J
+
+2 log(2 π) − 12
+
+∑
+
+> c
+
+q(c|x)
+
+> J
+
+∑
+
+> j=1
+
+(
+
+log σ2 
+
+> cj
+
++ ˜σ2
+
+> j
+
+σ2
+
+> cj
+
++ (˜ μj − μcj )2
+
+σ2
+
+> cj
+
+)
+
+.
+
+3rd term 
+
+Eqϕ(z,c|x)[log pΘ(c)] = 
+
+∫ ∑
+
+> c
+
+qϕ(z|x)q(c|x) log pΘ(c)dz
+
+= ∑
+
+> c
+
+q(c|x) log πc.
+
+4th term 
+
+Eqϕ(z,c|x)[log qϕ(z|x)] = 
+
+∫ ∑
+
+> c
+
+qϕ(z|x)q(c|x) log qϕ(z|x)dz
+
+=
+
+∫
+
+N (z; ˜ μ, ˜σ2I) log N (z; ˜ μ, ˜σ2I)dz.
+
+Using Lemma A.1 in Appendix A.2, we have: 
+
+Eqϕ(z,c|x)[log qϕ(z|x)] = −J
+
+2 log(2 π) − 12
+
+> J
+
+∑
+
+> j=1
+
+(1 + log ˜ σ2 
+
+> j
+
+).
+
+5th term 
+
+Eqϕ(z,c|x)[log q(c|x)] = 
+
+∫ ∑
+
+> c
+
+qϕ(z|x)q(c|x) log q(c|x)dz
+
+= ∑
+
+> c
+
+q(c|x) log q(c|x).
+
+30 A.2 Lemma 
+
+As presented in [Jiang et al., 2016], we have Lemma A.1. 
+
+Lemma A.1. Given two multivariate Gaussian distributions q(z) = N (z; ˜ μ, ˜σ2I) and 
+
+p(z) = N (z; μ, σ 2I), we have: 
+
+∫
+
+q(z) log p(z)dz = −J
+
+2 log(2 π) − 12
+
+> J
+
+∑
+
+> j=1
+
+(
+
+log σ2 
+
+> j
+
++ ˜σ2
+
+> j
+
+σ2
+
+> j
+
++ (˜ μj − μj )2
+
+σ2
+
+> j
+
+)
+
+where μj , σ j , ˜μj and ˜σj simply denote the jth element of μ, σ, ˜μ and ˜σ, respectively, and J
+
+is the dimensionality of z.Proof. 
+
+∫
+
+q(z) log p(z)dz =
+
+∫
+
+N (
+
+z; ˜ μ, ˜σ2I)
+
+log N (
+
+z; μ, σ 2I)
+
+dz 
+
+=
+
+∫ J∏
+
+> j=1
+
+1
+
+√
+
+2π˜σ2
+
+> j
+
+exp 
+
+(
+
+−(zj − ˜μj )2
+
+2˜ σ2
+
+> j
+
+)
+
+log 
+
+
+
+> J
+
+∏
+
+> j=1
+
+1
+
+√
+
+2πσ 2
+
+> j
+
+exp 
+
+(
+
+−(zj − μj )2
+
+2σ2
+
+> j
+
+) dz 
+
+=
+
+> J
+
+∑
+
+> j=1
+
+∫ 1
+
+√
+
+2π˜σ2
+
+> j
+
+exp 
+
+(
+
+−(zj − ˜μj )2
+
+2˜ σ2
+
+> j
+
+)
+
+log 
+
+ 1
+
+√
+
+2πσ 2
+
+> j
+
+exp 
+
+(
+
+−(zj − μj )2
+
+2σ2
+
+> j
+
+) dz j
+
+=
+
+> J
+
+∑
+
+> j=1
+
+∫ 1
+
+√
+
+2π˜σ2
+
+> j
+
+exp 
+
+(
+
+−(zj − ˜μj )2
+
+2˜ σ2
+
+> j
+
+) [
+
+−12 log (
+
+2πσ 2
+
+> j
+
+)]
+
+dz j
+
+−
+
+∫ 1
+
+√
+
+2π˜σ2
+
+> j
+
+exp 
+
+(
+
+−(zj − ˜μj )2
+
+2˜ σ2
+
+> j
+
+) (zj − μj )2
+
+2σ2
+
+> j
+
+dz j
+
+=
+
+> J
+
+∑
+
+> j=1
+
+−12 log (
+
+2πσ 2
+
+> j
+
+)
+
+−
+
+∫ 1
+
+√
+
+2π˜σ2
+
+> j
+
+exp 
+
+(
+
+−(zj − ˜μj )2
+
+2˜ σ2
+
+> j
+
+) (zj − ˜μj )2 + 2 ( zj − ˜μj ) (˜ μj − μj ) + (˜ μj − μj )2
+
+2˜ σ2
+
+> j
+
+˜σ2
+
+> j
+
+σ2
+
+> j
+
+dz j
+
+= C − ˜σ2
+
+> j
+
+σ2
+
+> j
+
+∫ 1
+
+√
+
+2π˜σ2
+
+> j
+
+exp 
+
+(
+
+−(zj − ˜μj )2
+
+2˜ σ2
+
+> j
+
+) (zj − ˜μj )2
+
+2˜ σ2
+
+> j
+
+dz j
+
+− (˜ μj − μj )2σ2
+
+> j
+
+∫ 1
+
+√
+
+2π˜σ2
+
+> j
+
+exp 
+
+(
+
+−(zj − ˜μj )2
+
+2˜ σ2
+
+> j
+
+)
+
+(zj − ˜μj ) dz j
+
+︸ ︷︷ ︸
+
+> = 0
+
+− (˜ μj − μj )2
+
+2σ2
+
+> j
+
+∫ 1
+
+√
+
+2π˜σ2
+
+> j
+
+exp 
+
+(
+
+−(zj − ˜μj )2
+
+2˜ σ2
+
+> j
+
+)
+
+dz j
+
+︸ ︷︷ ︸
+
+> = 1
+
+31 = C − ˜σ2
+
+> j
+
+σ2
+
+> j
+
+∫ 1
+
+√
+
+2π˜σ2
+
+> j
+
+exp 
+
+(
+
+−(zj − ˜μj )2
+
+2˜ σ2
+
+> j
+
+) (zj − ˜μj )2
+
+2˜ σ2
+
+> j
+
+dz j − (˜ μj − μj )2
+
+2σ2
+
+> j
+
+= C − ˜σ2
+
+> j
+
+σ2
+
+> j
+
+∫ 1
+
+√2π exp 
+
+(
+
+−x2
+
+> j
+
+2
+
+) x2
+
+> j
+
+2 dx j − (˜ μj − μj )2
+
+2σ2
+
+> j
+
+By change of variables 
+
+= C − ˜σ2
+
+> j
+
+σ2
+
+> j
+
+∫ 1
+
+√2π
+
+(
+
+−xj
+
+2
+
+)
+
+d
+
+(
+
+exp 
+
+(
+
+−x2
+
+> j
+
+2
+
+)) 
+
+− (˜ μj − μj )2
+
+2σ2
+
+> j
+
+By change of variables 
+
+= C − ˜σ2
+
+> j
+
+σ2
+
+> j
+
+[ 1
+
+√2π
+
+(
+
+−xj
+
+2
+
+)
+
+exp 
+
+(
+
+−x2
+
+> j
+
+2
+
+)] +∞−∞ 
+
+−
+
+∫ 1
+
+√2π exp 
+
+(
+
+−x2
+
+> j
+
+2
+
+)
+
+d
+
+(
+
+−xj
+
+2
+
+) − (˜ μj − μj )2
+
+2σ2
+
+> j
+
+By integration by parts 
+
+= C − ˜σ2
+
+> j
+
+σ2
+
+> j
+
+(0 − 0) − (−12)
+
+∫ 1
+
+√2π exp 
+
+(
+
+−x2
+
+> j
+
+2
+
+)
+
+dx j
+
+︸ ︷︷ ︸
+
+> =1
+
+ − (˜ μj − μj )2
+
+2σ2
+
+> j
+
+=
+
+> J
+
+∑
+
+> j=1
+
+−12 log (
+
+2πσ 2
+
+> j
+
+)
+
+− ˜σ2
+
+> j
+
+2σ2
+
+> j
+
+− (˜ μj − μj )2
+
+2σ2
+
+> j
+
+= −J
+
+2 log(2 π) − 12
+
+> J
+
+∑
+
+> j=1
+
+(
+
+log σ2 
+
+> j
+
++ ˜σ2
+
+> j
+
+σ2
+
+> j
+
++ (˜ μj − μj )2
+
+σ2
+
+> j
+
+)
+
+where C denotes ∑Jj=1 −12 log (
+
+2πσ 2
+
+> j
+
+)
+
+for simplicity. 
+
+# B Approximate q(c|x)
+
+We describe how to formulate q(c|x) to maximize the ELBO. Specifically, our objective can be rewritten as: 
+
+LΘ,ϕ,β (x, y, z, c) = Eqϕ(z,c|x)[log pθ(y|z, c)] − β KL [qϕ(z, c|x)|| pΘ(z, c)] =
+
+∫ ∑
+
+> c
+
+qϕ(z|x)q(c|x) log pΘ(y|z)pΘ(c|z)β pΘ(z)β
+
+qϕ(z|x)β q(c|x)β dz
+
+=
+
+∫
+
+qϕ(z|x) log pΘ(y|z)pΘ(z)β
+
+qϕ(z|x)β dz +
+
+∫
+
+qϕ(z|x) ∑
+
+> c
+
+q(c|x) log pΘ(c|z)β
+
+q(c|x)β dz
+
+=
+
+∫
+
+qϕ(z|x) log pΘ(y|z)pΘ(z)β
+
+qϕ(z|x)β dz −
+
+∫
+
+qϕ(z|x) β KL [q(c|x)|| pΘ(c|z)] dz.
+
+As in [ Jiang et al., 2016 ], the first term does not depend on c and the second term is 32 non-negative. Thus, maximizing the lower bound ELBO with respect to q(c|x) requires that KL [q(c|x)|| pΘ(c|z)] = 0 . Thus, with ν a constant, we have: 
+
+q(c|x)
+
+pΘ(c|z) = ν. 
+
+Since ∑ 
+
+> c
+
+q(c|x) = 1 and ∑ 
+
+> c
+
+pΘ(c|z) = 1 , we have: 
+
+q(c|x)
+
+pΘ(c|z) = 1 .
+
+Taking the expectation on both sides, we can obtain: 
+
+q(c|x) = Eqϕ(z|x)[pΘ(c|z)] .
+
+# C Verification of GVI assumptions 
+
+In this section, we provide the detailed verification that the GCVAE model satisfies the assumptions required for Theorem 2 (Consistency under Independence) in [ Knoblauch, 2019 ]. We denote the global parameters by ψ = {Θ, ϕ} ∈ Ψ, where Θ contains the generative parameters (GMM and decoder weights) and ϕ contains the variational parameters (encoder weights). We denote by X = X o × Z , where X o and Z denote the spaces of the observables 
+
+(xi, yi) and the latent components (zi, ci).
+
+Assumption 1. The GVI problem is well-defined. 1. The loss function L : Ψ × X → R is discontinuous at most at finitely many points. 
+
+By using the Gumbel-Softmax relaxation, the loss function is a composition of continuous functions and is therefore continuous everywhere (0 points of discontinuity). 2. For any (xi, yi) ∈ X o and any n, L (ψ, xi, yi, zi, ci) < ∞ for all (zi, ci) ∈ Z .
+
+Since the log-densities of the Gaussian and Concrete distributions are finite everywhere 33 on their respective open supports (assuming σ > 0, π > 0 and ck > 0), the pointwise loss value is finite for any generated sample. 3. The minimizers ˆψn = arg min ψ  
+
+> {1
+> n
+> ∑ni=1
+
+L (ψ, xi, yi, zi, ci)}
+
+∈ Ψ exist for all n.
+
+Since the loss function is continuous and defined on a compact set Ψ (by hypothesis), the Weierstrass extreme value theorem guarantees that a global minimizer exists. For a probability measure μ on X :4. The loss satisfies a law of large numbers, i.e 1 
+
+> n
+> ∑ni=1
+
+L (ψ, xi, yi, zi, ci) μ− a.s. 
+
+−−−−→
+
+Eμ[L(ψ, x, y, z, c)] .
+
+We make the standard statistical learning assumption that the training observations 
+
+{(xi, yi)}ni=1 are i.i.d. Under the i.i.d. assumption, the law of large numbers applies. 5. The μ-population-minimizer ψ∗ = arg min ψ Eμ[L(ψ, x, y, z, c)] ∈ Ψ exists and is unique. 
+
+• Existence: As established in Assumption 1.1, the pointwise loss function is continuous. Under the integrability condition (Assumption 1.2), this implies the population risk is continuous with respect to ψ. Since the parameter space Ψ is compact, the Weierstrass extreme value theorem guarantees that it attains its minimum. Thus, a minimizer exists. 
+
+• Uniqueness: Neural networks are inherently non-identifiable due to permutation symmetries.However, we make the standard identifiability assumption that the global minimum is unique up to these permutation symmetries. That is, we assume that any two distinct parameter vectors achieving the minimum are functionally equivalent and differ only by a permutation of their indices. 6. The loss is finite in μ-expectation, i.e. Eμ[L(ψ, x, y, z, c)] < ∞ for all ψ ∈ Ψ.
+
+We previously established that the loss is finite pointwise. The integration over the 34 latent space Z is well-defined because the Gaussian variational distributions have finite moments. Furthermore, since the neural networks are Lipschitz continuous on the compact parameter space Ψ, the loss grows at most quadratically with respect to the observations (x, y). Therefore, under the standard assumption that the data distribution has finite second moments, the total expectation is finite. 7. One of the following holds true: Eμ[L(ψ, x, y, z, c)] is coercive in ψ or Ψ is compact. 
+
+We define Ψ as a compact set. 
+
+Assumption 2 The variational family Q = Qψ × Q z with Qψ = {q(ψ | κ) : κ ∈ K}
+
+and Qz = {qz (z, c | η) : η ∈ H} consists of absolutely continuous densities with respect to the Lebesgue measure. Moreover, for all n ∈ N and any (ψ∗, z, c) ∈ Ψ × Z , there exist sequences {κk}∞ 
+
+> k=1
+
+and {ηk}∞ 
+
+> k=1
+
+of variational parameters so that q (ψ | κk) D
+
+−→ δψ∗ (ψ) and 
+
+qz (z, c | ηk) D
+
+−→ δz (z, c) as k → ∞ .
+
+The proposed variational family satisfies these regularity conditions by design. First, regarding absolute continuity, the employment of the Gumbel-Softmax relaxation endows the latent distribution with a valid, absolutely continuous density with respect to the Lebesgue measure on the simplex. The weak convergence to the Dirac measure is achieved in the distributional limit as the temperature τ → 0 and variance σ2 → 0.
+
+Assumption 3 The GVI uncertainty quantifier D : P(Ψ)2 → R+ is a statistical divergence. Further, it is lower semi-continuous in its first argument with respect to the weak topology of P(Ψ).
+
+We employ the Kullback-Leibler (KL) divergence as the uncertainty quantifier. The KL divergence is a well-defined statistical divergence and is rigorously known to be lower semi-continuous. Thus, the assumption is satisfied. 35 Assumption 4 The prior π and the GVI uncertainty quantifier D are suitable for the variational family Qψ : For all q ∈ Q ψ, D (q∥π) < ∞.
+
+The prior is modeled as a Gaussian Mixture Model, and the variational family Q is a mean-field product of Gaussian and Gumbel-Softmax distributions. Since the variational components share the same support as the prior and possess finite moments, the KL divergence is well-defined and finite for all valid variational parameters. 
+
+Assumption 5 The prior belief πprior about ψ is not infinitely bad: Eπprior [Eμ[L(ψ, x, y, z, c)]] =
+
+Cπprior < ∞. Moreover, Qψ contains the singleton πprior (ψ). In other words, 
+
+Qψ = {q(ψ | κ) : κ ∈ K} ∪ { πprior (ψ)}.
+
+The prior πprior (ψ) is modeled as a standard Gaussian. Since the loss function is continuous and grows polynomially with respect to the weights (Lipschitz neural networks), and the Gaussian prior has finite moments of all orders, the expected loss under the prior is strictly finite. The second condition is satisfied by construction. 
+
+Assumption 7 There exists a compact subset A ⊂ Ψ so that (i) ψ∗ ∈ A and (ii) 
+
+πprior ≥ ¯qn on Ψ\A, for all n ≥ N for some N < ∞.
+
+Since we explicitly defined the parameter space Ψ to be compact (Assumption 1.7), we can choose the subset A to be the entire space, i.e., A = Ψ.(i) The minimizer ψ∗ must reside within the valid parameter space Ψ.(ii) The complement set Ψ\A is the empty set. Therefore our model verifies the assumption of the theorem: 
+
+Theorem C.1 (GVI consistency under independence) . If Assumptions 1, 2, 3, 4, 5 and 7 hold and (xi, yi) iid 
+
+∼ (x1, y1), then the GVI posteriors are consistent. i.e., qn
+
+> D
+
+−→ δψ∗ μ-almost surely, where μ is the probability measure on (x1, y1).
+
+36 D Withings dataset 
+
+The dataset is composed of 50,000 individuals, each contributing one night of sleep data to avoid bias from repeated measurements for the same user. The data was recorded by the Withings Sleep Analyzer 2, capturing comprehensive sleep and biometric information. The dataset includes an equal number of users across the three categories based on the Apnea-Hypopnea Index (AHI) as categorized by the American Academy of Sleep Medicine (AASM) [Kirk et al., 2017]: no or mild ( <15 events/hour), moderate (15–30 events/hour), and severe ( >30 events/hour). 
+
+## D.1 Variables overview 
+
+The seven variables in the input vector x are: 
+
+• sleep_duration : Duration of the user’s sleep during the night. 
+
+• light_sleep_duration : Duration of the user’s light sleep during the night. 
+
+• deep_sleep_duration : Duration of the user’s deep sleep during the night. 
+
+• nb_sleep_interruptions : Count of awakenings throughout the night. 
+
+• avg_night_hr : Mean heart rate during the night. 
+
+• bmi : User’s average Body Mass Index measured over a year. 
+
+• age : User’s age. The guiding variable y is the apnea_hypopnea_index (AHI), categorizing sleep apnea severity based on the number of apnea-hypopnea events per hour. 
+
+> 2https://www.withings.com/us/en/sleep
+
+37 D.2 Dataset Summary 
+
+In summary, Table 2 shows a concise view of each variable’s range, mean, and standard deviation. Table 2: Descriptive statistics of the variables 
+
+Variable (unit) Range Mean Std. Dev. 
+
+sleep_duration (seconds) 14880 – 36000 26224 4224 
+
+light_sleep_duration (seconds) 3600 – 31860 15747 4651 
+
+deep_sleep_duration (seconds) 3600 – 32220 10472 4022 
+
+nb_sleep_interruptions 0 – 20 2.74 2.34 
+
+avg_night_hr (bpm) 40 – 111 62.49 8.57 
+
+bmi (kg/m 2) 16 – 50 27.53 5.14 
+
+age (years) 18 – 80 50 12.67 
+
+apnea_hypopnea_index 0 – 40 18.14 13.47 We applied Min-Max normalization to all the variables to ensure they fall on a comparable scale. 
+
+# E Clusters profile tables for the Withings case study 
+
+This section provides the detailed cluster profiles for the user subgroups discovered by the unguided baseline and our proposed Guided Model (GCVAE), as discussed in Section 5.3. All values for user features are denormalized and presented as Mean ± Standard Deviation. 38 Table 3: Cluster profiles for the unguided model .
+
+Cluster 1 Cluster 2 Cluster 3 
+
+AHI 9.43 ± 6.92 28.55 ± 7.50 8.55 ± 6.69 Age (years) 49.61 ± 11.52 55.91 ± 11.78 49.36 ± 12.48 BMI (kg/m 2) 27.87 ± 5.08 29.25 ± 5.16 26.93 ± 4.84 Sleep Duration (hrs) 6.63 ± 0.81 7.30 ± 1.18 8.28 ± 0.83 Deep Sleep (hrs) 2.94 ± 1.01 2.91 ± 1.16 3.32 ± 1.15 Light Sleep (hrs) 3.69 ± 1.00 4.39 ± 1.27 4.96 ± 1.19 Sleep Interruptions 2.28 ± 2.09 3.04 ± 2.50 2.75 ± 2.25 Avg. Night HR (bpm) 63.66 ± 8.59 63.99 ± 8.50 61.98 ± 8.38 Avg. Resp. Rate (rpm) 15.11 ± 2.14 15.11 ± 2.26 15.06 ± 2.10 Table 4: Clinical profiles of user subgroups discovered by GCVAE .
+
+Cluster 1 Cluster 2 Cluster 3 
+
+AHI 10.4 ± 9.6 16.4 ± 10.8 21.6 ± 11.2 Age (years) 42.58 ± 9.88 53.35 ± 10.39 61.90 ± 9.73 BMI (kg/m 2) 25.35 ± 3.67 28.25 ± 4.57 31.79 ± 5.78 Sleep Duration (hrs) 7.52 ± 1.12 7.36 ± 1.18 7.19 ± 1.19 Deep Sleep (hrs) 3.41 ± 1.11 3.04 ± 1.09 2.50 ± 0.98 Light Sleep (hrs) 4.10 ± 1.23 4.32 ± 1.27 4.68 ± 1.25 Sleep Interruptions 2.03 ± 1.89 2.64 ± 2.17 3.83 ± 2.74 Avg. Night HR (bpm) 61.49 ± 8.08 63.66 ± 8.54 65.01 ± 8.77 Avg. Resp. Rate (rpm) 15.08 ± 2.05 15.09 ± 2.19 15.15 ± 2.29 39

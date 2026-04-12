@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.04170v1/fig-001.webp",
+      "caption": "Figure 5: An additional parameter sensitivity analysis of the SCSD model is conducted under the setting of 50% missing views, 50% missing labels, and 70% training data.",
+      "page": 15,
+      "index": 1,
+      "width": 546,
+      "height": 220
+    },
+    {
+      "url": "assets/figures/arxiv/2604.04170v1/fig-002.webp",
+      "caption": "Figure 6: The codebook utilization of the SCSD method is reported under the training setting of 50% missing views, 50% missing labels, and 70% training data, covering all five datasets.",
+      "page": 15,
+      "index": 2,
+      "width": 786,
+      "height": 296
+    },
+    {
+      "url": "assets/figures/arxiv/2604.04170v1/fig-003.webp",
+      "caption": "Table 2: The results under the setting of 50% missing views, 50% missing labels, and 70% training data are reported. The table lists mean and standard deviation (bottom-right). Ave.R denotes the average rank across metrics. Bold numbers indicate the best results, and underlined numbers indicate the second-best.",
+      "page": 7,
+      "index": 3,
+      "width": 816,
+      "height": 786
+    },
+    {
+      "url": "assets/figures/arxiv/2604.04170v1/fig-004.webp",
+      "caption": "Table 3: The ablation results on two datasets under the setting of 50% missing views, 50% missing labels, and 70% training data are reported. Here, “w/o” denotes “without”. The bold numbers indicate the best results, while the underlined numbers indicate the second-best results.",
+      "page": 10,
+      "index": 4,
+      "width": 682,
+      "height": 212
+    },
+    {
+      "url": "assets/figures/arxiv/2604.04170v1/fig-005.webp",
+      "caption": "Figure 4: The experimental results of the SCSD model under different view-missing rates, different label-missing rates, and different training set proportions are reported. The figure presents two datasets and three evaluation metrics.",
+      "page": 14,
+      "index": 5,
+      "width": 791,
+      "height": 369
+    },
+    {
+      "url": "assets/figures/arxiv/2604.04170v1/fig-006.webp",
+      "caption": "Figure 1: The main framework of SCSD. The upper part represents the framework of multi-view consistent discrete representation learning, while the lower part represents the framework of multiview prediction fusion and self-distillation.",
+      "page": 3,
+      "index": 6,
+      "width": 822,
+      "height": 488
+    },
+    {
+      "url": "assets/figures/arxiv/2604.04170v1/fig-007.webp",
+      "caption": "Figure 2: The radar charts are based on results with complete views, complete labels, and 70% training data, covering nine methods, five datasets, and six metrics. In each chart, the center denotes the worst result and the vertex denotes the best.",
+      "page": 8,
+      "index": 7,
+      "width": 800,
+      "height": 471
+    },
+    {
+      "url": "assets/figures/arxiv/2604.04170v1/fig-008.webp",
+      "caption": "Figure 3: The parameter sensitivity analysis of the SCSD model is conducted under the setting of 50% missing views, 50% missing labels, and 70% training data.",
+      "page": 8,
+      "index": 8,
+      "width": 525,
+      "height": 414
+    }
+  ]
+}

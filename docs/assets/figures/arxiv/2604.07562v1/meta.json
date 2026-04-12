@@ -1,0 +1,118 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-001.webp",
+      "caption": "Figure 3: Example of merged cluster summaries.",
+      "page": 6,
+      "index": 1,
+      "width": 435,
+      "height": 529
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-002.webp",
+      "caption": "Table 7: Statistical test results for cluster metric comparisons. n.s. = statistically not significant (p-value > 0.05).",
+      "page": 15,
+      "index": 2,
+      "width": 946,
+      "height": 453
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-003.webp",
+      "caption": "Figure 4: Comparing intra-cluster similarity across HDBSCAN, SBERT-refinement, and LLM-refinement.",
+      "page": 7,
+      "index": 3,
+      "width": 461,
+      "height": 410
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-004.webp",
+      "caption": "Figure 8: Distribution of assigned labels/themes using GPT-4o on X (green) and Bluesky (blue) datasets.",
+      "page": 14,
+      "index": 4,
+      "width": 950,
+      "height": 409
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-005.webp",
+      "caption": "Table 6: Generated labels by LLMs from X and Bluesky data.",
+      "page": 14,
+      "index": 5,
+      "width": 925,
+      "height": 485
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-006.webp",
+      "caption": "Figure 7: Prompt example of mapping text→theme (Bluesky dataset). The black colored segment is the input prompt and the blue colored segment is the generated output by LLMs.",
+      "page": 14,
+      "index": 6,
+      "width": 950,
+      "height": 365
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-007.webp",
+      "caption": "Table 11: Cluster quality metrics by platform and corpus.",
+      "page": 18,
+      "index": 7,
+      "width": 946,
+      "height": 181
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-008.webp",
+      "caption": "Table 10: Theme–time correlation on X.",
+      "page": 18,
+      "index": 8,
+      "width": 729,
+      "height": 429
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-009.webp",
+      "caption": "Figure 6: Prompt templates (shown as zero-shot).",
+      "page": 13,
+      "index": 9,
+      "width": 461,
+      "height": 454
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-010.webp",
+      "caption": "Figure 5: UMAP projection of vegan discourse from X (green) and Bluesky (blue) with broader themes.",
+      "page": 8,
+      "index": 10,
+      "width": 458,
+      "height": 329
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-011.webp",
+      "caption": "Figure 9: Theme distribution in balanced corpora.",
+      "page": 19,
+      "index": 11,
+      "width": 950,
+      "height": 573
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-012.webp",
+      "caption": "Table 9: Example posts from X and Bluesky where GPT-4o’s assigned themes do not align with human judgment.",
+      "page": 17,
+      "index": 12,
+      "width": 956,
+      "height": 1173
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-013.webp",
+      "caption": "Table 3: Examples of posts by broader theme.",
+      "page": 9,
+      "index": 13,
+      "width": 954,
+      "height": 380
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07562v1/fig-014.webp",
+      "caption": "Table 8: Examples of platform-exclusive themes and representative posts.",
+      "page": 16,
+      "index": 14,
+      "width": 946,
+      "height": 239
+    }
+  ]
+}

@@ -6,52 +6,38 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-03-14 ~ 2026-04-12
-- 运行时间：2026-04-12 07:49:38 UTC
+- 最新运行日期：2026-04-12
+- 运行时间：2026-04-12 20:01:58 UTC
 - 运行状态：成功
-- 本次总论文数：10
-- 精读区：3
-- 速读区：7
+- 本次总论文数：5
+- 精读区：1
+- 速读区：4
 
 ### 今日简报（AI）
-今日精选10篇前沿论文，深度解析社交媒体分类体系演化与多视图嵌入技术。
-重点关注 EvoTaxo 如何从社交流中动态构建分类法，以及利用 Gromov-Wasserstein 输运实现结构保持的多视图嵌入。
-建议深入探索动态聚类与非平衡多视图学习，以应对实时流数据中的维度失衡与时效性挑战。
-- 详情：[/20260314-20260412/README](/20260314-20260412/README)
+- 今日共生成 5 篇推荐（精读 1 篇，速读 4 篇）
+- 精读：《Incomplete Multi-View Multi-Label Classification via Shared Codebook and Fused-Teacher Self-Distillation》（8.0/10）
+- 速读：《From Unsupervised to Guided Clustering: A Variational Implementation》（7.0/10）, 《Reasoning-Based Refinement of Unsupervised Text Clusters with LLMs》（7.0/10）, 《SGANet: Semantic and Geometric Alignment for Multimodal Multi-view Anomaly Detection》（6.0/10）
+- 这些结果覆盖了当下较热的方向，建议先看精读区论文的关键问题与方法。
+- 详情：[/202604/12/README](/202604/12/README)
 
 ### 精读区论文标签
-1. [EvoTaxo: Building and Evolving Taxonomy from Social Media Streams](/20260314-20260412/2603.19711v1-evotaxo-building-and-evolving-taxonomy-from-social-media-streams)  
-   标签：评分：9.0/10、query:mvc
-   evidence：基于大模型的社交媒体流双视图聚类
-2. [Structure-Preserving Multi-View Embedding Using Gromov-Wasserstein Optimal Transport](/20260314-20260412/2604.02610v1-structure-preserving-multi-view-embedding-using-gromov-wasserstein-optimal-transport)  
-   标签：评分：9.0/10、query:mvc
-   evidence：整合样本多种表示的多视图嵌入策略
-3. [Feature Incremental Clustering with Generalization Bounds](/20260314-20260412/2603.21590v1-feature-incremental-clustering-with-generalization-bounds)  
+1. [Incomplete Multi-View Multi-Label Classification via Shared Codebook and Fused-Teacher Self-Distillation](/202604/12/2604.04170v1-incomplete-multi-view-multi-label-classification-via-shared-codebook-and-fused-teacher-self-distillation)  
    标签：评分：8.0/10、query:mvc
-   evidence：特征空间增量的数据流聚类
+   evidence：基于共享码本和类对比对齐的不完整多视图学习
 
 ### 速读区论文标签
-1. [AdaMuS: Adaptive Multi-view Sparsity Learning for Dimensionally Unbalanced Data](/20260314-20260412/2603.17610v1-adamus-adaptive-multi-view-sparsity-learning-for-dimensionally-unbalanced-data)  
+1. [From Unsupervised to Guided Clustering: A Variational Implementation](/202604/12/2604.05513v1-from-unsupervised-to-guided-clustering-a-variational-implementation)  
    标签：评分：7.0/10、query:mvc
-   evidence：针对维度不平衡数据的多视图学习与表示对齐
-2. [Dynamic k-center clustering with lifetimes](/20260314-20260412/2603.23348v1-dynamic-k-center-clustering-with-lifetimes)  
+   evidence：多视图数据（MNIST-SVHN）的引导聚类
+2. [Reasoning-Based Refinement of Unsupervised Text Clusters with LLMs](/202604/12/2604.07562v1-reasoning-based-refinement-of-unsupervised-text-clusters-with-llms)  
    标签：评分：7.0/10、query:mvc
-   evidence：在具有到达和删除的演化数据集中的动态k-center聚类
-3. [Adaptive Fully Dynamic $k$-Center Clustering with (Near-)Optimal Worst-Case Guarantees](/20260314-20260412/2604.01726v1-adaptive-fully-dynamic-k-center-clustering-with-near-optimal-worst-case-guarantees)  
-   标签：评分：7.0/10、query:mvc
-   evidence：具有对抗性插入和删除的自适应全动态k-center聚类
-4. [Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data](/20260314-20260412/2604.05857v1-weight-informed-self-explaining-clustering-for-mixed-type-tabular-data)  
-   标签：评分：7.0/10、query:mvc
-   evidence：聚合多个特征权重视图进行聚类
-5. [One Pool Is Not Enough: Multi-Cluster Memory for Practical Test-Time Adaptation](/20260314-20260412/2603.21135v1-one-pool-is-not-enough-multi-cluster-memory-for-practical-test-time-adaptation)  
+   evidence：利用大语言模型作为语义评判器来优化无监督聚类
+3. [SGANet: Semantic and Geometric Alignment for Multimodal Multi-view Anomaly Detection](/202604/12/2604.05632v1-sganet-semantic-and-geometric-alignment-for-multimodal-multi-view-anomaly-detection)  
    标签：评分：6.0/10、query:mvc
-   evidence：非独立同分布测试流中实际测试时自适应的多簇存储器
-6. [Granular Ball Guided Stable Latent Domain Discovery for Domain-General Crowd Counting](/20260314-20260412/2603.24106v2-granular-ball-guided-stable-latent-domain-discovery-for-domain-general-crowd-counting)  
+   evidence：通过语义和几何对齐解决多视图数据中的特征不一致和模态差异问题。
+4. [PanopticQuery: Unified Query-Time Reasoning for 4D Scenes](/202604/12/2604.05638v1-panopticquery-unified-query-time-reasoning-for-4d-scenes)  
    标签：评分：6.0/10、query:mvc
-   evidence：处理特征噪声、离群点和表示漂移的稳定潜在域发现
-7. [A Data-Informed Variational Clustering Framework for Noisy High-Dimensional Data](/20260314-20260412/2604.06864v1-a-data-informed-variational-clustering-framework-for-noisy-high-dimensional-data)  
-   标签：评分：6.0/10、query:mvc
-   evidence：针对高维噪声数据的变分聚类
+   evidence：4D场景的多视图语义共识机制
 
 
 <div class="dpr-home-promo-card">

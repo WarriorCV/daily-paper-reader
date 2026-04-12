@@ -1,0 +1,86 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.05632v1/fig-001.webp",
+      "caption": "Figure 4: I-AUROC and V-AUPRO@1% results on the SiM3D dataset using RGB modality, depth modality, and the proposed SGANet framework.",
+      "page": 21,
+      "index": 1,
+      "width": 714,
+      "height": 348
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05632v1/fig-002.webp",
+      "caption": "Figure 5: Qualitative comparison on the Eyecandies dataset [29]. Visualizations include RGB images (RGB), depth maps (Depth), binary masks (Binary Mask), and the corresponding anomaly score maps predicted by representative methods, including single-view baselines (PatchCore, AST), the multi-view method (MVAD), and the proposed SGANet framework.",
+      "page": 22,
+      "index": 2,
+      "width": 716,
+      "height": 448
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05632v1/fig-003.webp",
+      "caption": "Figure 6: I-AUROC, P-AUROC and AUPRO@30% results on the Eyecandies dataset using RGB modality, depth modality, and the proposed SGANet framework.",
+      "page": 22,
+      "index": 3,
+      "width": 714,
+      "height": 348
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05632v1/fig-004.webp",
+      "caption": "Figure 1: Comparison of anomaly detection methods. Note that red solid circles denote correctly detected anomalies, while red dashed circles indicate undetected anomalies. (a) Traditional single-view anomaly detection methods process each view independently, making it difficult to leverage information from other viewpoints. (b) Multi-view anomaly detection methods integrate information across viewpoints via feature alignment. However, existing approaches suffer from semantic ambiguity due to reliance on similarity without geometric properties, inaccurate spatial modeling from approximate geometric correspondence, and the lack of effective consistency constraints. (c) Our method explicitly models relationships across views through feature refinement, semantic-structural alignment, and multi-view geometric alignment, enabling effective integration of complementary information and more reliable anomaly detection under viewpoint variations.",
+      "page": 4,
+      "index": 4,
+      "width": 718,
+      "height": 435
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05632v1/fig-005.webp",
+      "caption": "Figure 3: Qualitative comparison on the SiM3D dataset [28]. Visualizations include defect regions highlighted in the input views and the corresponding anomaly score maps predicted by representative methods, including single-view baselines (PatchCore, AST), the multi-view method (MVAD), and the proposed SGANet framework.",
+      "page": 19,
+      "index": 5,
+      "width": 720,
+      "height": 376
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05632v1/fig-006.webp",
+      "caption": "Table 1: Dataset statistics of the SiM3D dataset [28].",
+      "page": 17,
+      "index": 6,
+      "width": 556,
+      "height": 341
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05632v1/fig-007.webp",
+      "caption": "Table 9: Ablation study of loss components on the SiM3D and Eyecandies datasets.",
+      "page": 24,
+      "index": 7,
+      "width": 570,
+      "height": 308
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05632v1/fig-008.webp",
+      "caption": "Figure 2: Overview of the proposed SGANet framework for multimodal multi-view anomaly detection. Multi-view images and depth maps are first encoded into patch-level features using frozen feature extractors F 2D and F 3D, respectively. The Selective Cross-view Feature Refinement Module (SCFRM, Section 3.3) first refines feature representations by aggregating semantically related features from adjacent viewpoints through modality-aware selection and cross-view feature aggregation. Based on the refined features, the Semantic-Structural Patch Alignment (SSPA, Section 3.4) enforces semantic alignment by matching corresponding patches between the 2D and 3D modalities within each view and further incorporates a structural alignment mechanism to maintain consistency under viewpoint transitions. To further ensure feature coherence, Multi-View Geometric Alignment (MVGA, Section 3.5) leverages explicit geometric correspondences to align features at spatially corresponding locations, thereby reducing feature discrepancies and promoting spatially consistent multi-view feature representations. During inference (Section 3.6), multimodal features are concatenated and compared with a memory bank constructed from normal samples to compute anomaly scores and generate anomaly maps.",
+      "page": 9,
+      "index": 8,
+      "width": 718,
+      "height": 299
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05632v1/fig-009.webp",
+      "caption": "Table 3: V-AUPRO@1% result on the SiM3D dataset. Best results in bold, runner-ups underlined.",
+      "page": 20,
+      "index": 9,
+      "width": 714,
+      "height": 242
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05632v1/fig-010.webp",
+      "caption": "Table 2: I-AUROC result on the SiM3D dataset. Best results in bold, runner-ups underlined.",
+      "page": 20,
+      "index": 10,
+      "width": 714,
+      "height": 240
+    }
+  ]
+}

@@ -1,0 +1,207 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-04-12T20:00:36.545716+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 1,
+    "deep_cap": 6,
+    "deep_selected": 1,
+    "quick_candidates": 4,
+    "quick_skim_target": 11,
+    "quick_selected": 4
+  },
+  "deep_dive": [
+    {
+      "id": "2604.04170v1",
+      "source": "arxiv",
+      "title": "Incomplete Multi-View Multi-Label Classification via Shared Codebook and Fused-Teacher Self-Distillation",
+      "abstract": "Although multi-view multi-label learning has been extensively studied, research on the dual-missing scenario, where both views and labels are incomplete, remains largely unexplored. Existing methods mainly rely on contrastive learning or information bottleneck theory to learn consistent representations under missing-view conditions, but loss-based alignment without explicit structural constraints limits the ability to capture stable and discriminative shared semantics. To address this issue, we introduce a more structured mechanism for consistent representation learning: we learn discrete consistent representations through a multi-view shared codebook and cross-view reconstruction, which naturally align different views within the limited shared codebook embeddings and reduce feature redundancy. At the decision level, we design a weight estimation method that evaluates the ability of each view to preserve label correlation structures, assigning weights accordingly to enhance the quality of the fused prediction. In addition, we introduce a fused-teacher self-distillation framework, where the fused prediction guides the training of view-specific classifiers and feeds the global knowledge back into the single-view branches, thereby enhancing the generalization ability of the model under missing-label conditions. The effectiveness of our proposed method is thoroughly demonstrated through extensive comparative experiments with advanced methods on five benchmark datasets. Code is available at https://github.com/xuy11/SCSD.",
+      "authors": [
+        "Xu Yan",
+        "Jun Yin",
+        "Shiliang Sun",
+        "Minghua Wan"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-04-05T16:22:38+00:00",
+      "link": "https://arxiv.org/pdf/2604.04170v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "incomplete multi-view learning with shared codebook and contrastive-like alignment",
+      "llm_evidence_cn": "基于共享码本和类对比对齐的不完整多视图学习",
+      "llm_evidence": "基于共享码本和类对比对齐的不完整多视图学习",
+      "canonical_evidence": "基于共享码本和类对比对齐的不完整多视图学习",
+      "llm_tldr_en": "Addresses dual-missing views and labels in multi-view learning using a shared codebook and self-distillation.",
+      "llm_tldr_cn": "利用共享码本和自蒸馏解决多视图学习中视图和标签双缺失的问题。",
+      "llm_tldr": "利用共享码本和自蒸馏解决多视图学习中视图和标签双缺失的问题。",
+      "llm_tags": [
+        "query:mvc:composite"
+      ],
+      "matched_query_tag": "query:mvc:composite",
+      "matched_query_text": "Papers central to 多视图聚类（Multi-view Clustering）在流式/在线场景下的不完整视图与噪声鲁棒性研究，结合大模型与对比学习。, especially work that connects or combines: Safe Multi-view Clustering; Contrastive Multi-view Clustering; Online Multi-view Clustering; Streaming Multi-view Clustering; streaming clustering; multi-view clustering; How to handle noise, missing views, and outliers in streaming multi view clustering?.",
+      "matched_requirement_id": "req-composite-mvc",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2604.05513v1",
+      "source": "arxiv",
+      "title": "From Unsupervised to Guided Clustering: A Variational Implementation",
+      "abstract": "Clustering is viewed as an unsupervised technique, but in practice it requires guidance to uncover meaningful structures. We formalize this with guided clustering, a paradigm that uses a guiding variable to steer the discovery process, and introduce the Guided Clustering Variational Autoencoder (GCVAE) as its deep generative realization. GCVAE learns a latent space structured as a Gaussian Mixture Model by optimizing a variational objective that forces the representation to be maximally informative about the guiding variable. This framework allows the resulting clustering to be reoriented by changing the guiding variable, yielding clusters that are meaningful for the specified context. Experiments on public (MNIST-SVHN) and proprietary connected health devices data demonstrate GCVAE's ability to discover coherent and task-relevant clusters in complex settings.",
+      "authors": [
+        "Violaine Courrier",
+        "Christophe Biernacki"
+      ],
+      "primary_category": "stat.ME",
+      "categories": [
+        "stat.ME"
+      ],
+      "published": "2026-04-07T07:10:13+00:00",
+      "link": "https://arxiv.org/pdf/2604.05513v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Guided clustering with multi-view data (MNIST-SVHN)",
+      "llm_evidence_cn": "多视图数据（MNIST-SVHN）的引导聚类",
+      "llm_evidence": "多视图数据（MNIST-SVHN）的引导聚类",
+      "canonical_evidence": "多视图数据（MNIST-SVHN）的引导聚类",
+      "llm_tldr_en": "Introduces GCVAE for guided clustering, tested on multi-view datasets like MNIST-SVHN.",
+      "llm_tldr_cn": "引入GCVAE进行引导聚类，并在MNIST-SVHN等多视图数据集上进行了实验。",
+      "llm_tldr": "引入GCVAE进行引导聚类，并在MNIST-SVHN等多视图数据集上进行了实验。",
+      "llm_tags": [
+        "query:mvc"
+      ],
+      "matched_query_tag": "query:mvc",
+      "matched_query_text": "multi-view clustering",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.05632v1",
+      "source": "arxiv",
+      "title": "SGANet: Semantic and Geometric Alignment for Multimodal Multi-view Anomaly Detection",
+      "abstract": "Multi-view anomaly detection aims to identify surface defects on complex objects using observations captured from multiple viewpoints. However, existing unsupervised methods often suffer from feature inconsistency arising from viewpoint variations and modality discrepancies. To address these challenges, we propose a Semantic and Geometric Alignment Network (SGANet), a unified framework for multimodal multi-view anomaly detection that effectively combines semantic and geometric alignment to learn physically coherent feature representations across viewpoints and modalities. SGANet consists of three key components. The Selective Cross-view Feature Refinement Module (SCFRM) selectively aggregates informative patch features from adjacent views to enhance cross-view feature interaction. The Semantic-Structural Patch Alignment (SSPA) enforces semantic alignment across modalities while maintaining structural consistency under viewpoint transformations. The Multi-View Geometric Alignment (MVGA) further aligns geometrically corresponding patches across viewpoints. By jointly modeling feature interaction, semantic and structural consistency, and global geometric correspondence, SGANet effectively enhances anomaly detection performance in multimodal multi-view settings. Extensive experiments on the SiM3D and Eyecandies datasets demonstrate that SGANet achieves state-of-the-art performance in both anomaly detection and localization, validating its effectiveness in realistic industrial scenarios.",
+      "authors": [
+        "Letian Bai",
+        "Chengyu Tao",
+        "Juan Du"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-04-07T09:35:29+00:00",
+      "link": "https://arxiv.org/pdf/2604.05632v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Addresses feature inconsistency and modality discrepancies in multi-view data through semantic and geometric alignment.",
+      "llm_evidence_cn": "通过语义和几何对齐解决多视图数据中的特征不一致和模态差异问题。",
+      "llm_evidence": "通过语义和几何对齐解决多视图数据中的特征不一致和模态差异问题。",
+      "canonical_evidence": "通过语义和几何对齐解决多视图数据中的特征不一致和模态差异问题。",
+      "llm_tldr_en": "Proposes SGANet for multi-view anomaly detection using cross-view feature refinement and alignment.",
+      "llm_tldr_cn": "提出SGANet框架，通过跨视图特征细化和对齐实现多视图异常检测。",
+      "llm_tldr": "提出SGANet框架，通过跨视图特征细化和对齐实现多视图异常检测。",
+      "llm_tags": [
+        "query:mvc"
+      ],
+      "matched_query_tag": "query:mvc",
+      "matched_query_text": "multi-view clustering",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2604.07562v1",
+      "source": "arxiv",
+      "title": "Reasoning-Based Refinement of Unsupervised Text Clusters with LLMs",
+      "abstract": "Unsupervised methods are widely used to induce latent semantic structure from large text collections, yet their outputs often contain incoherent, redundant, or poorly grounded clusters that are difficult to validate without labeled data. We propose a reasoning-based refinement framework that leverages large language models (LLMs) not as embedding generators, but as semantic judges that validate and restructure the outputs of arbitrary unsupervised clustering algorithms.Our framework introduces three reasoning stages: (i) coherence verification, where LLMs assess whether cluster summaries are supported by their member texts; (ii) redundancy adjudication, where candidate clusters are merged or rejected based on semantic overlap; and (iii) label grounding, where clusters are assigned interpretable labels in a fully unsupervised manner. This design decouples representation learning from structural validation and mitigates common failure modes of embedding-only approaches. We evaluate the framework on real-world social media corpora from two platforms with distinct interaction models, demonstrating consistent improvements in cluster coherence and human-aligned labeling quality over classical topic models and recent representation-based baselines. Human evaluation shows strong agreement with LLM-generated labels, despite the absence of gold-standard annotations. We further conduct robustness analyses under matched temporal and volume conditions to assess cross-platform stability. Beyond empirical gains, our results suggest that LLM-based reasoning can serve as a general mechanism for validating and refining unsupervised semantic structure, enabling more reliable and interpretable analyses of large text collections without supervision.",
+      "authors": [
+        "Tunazzina Islam"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI",
+        "cs.CY",
+        "cs.LG"
+      ],
+      "published": "2026-04-08T20:02:48+00:00",
+      "link": "https://arxiv.org/pdf/2604.07562v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "LLMs as semantic judges to refine unsupervised clustering",
+      "llm_evidence_cn": "利用大语言模型作为语义评判器来优化无监督聚类",
+      "llm_evidence": "利用大语言模型作为语义评判器来优化无监督聚类",
+      "canonical_evidence": "利用大语言模型作为语义评判器来优化无监督聚类",
+      "llm_tldr_en": "Uses LLMs to refine unsupervised clusters through reasoning-based verification and restructuring.",
+      "llm_tldr_cn": "利用大语言模型通过推理阶段对无监督聚类结果进行验证和重构优化。",
+      "llm_tldr": "利用大语言模型通过推理阶段对无监督聚类结果进行验证和重构优化。",
+      "llm_tags": [
+        "query:mvc:composite"
+      ],
+      "matched_query_tag": "query:mvc:composite",
+      "matched_query_text": "Papers central to 多视图聚类（Multi-view Clustering）在流式/在线场景下的不完整视图与噪声鲁棒性研究，结合大模型与对比学习。, especially work that connects or combines: Safe Multi-view Clustering; Contrastive Multi-view Clustering; Online Multi-view Clustering; Streaming Multi-view Clustering; streaming clustering; multi-view clustering; How to handle noise, missing views, and outliers in streaming multi view clustering?.",
+      "matched_requirement_id": "req-composite-mvc",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.05638v1",
+      "source": "arxiv",
+      "title": "PanopticQuery: Unified Query-Time Reasoning for 4D Scenes",
+      "abstract": "Understanding dynamic 4D environments through natural language queries requires not only accurate scene reconstruction but also robust semantic grounding across space, time, and viewpoints. While recent methods using neural representations have advanced 4D reconstruction, they remain limited in contextual reasoning, especially for complex semantics such as interactions, temporal actions, and spatial relations. A key challenge lies in transforming noisy, view-dependent predictions into globally consistent 4D interpretations. We introduce PanopticQuery, a framework for unified query-time reasoning in 4D scenes. Our approach builds on 4D Gaussian Splatting for high-fidelity dynamic reconstruction and introduces a multi-view semantic consensus mechanism that grounds natural language queries by aggregating 2D semantic predictions across multiple views and time frames. This process filters inconsistent outputs, enforces geometric consistency, and lifts 2D semantics into structured 4D groundings via neural field optimization. To support evaluation, we present Panoptic-L4D, a new benchmark for language-based querying in dynamic scenes. Experiments demonstrate that PanopticQuery sets a new state of the art on complex language queries, effectively handling attributes, actions, spatial relationships, and multi-object interactions. A video demonstration is available in the supplementary materials.",
+      "authors": [
+        "Ruilin Tang",
+        "Yang Zhou",
+        "Zhong Ye",
+        "Wenxi Liu",
+        "Yan Huang",
+        "Shengfeng He"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-04-07T09:40:05+00:00",
+      "link": "https://arxiv.org/pdf/2604.05638v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "multi-view semantic consensus mechanism for 4D scenes",
+      "llm_evidence_cn": "4D场景的多视图语义共识机制",
+      "llm_evidence": "4D场景的多视图语义共识机制",
+      "canonical_evidence": "4D场景的多视图语义共识机制",
+      "llm_tldr_en": "Introduces a multi-view semantic consensus mechanism to ground noisy predictions in dynamic 4D environments.",
+      "llm_tldr_cn": "引入多视图语义共识机制，在动态4D环境中落地噪声预测。",
+      "llm_tldr": "引入多视图语义共识机制，在动态4D环境中落地噪声预测。",
+      "llm_tags": [
+        "query:mvc"
+      ],
+      "matched_query_tag": "query:mvc",
+      "matched_query_text": "multi-view clustering",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

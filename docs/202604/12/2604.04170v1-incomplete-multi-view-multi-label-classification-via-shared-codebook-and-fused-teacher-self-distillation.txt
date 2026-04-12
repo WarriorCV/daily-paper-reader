@@ -1,0 +1,1113 @@
+Title: Incomplete Multi-View Multi-Label Classification via Shared Codebook and Fused-Teacher Self-Distillation
+
+URL Source: https://arxiv.org/pdf/2604.04170v1
+
+Published Time: Tue, 07 Apr 2026 01:08:32 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+Preprint 
+
+# INCOMPLETE MULTI -V IEW MULTI -L ABEL CLASSI -
+
+## FICATION VIA SHARED CODEBOOK AND FUSED -TEACHER SELF -D ISTILLATION 
+
+Xu Yan 1, Jun Yin 1∗
+
+, Shiliang Sun 2∗
+
+, Minghua Wan 11College of Information Engineering, Shanghai Maritime University 
+
+> 2
+
+School of Automation and Intelligent Sensing, Shanghai Jiao Tong University 
+
+yanxu@stu.shmtu.edu.cn, {junyin,mhwan }@shmtu.edu.cn shiliangsun@gmail.com 
+
+ABSTRACT 
+
+Although multi-view multi-label learning has been extensively studied, research on the dual-missing scenario, where both views and labels are incomplete, remains largely unexplored. Existing methods mainly rely on contrastive learning or infor-mation bottleneck theory to learn consistent representations under missing-view conditions, but loss-based alignment without explicit structural constraints lim-its the ability to capture stable and discriminative shared semantics. To address this issue, we introduce a more structured mechanism for consistent representa-tion learning: we learn discrete consistent representations through a multi-view shared codebook and cross-view reconstruction, which naturally align different views within the limited shared codebook embeddings and reduce feature redun-dancy. At the decision level, we design a weight estimation method that eval-uates the ability of each view to preserve label correlation structures, assigning weights accordingly to enhance the quality of the fused prediction. In addition, we introduce a fused-teacher self-distillation framework, where the fused predic-tion guides the training of view-specific classifiers and feeds the global knowl-edge back into the single-view branches, thereby enhancing the generalization ability of the model under missing-label conditions. The effectiveness of our pro-posed method is thoroughly demonstrated through extensive comparative exper-iments with advanced methods on five benchmark datasets. Code is available at 
+
+https://github.com/xuy11/SCSD .
+
+1 INTRODUCTION 
+
+Multi-view data are very common in the real world (Zhao et al., 2017), where a single sample is often described by multiple representations from different modalities or various feature extrac-tion methods, such as RGB/HSV/GIST for images, audio-visual synchronization for videos, con-tent/behavior/social views in recommender systems, and multi-omics data in bioinformatics (Yan et al., 2021). The goal of multi-view learning is to exploit the consistency and complementarity among views to improve the quality of representations and the performance of downstream tasks such as classification. It has already become a fundamental technique in numerous real-world appli-cations (Yu et al., 2025). Similarly, many tasks naturally fall into the multi-label setting, where a single sample is often asso-ciated with multiple labels, such as in image classification and multi-topic text classification (Hang & Zhang, 2021). Multi-label classification can improve prediction performance by exploiting la-bel correlations (Chen et al., 2019). If such correlations are effectively modeled and utilized, they not only alleviate the negative impact of label sparsity but also enhance prediction accuracy and robustness under limited annotation conditions. However, the ideal assumption of complete multi-view data with fully observed multi-label anno-tations is rarely satisfied in practice (Wen et al., 2023). On the one hand, incomplete multi-view 
+
+> ∗
+
+Corresponding author. 
+
+1
+
+> arXiv:2604.04170v1 [cs.CV] 5 Apr 2026
+
+Preprint data are very common (Yin & Sun, 2021). During multi-view data collection, sensor failures, occlu-sions, or cross-domain restrictions (e.g., privacy and authorization constraints) often render certain views unavailable during training or inference. On the other hand, missing multi-label data are also prevalent (Chen et al., 2020). This is mainly due to the high cost of fine-grained annotation and the limited attention of annotators, which often result in only partial labels being observed for some samples. Treating missing labels as negative instances in a naive way further aggravates the class imbalance problem and introduces bias (Ridnik et al., 2021). A more challenging scenario arises when both multi-view and multi-label data are missing simul-taneously, forming the dual-missing situation (Liu et al., 2023b). Firstly, missing multi-view data affect the learning of consistency and complementarity across views, increasing the uncertainty of representation learning. Secondly, missing multi-label data compromise the modeling of label cor-relations and the completeness of supervisory signals. When both types of missingness occur at the same time, methods designed to handle only one type of missingness often fail to be effective (Tan et al., 2018). In response to this challenge, systematic research on the problem of Incomplete Multi-View Multi-Label Classification (IMVMLC) has significant practical and theoretical value. This study mainly focuses on two existing technical directions. The first is multi-view consistency representation learn-ing. Representative works include DICNet (Liu et al., 2023b), which is based on contrastive learn-ing and enforces representation consistency by constructing positive pairs across different views, and SIP (Liu et al., 2024c), which follows the information bottleneck principle to maximize shared information by preserving effective features while minimizing non-shared information. The second direction is multi-view fusion strategies, which include early fusion, intermediate fusion, and late fusion. Various representative methods explore different fusion paradigms. For example, AIMNet (Liu et al., 2024a) adopts average fusion to obtain robust but relatively “smoothed” predictions. LMVCAT (Liu et al., 2023c) introduces learnable weights to adaptively allocate the contribution of each view feature, thereby improving discriminability. RANK (Liu et al., 2025) employs a view-quality-aware subnetwork to explicitly leverage multi-view complementarity, enabling the classifi-cation network to learn reliable cross-view fused representations. However, these methods face certain limitations. In learning multi-view consistency representations, they often rely on loss-based constraints (e.g., contrastive learning) or regularization techniques that minimize non-shared information across views. When views are missing, such strategies easily lead to under-representation or over-regularization, which limit the generalization ability of the model. Moreover, most existing fusion strategies overlook the structural information implied by label cor-relations, and many learnable-weight-based or quality-discriminator-based fusion approaches intro-duce additional training costs. To address these issues, we propose a method, Incomplete Multi-View Multi-Label Classification via 
+
+Shared Codebook and Fused-Teacher Self-Distillation (SCSD), as shown in Figure 1. First, for con-sistency representation, we introduce a shared codebook and cross-view reconstruction mechanism. The shared discrete codebook captures cross-view common semantics, while cross-view reconstruc-tion further enhances the consistency of the discrete representations. The limited multi-view shared codebook embeddings reduce feature redundancy and enhance the generalization ability of the rep-resentations. Second, for decision fusion, we design a label-correlation-oriented fusion strategy. This strategy assigns different weights to each view by estimating the ability of each view predic-tion to preserve the original label correlation structure, thereby reducing the impact of low-quality views. Finally, for the training paradigm, we adopt fused-teacher self-distillation: the fused predic-tion serves as the teacher signal to guide the learning of each view-specific classifier. In this way, the global knowledge integrated across views is fed back into the single-view branches, improving con-sistency, robustness, and generalization during both training and inference. The main contributions of this paper are summarized as follows: • We propose a novel framework for incomplete multi-view multi-label classification based on a shared codebook and fused-teacher self-distillation. The framework handles arbitrary missing scenarios and achieves leading performance on multiple datasets, surpassing many advanced methods. • We propose to learn discrete consistent representations through a multi-view shared code-book, which quantizes continuous features into a limited set of codebook embeddings. This design produces more compact representations and effectively reduces redundant informa-2Preprint 21  576  65  751              
+
+> 𝑙𝑙 2 𝑛𝑛𝑛𝑛𝑛𝑛𝑛𝑛
+> 1
+> 7
+> 𝑘𝑘 − 5
+> 2
+> 8
+> 𝑘𝑘 − 4
+> 3
+> 9
+> 𝑘𝑘 − 3
+> 4
+> 10
+> 𝑘𝑘 − 2
+> 5
+> 11
+> 𝑘𝑘 − 1
+> 6
+> 12
+> 𝑘𝑘
+> 𝑙𝑙 2𝑛𝑛𝑛𝑛𝑛𝑛𝑛𝑛
+> 𝑎𝑎 𝑛𝑛 𝑎𝑎 𝑛𝑛 𝑎𝑎 𝑛𝑛 𝑞𝑞𝑞𝑞𝑞𝑞 𝑛𝑛 𝑞𝑞
+> 12
+> 235
+> 378
+> 37
+> 156
+> 35
+> 576
+> 856
+> 21
+> 576
+> 65
+> 751
+> 12 235 378 37
+> 156 35 576 856
+
+𝑐𝑐 𝑛𝑛 𝑐𝑐 𝑞𝑞 𝑐𝑐 𝑛𝑛𝑛𝑛𝑘𝑘 
+
+𝑎𝑎𝑛𝑛𝑐𝑐𝑞𝑞 𝑖𝑖 𝑠𝑠 𝑞𝑞𝑞𝑞𝑞𝑞𝑞𝑞𝑛𝑛𝑐𝑐𝑞𝑞 
+
+𝑋𝑋 (1)
+
+𝑋𝑋 (2)
+
+𝑋𝑋 (𝑚𝑚 )      
+
+> �𝑋𝑋 2,𝑣𝑣 𝑣𝑣=1 𝑚𝑚
+> �𝑋𝑋 1,𝑣𝑣 𝑣𝑣=1 𝑚𝑚
+> �𝑋𝑋 𝑚𝑚 ,𝑣𝑣 𝑣𝑣=1 𝑚𝑚
+> 𝐶𝐶 𝑙𝑙𝑎𝑎𝑠𝑠𝑠𝑠𝑎𝑎 𝐶𝐶 𝑎𝑎𝑞𝑞𝑛𝑛 𝐶𝐶 𝑙𝑙𝑎𝑎𝑠𝑠𝑠𝑠𝑎𝑎 𝐶𝐶 𝑎𝑎𝑞𝑞𝑛𝑛 𝐶𝐶 𝑙𝑙𝑎𝑎𝑠𝑠𝑠𝑠𝑎𝑎 𝐶𝐶 𝑎𝑎𝑞𝑞𝑛𝑛
+> 𝐹𝐹 𝑛𝑛𝑛𝑛𝑐𝑐𝑞𝑞𝑛𝑛𝑎𝑎𝑞𝑞𝑠𝑠
+> 𝑆𝑆𝑆𝑆 𝑛𝑛𝑎𝑎𝑎𝑎𝑎𝑎 𝑆𝑆𝑆 − 𝑇𝑇 𝑆𝑛𝑛𝑛𝑛𝑞𝑞𝑎𝑎𝑆 𝐺𝐺 𝑛𝑛𝑎𝑎𝑐𝑐𝑎𝑎𝑞𝑞𝑛𝑛𝑆𝑆𝑠𝑠
+
+𝑃𝑃 1
+
+𝑃𝑃 2
+
+𝑃𝑃 𝑚𝑚 
+
+𝑆𝑆 
+
+𝑆𝑆 1
+
+𝑆𝑆 2
+
+𝑆𝑆 𝑚𝑚 
+
+𝑌𝑌  
+
+> ?
+> ?
+> ??
+> ?
+> ?
+> ??
+
+𝑃𝑃 
+
+> ?
+
+𝑍𝑍 (1)
+
+𝑍𝑍 (2)
+
+𝑍𝑍 (𝑚𝑚 ) 
+
+> 𝑐𝑐 𝑆𝑞𝑞𝑛𝑛𝑘𝑘 𝑐𝑐 𝑛𝑛𝑛𝑛 𝑐𝑐 𝑎𝑎𝑆𝑆
+
+̂𝑍𝑍 (1)̂𝑍𝑍 (2)̂𝑍𝑍 (𝑚𝑚 )  
+
+> 𝑛𝑛𝑎𝑎𝑠𝑠𝑠𝑠𝑎𝑎𝑛𝑛𝑎𝑎 𝑣𝑣 𝑎𝑎𝑞𝑞 𝑣𝑣
+> 𝑠𝑠 𝑞𝑞 𝑠𝑠 𝑞𝑞𝑛𝑛𝑣𝑣𝑎𝑎 𝑠𝑠 𝑛𝑛𝑛𝑛𝑞𝑞 𝑠𝑠 𝑎𝑎𝑎𝑎𝑛𝑛𝑎𝑎𝑙𝑙
+> 𝑎𝑎𝑛𝑛𝑎𝑎𝑐𝑐𝑎𝑎𝑞𝑞𝑛𝑛𝑆𝑆
+
+ℒ 𝑑𝑑𝑑𝑑𝑑𝑑 
+
+ℒ 𝑟𝑟𝑟𝑟𝑟𝑟 
+
+ℒ𝑟𝑟 
+
+ℒ 𝑣𝑣𝑣𝑣 
+
+> distance
+> 𝐹𝐹 𝑞𝑞𝑠𝑠𝑎𝑎𝑛𝑛𝑛𝑛
+
+Figure 1: The main framework of SCSD. The upper part represents the framework of multi-view consistent discrete representation learning, while the lower part represents the framework of multi-view prediction fusion and self-distillation. tion. At the same time, the features of different views can naturally align in this shared codebook embedding space, which enhances the consistency of multi-view representations. • We propose a weighted fusion method that assigns weights according to each view’s ability to preserve label correlation structures in its predictions. This method does not rely on ad-ditional external networks or learnable weights and fully exploits the structural information inherent in the supervision signals. • We introduce a fused-teacher self-distillation framework for multi-view predictions, in which the knowledge of all views is fed back to each view branch through a self-distillation loss, thereby improving the generalization ability of the model. 
+
+2 METHOD 
+
+2.1 PROBLEM DEFINITION 
+
+In this section, we define the problem and introduce the notations. We consider a multi-view dataset 
+
+{X(v)}mv=1 , where m denotes the number of views, and X(v) ∈ Rn×dv , with dv representing the original feature dimension of the v-th view and n representing the number of samples. We define a label matrix Y ∈ { 0, 1}n×c with c categories, where Yi,j = 1 indicates that the i-th sample has the 
+
+j-th label, and Yi,j = 0 indicates that the j-th label is not assigned to the i-th sample. To handle missing views, we introduce a missing-view indicator matrix W ∈ { 0, 1}n×m, where Wi,j = 1 
+
+indicates that the j-th view of the i-th sample is observed, and Wi,j = 0 otherwise. Similarly, we introduce a missing-label indicator matrix G ∈ { 0, 1}n×c, where Gi,j = 1 means the j-th label of sample i is observed and Gi,j = 0 otherwise. Missing views and labels are filled with zeros. Our goal is to train a model for multi-label classification under the condition where both views and labels are incomplete. In this paper, Xi,j , Xi, :, and X:,j denote the element, the i-th row, and the 
+
+j-th column of matrix X, respectively. 2.2 CONSISTENT DISCRETE REPRESENTATION LEARNING 
+
+In this section, we describe the process of learning multi-view consistent discrete representations through a shared codebook and cross-view reconstruction in three parts. 3Preprint 
+
+Encoding. Since the original dimensionalities dv of different views in multi-view data are not identical, we first use view-specific MLP encoders to map the raw data into a unified dimensional space de. Formally, {Z(v) = E(v)(X(v))}mv=1 , where Z(v) ∈ Rn×de denotes the continuous features of the v-th view, and E(v) denotes the MLP encoder of the v-th view. 
+
+Quantization. We subsequently discretize Z(v) through vector quantization (Van Den Oord et al., 2017), mapping each sample Z(v) 
+
+> i, :
+
+from a view into a token sequence, i.e., a sequence of discrete codes. We first define a learnable shared codebook V = {ei}ki=1 ∈ Rk×dc , which contains k codes, each of dimensionality dc. We adopt a grouped quantization method (Baevski et al., 2019), which first splits Z(v) 
+
+> i, :
+
+into g segments. For clarity, taking the i-th sample from the v-th view as an example, we obtain ˜Z(v) 
+
+> i, :
+
+= [ z1, z 2, . . . , z g ]⊤ ∈ Rg×(de/g ), where zt ∈ Rdc denotes the t-th feature segment and dc = de/g . We assign each zt its nearest codebook embedding by nearest-neighbor lookup: 
+
+t∗ = arg min  
+
+> j
+
+∥ℓ2(zt) − ℓ2(ej )∥22, j = 1 , . . . , k, (1) Thus, we obtain the optimal quantization index t∗ for the t-th feature segment zt, and denote 
+
+ˆzt = et∗ , where ℓ2(·) represents ℓ2 normalization used for codebook lookup (Yu et al., 2021). Through this quantization operation, the original continuous feature Z(v) 
+
+> i, :
+
+is mapped into an integer index sequence [1 ∗, 2∗, . . . , g ∗] ∈ { 1, . . . , k }g , where each index t∗ corresponds to one codebook embedding. Finally, we retrieve the codebook embeddings according to these indices and concate-nate them to obtain the quantized discrete representation: ˆZ(v) 
+
+> i, :
+
+= [ˆ z1; ˆ z2; . . . ; ˆ zg ] ∈ Rde , where [·; ·]
+
+denotes the concatenation operation. All other non-missing multi-view features Z(v) undergo the same quantization process to yield their discrete representations ˆZ(v).
+
+Reconstruction and Loss Function. For each view, we construct a view-specific MLP decoder to reconstruct the original view X(v) from its discrete representation ˆZ(v), denoted as {D(v)}mv=1 .To better learn multi-view consistent representations, we introduce cross-view reconstruction: each view representation is decoded by different view decoders to reconstruct the original features, i.e., 
+
+{ ˆX(j,v ) = D(j)( ˆZ(v))}mv=1 , j = 1 , . . . , m , where ˆX(j,v ) denotes the reconstructed original features of view j from the representation of view v. The reconstruction loss is defined as 
+
+Lrec = 1
+
+Pni=1 
+
+Pmj=1 
+
+Pmv=1 Wi,j Wi,v nX
+
+> i=1
+> m
+
+X
+
+> j=1
+> m
+
+X
+
+> v=1
+
+ˆX(j,v ) 
+
+> i, :
+
+− X(j) 
+
+> i, :
+> 22
+
+Wi,j Wi,v (2) We use an MSE-based reconstruction loss, where the missing-view indicator matrix W masks un-available views. The reconstruction loss is computed only when both view v and view j are avail-able, which reduces the influence of missing views on the model. Since the nearest-neighbor search in Eq 1 is non-differentiable, we follow (Van Den Oord et al., 2017) and adopt a straight-through gradient estimator: zt = sg [zt − ˆzt] + ˆ zt, where the gradient is directly copied from the decoder input to the encoder output. The codebook learning objective is defined as 
+
+L(i,v )
+
+> vq
+
+| {z }    
+
+> sample i, view v
+
+=
+
+> g
+
+X
+
+> t=1
+
+
+
+∥sg [ℓ2(zt)] − ℓ2(ˆ zt)∥22 + ∥ℓ2(zt) − sg [ℓ2(ˆ zt)] ∥22
+
+
+
+, (3) where sg [·] denotes the stop-gradient operation, i.e., sg [z] ≡ z and ddz sg [z] ≡ 0. The first term forces the codebook embeddings to be close to the encoder outputs, while the second term ensures that the encoder outputs are pulled toward a codebook embedding. We compute the loss over all non-missing samples: Lvq = 1Pni=1  
+
+> Pmv=1 Wi,v
+
+Pni=1 
+
+Pmv=1 Wi,v L(i,v ) 
+
+> vq
+
+.In this part, our multi-view consistent discrete representation learning consists of m encoders, one quantizer, and m decoders. We quantize the continuous features {Z(v)}mv=1 into discrete represen-tations { ˆZ(v)}mv=1 using the same shared codebook. Through shared codebook quantization, the features of different views are mapped into a limited set of codebook embeddings, which not only reduces redundancy but also allows common information across views to be expressed consistently in the discrete space. Moreover, our cross-view reconstruction loss further enhances the learning of consistent multi-view representations, reducing the need for additional alignment losses. 4Preprint 2.3 CLASSIFICATION AND MULTI -V IEW DECISION FUSION 
+
+In this section, we introduce how to perform multi-label classification based on the view-consistent discrete representations { ˆZ(v)}mv=1 learned in Section 2.2. 
+
+Classification. We first construct a multi-label classifier F (v) 
+
+> cls
+
+(·) for each view, which consists of a fully connected layer that maps ˆZ(v) into the label space. Formally, {P (v) = σ(F (v) 
+
+> cls
+
+( ˆZ(v))) ∈
+
+Rn×c}mv=1 , where σ(·) denotes the sigmoid activation function. 
+
+Fusion. Existing approaches for multi-view feature fusion and decision-level fusion mainly include average fusion, learnable weight fusion, uncertainty-aware fusion, and quality-discriminator-based fusion. Here, we propose to guide the evaluation of view prediction quality using label correlations, and then assign quantitative weights to each view prediction. Our method is more suitable for multi-view prediction fusion, as it fully exploits both multi-label supervision signals and label correlations. Specifically, we first compute a label correlation matrix using the conditional probability matrix, following the approach in (Hang & Zhang, 2021; Chen et al., 2019). The formulation is given as 
+
+Si,j =
+
+Pnr=1 Yr,i Yr,j 
+
+Pnr=1 Yr,i Yr,i + ε = Y ⊤ 
+
+> :,i
+
+Y:,j 
+
+Y ⊤ 
+
+> :,i
+
+Y:,i + ε (4) Here, Si,j denotes the probability of label j occurring when label i occurs, ε denotes a small scalar. The label matrix Y is taken from the training set, and the final label correlation matrix is obtained as S ∈ Rc×c. Next, we compute the label correlation matrix for each view prediction ˆP (v) 
+
+> r, :
+
+=
+
+Wr,v P (v) 
+
+> r, :
+
+in the same way: 
+
+S(v) 
+
+> i,j
+
+=
+
+Pnh 
+
+> r=1
+
+ˆP (v) 
+
+> r,i
+
+ˆP (v)
+
+> r,j
+
+Pnh 
+
+> r=1
+
+ˆP (v) 
+
+> r,i
+
+ˆP (v) 
+
+> r,i
+
++ ε = ( ˆP (v):,i )⊤ ˆP (v):,j 
+
+  ˆP (v):,i 
+
+⊤ ˆP (v):,i + ε (5) where nh denotes the batch size at the h-th training step. Through this formulation, we obtain the label correlation matrices for each view, {S(v)}mv=1 ∈ Rc×c, which are computed using the predictions from the available views in the current batch. We then measure the ability of the v-th view to preserve label correlation structures by computing the Frobenius norm between S(v)
+
+and S, which serves as an indicator of prediction quality. Before computing the difference, we symmetrize and row-normalize both matrices to obtain ˆS(v) and ˆS. The prediction quality score and view weights are defined as 
+
+q(v) = −∥ ˆS(v) − ˆS∥F , w(v) 
+
+> i
+
+= exp  q(v)/τ  · W i,v 
+
+Pmu=1 exp  q(u)/τ  · W i,u 
+
+, (6) where the second term denotes the softmax normalization with a temperature parameter τ . This yields the weights of all views, {w(v) 
+
+> i
+
+}mv=1 , i = 1 , ..., n . This method not only relies on the predic-tions of individual views but also explicitly leverages the global label correlation structure S. As a result, the weight assignment prioritizes views that align with the global label dependency patterns and reduces the influence of noisy views on the fusion results. In each batch, S(v) is updated ac-cording to the current predictions, so the weights adaptively reflect the relative quality of different views across training stages and batches, rather than remaining fixed. 
+
+Pi, : =
+
+> m
+
+X
+
+> v=1
+
+w(v) 
+
+> i
+
+P (v) 
+
+> i, :
+
+. (7) Finally, the fused prediction P ∈ Rn×c is obtained by weighted fusion. We align the fused predic-tion P with the ground-truth labels Y through the binary cross-entropy loss: 
+
+Lc = Lbce (P, Y ) = − 1
+
+Pni=1 
+
+Pcj=1 Gi,j nX
+
+> i=1
+> c
+
+X
+
+> j=1
+
+
+
+Yi,j log( Pi,j )+(1 −Yi,j ) log(1 −Pi,j )
+
+
+
+Gi,j , (8) where the missing-label indicator matrix G masks the effect of missing labels on the model. 5Preprint Table 1: The summary statistics of different datasets are presented, where c denotes the number of classes, c/n denotes the average number of positive labels per sample, n denotes the number of samples, and m denotes the number of views. Dataset c c/n n m
+
+Corel5k 260 3.396 4999 6Pascal07 20 1.465 9963 6Espgame 268 4.686 20770 6Iaprtc12 291 5.719 19627 6Mirflickr 38 4.716 25000 62.4 SELF -D ISTILLATION -B ASED PREDICTION ENHANCEMENT 
+
+After obtaining the fused prediction P , we further enhance the predictive ability of the model through a self-distillation framework (Zhang et al., 2021). Specifically, we use the multi-view fused prediction P as the teacher and the prediction of each individual view P (v) as the student, where the teacher prediction guides the learning of each student. The self-distillation loss is defined as: 
+
+Ldis = 1
+
+Pni=1 
+
+Pmv=1 Wi,v nX
+
+> i=1
+> m
+
+X
+
+> v=1
+
+h
+
+λ DKL 
+
+ sg [Pi, :] ∥ P (v)
+
+> i, :
+
+ + (1 − λ) Lbce 
+
+ P (v) 
+
+> i, :
+
+, Y i, :
+
+i
+
+Wi,v (9) where λ ∈ [0 , 1] denotes the imitation parameter, sg [·] is the stop-gradient operation defined in Sec-tion 2.2, DKL denotes the Kullback–Leibler (KL) divergence, and Lbce is the supervision loss for each view prediction P (v), similar to Eq 8. Traditional distillation minimizes the KL divergence between teacher and student probabilities, assuming class probabilities sum to one. This assump-tion fails in multi-label learning. To address this, we adopt the multi-label logit distillation (MLD) loss (Yang et al., 2023), which follows a one-versus-all strategy by decomposing the task into bi-nary problems and minimizing teacher–student probability differences for each, enabling effective distillation in multi-label learning. This self-distillation framework uses the multi-view fused prediction as the teacher, which aggre-gates information from all views and provides a comprehensive and reliable supervisory signal. Each view-specific classifier serves as a student and learns from the teacher output, enabling it to capture the global knowledge contained in the fused prediction while preserving its own view-specific char-acteristics. As a result, the framework improves consistency, robustness, and generalization during both training and inference. 2.5 OVERALL LOSS FUNCTION 
+
+Finally, we combine Eq 2, Eq 3, Eq 8, and Eq 9 to obtain the overall optimization objective of the model: 
+
+L = Lc + Ldis + αLrec + Lvq , (10) where α is a trade-off coefficient that balances the influence of different optimization objectives. This overall objective function jointly contributes to the optimization process from the perspectives of prediction accuracy, fusion self-distillation, reconstruction quality, and representation quantiza-tion. 
+
+Complexity Analysis. We first define dmax as the maximum number of neurons in the intermediate layers of the network. The computational complexities of the four loss functions Lc, Ldis , Lrec and 
+
+Lvq are O(nc ), O(nmc ), O(nm 2) and O(nmg ), respectively. The encoding–decoding stage has a time complexity of O(nm 2d2
+
+> max
+
+), and the quantization process has a time complexity of O(nmgk ).The overall time complexity is thus O(nm 2d2 
+
+> max
+
++ nmgk + nc + nmc + nm 2 + nmg ). In summary, the overall computational cost of SCSD is dominated by the multi-view encoding–decoding process. The overall complexity grows linearly with the sample size n, and the framework exhibits good scalability in multi-view scenarios. 6Preprint Table 2: The results under the setting of 50% missing views, 50% missing labels, and 70% training data are reported. The table lists mean and standard deviation (bottom-right). Ave.R denotes the average rank across metrics. Bold numbers indicate the best results, and underlined numbers indicate the second-best. 
+
+Dataset Metric iMvWL NAIM3L DDINet DICNet MTD SIP RANK DRLS SCSD Sources IJCAI’18 TPAMI’22 TNNLS’23 AAAI’23 NeurIPS’23 ICML’24 TPAMI’25 CVPR’25 —Corel5k AP 0.283 0.008 0.309 0.004 0.360 0.009 0.378 0.004 0.413 0.007 0.416 0.015 0.425 0.009 0.433 0.008 0.447 0.447 0.447 0.010 
+
+1-HL 0.978 0.000 0.987 0.000 0.987 0.000 0.987 0.000 0.988 0.988 0.988 0.000 0.988 0.988 0.988 0.000 0.988 0.988 0.988 0.000 0.988 0.988 0.988 0.000 0.988 0.988 0.988 0.000 
+
+1-RL 0.865 0.005 0.878 0.002 0.865 0.005 0.877 0.004 0.892 0.004 0.910 0.003 0.913 0.003 0.916 0.002 0.920 0.920 0.920 0.002 
+
+AUC 0.868 0.005 0.881 0.002 0.868 0.005 0.881 0.003 0.895 0.004 0.912 0.003 0.915 0.003 0.918 0.002 0.923 0.923 0.923 0.003 
+
+1-OE 0.311 0.015 0.350 0.009 0.437 0.012 0.464 0.012 0.491 0.010 0.492 0.018 0.490 0.014 0.509 0.019 0.526 0.526 0.526 0.018 
+
+1-Cov 0.702 0.008 0.725 0.005 0.689 0.012 0.714 0.010 0.748 0.009 0.786 0.007 0.798 0.005 0.804 0.006 0.811 0.811 0.811 0.006 
+
+Ave.R 8.500 6.667 7.500 6.333 4.167 3.333 3.000 1.833 1.000 1.000 1.000 
+
+> Pascal07
+
+AP 0.437 0.018 0.488 0.003 0.532 0.010 0.502 0.007 0.550 0.004 0.550 0.009 0.554 0.009 0.567 0.008 0.578 0.578 0.578 0.009 
+
+1-HL 0.882 0.004 0.928 0.001 0.932 0.001 0.930 0.001 0.932 0.001 0.931 0.002 0.932 0.001 0.934 0.934 0.934 0.001 0.934 0.934 0.934 0.001 
+
+1-RL 0.736 0.015 0.783 0.001 0.808 0.005 0.781 0.007 0.830 0.003 0.825 0.006 0.826 0.004 0.843 0.004 0.846 0.846 0.846 0.005 
+
+AUC 0.767 0.015 0.811 0.001 0.829 0.004 0.805 0.006 0.849 0.004 0.845 0.005 0.848 0.005 0.864 0.003 0.866 0.866 0.866 0.004 
+
+1-OE 0.362 0.023 0.421 0.006 0.448 0.015 0.426 0.013 0.457 0.008 0.463 0.012 0.465 0.015 0.477 0.011 0.489 0.489 0.489 0.011 
+
+1-Cov 0.677 0.015 0.727 0.002 0.757 0.005 0.728 0.007 0.783 0.004 0.777 0.005 0.779 0.005 0.798 0.004 0.801 0.801 0.801 0.005 
+
+Ave.R 8.833 7.500 5.333 7.167 3.500 4.833 3.500 1.833 1.000 1.000 1.000 
+
+> Espgame
+
+AP 0.244 0.005 0.246 0.002 0.286 0.004 0.299 0.004 0.306 0.003 0.310 0.004 0.314 0.004 0.326 0.005 0.345 0.345 0.345 0.004 
+
+1-HL 0.972 0.000 0.983 0.983 0.983 0.000 0.983 0.983 0.983 0.000 0.983 0.983 0.983 0.000 0.983 0.983 0.983 0.000 0.983 0.983 0.983 0.000 0.983 0.983 0.983 0.000 0.983 0.983 0.983 0.000 0.983 0.983 0.983 0.000 
+
+1-RL 0.808 0.002 0.818 0.002 0.815 0.003 0.833 0.003 0.837 0.001 0.849 0.002 0.849 0.002 0.858 0.002 0.863 0.863 0.863 0.002 
+
+AUC 0.813 0.002 0.824 0.002 0.819 0.003 0.837 0.002 0.842 0.001 0.853 0.002 0.853 0.002 0.862 0.002 0.867 0.867 0.867 0.002 
+
+1-OE 0.343 0.013 0.339 0.003 0.427 0.010 0.437 0.010 0.448 0.006 0.451 0.012 0.460 0.010 0.473 0.001 0.491 0.491 0.491 0.010 
+
+1-Cov 0.548 0.004 0.571 0.003 0.553 0.005 0.598 0.006 0.601 0.004 0.628 0.004 0.632 0.005 0.652 0.003 0.657 0.657 0.657 0.004 
+
+Ave.R 8.833 6.500 6.500 5.167 4.333 3.167 2.667 1.833 1.000 1.000 1.000 
+
+> Iaprtc12
+
+AP 0.237 0.003 0.261 0.001 0.302 0.005 0.327 0.005 0.332 0.002 0.331 0.007 0.347 0.004 0.356 0.006 0.385 0.385 0.385 0.005 
+
+1-HL 0.969 0.000 0.980 0.000 0.980 0.000 0.980 0.000 0.981 0.981 0.981 0.000 0.981 0.981 0.981 0.000 0.981 0.981 0.981 0.000 0.981 0.981 0.981 0.000 0.981 0.981 0.981 0.000 
+
+1-RL 0.833 0.002 0.848 0.001 0.853 0.002 0.872 0.002 0.875 0.001 0.887 0.004 0.888 0.002 0.896 0.003 0.903 0.903 0.903 0.002 
+
+AUC 0.835 0.001 0.850 0.001 0.855 0.003 0.873 0.001 0.876 0.001 0.888 0.003 0.889 0.002 0.898 0.002 0.905 0.905 0.905 0.002 
+
+1-OE 0.352 0.008 0.390 0.005 0.435 0.009 0.465 0.013 0.471 0.006 0.466 0.001 0.486 0.012 0.490 0.012 0.514 0.514 0.514 0.008 
+
+1-Cov 0.564 0.005 0.592 0.004 0.594 0.007 0.648 0.005 0.649 0.002 0.679 0.008 0.686 0.006 0.707 0.007 0.721 0.721 0.721 0.005 
+
+Ave.R 9.000 7.667 6.833 6.000 4.000 3.833 2.667 1.833 1.000 1.000 1.000 
+
+> Mirflickr
+
+AP 0.490 0.012 0.551 0.002 0.588 0.003 0.586 0.005 0.608 0.004 0.615 0.004 0.606 0.006 0.630 0.005 0.634 0.634 0.634 0.005 
+
+1-HL 0.839 0.002 0.882 0.001 0.888 0.001 0.888 0.001 0.891 0.001 0.891 0.001 0.891 0.001 0.895 0.895 0.895 0.001 0.895 0.895 0.895 0.001 
+
+1-RL 0.803 0.008 0.844 0.001 0.865 0.002 0.861 0.004 0.875 0.001 0.878 0.002 0.874 0.002 0.885 0.002 0.888 0.888 0.888 0.002 
+
+AUC 0.787 0.012 0.837 0.001 0.853 0.002 0.848 0.004 0.861 0.002 0.864 0.002 0.860 0.003 0.872 0.003 0.873 0.873 0.873 0.002 
+
+1-OE 0.511 0.022 0.585 0.003 0.636 0.008 0.642 0.006 0.656 0.004 0.664 0.006 0.654 0.009 0.686 0.686 0.686 0.009 0.686 0.686 0.686 0.006 
+
+1-Cov 0.572 0.013 0.631 0.002 0.654 0.003 0.646 0.006 0.677 0.002 0.676 0.004 0.673 0.004 0.692 0.003 0.695 0.695 0.695 0.004 
+
+Ave.R 9.000 8.000 6.167 6.500 3.667 3.167 4.667 1.667 1.000 1.000 1.000 
+
+3 EXPERIMENTS 
+
+3.1 DATASETS AND METRICS 
+
+Datasets. We follow the experimental settings in several IMVMLC studies to comprehensively evaluate the performance of the proposed model (Liu et al., 2024b; Yan et al., 2025). We conduct experiments on five multi-view multi-label datasets, namely Corel5k (Duygulu et al., 2002), Pas-cal07 (Everingham et al., 2010), Espgame (Von Ahn & Dabbish, 2004), Iaprtc12 (Grubinger et al., 2006), and Mirflickr (Huiskes & Lew, 2008). More details about these datasets are provided in Table 1. We use six different types of features from these datasets as six views: DenseSift (1000), DenseHue (100), GIST (512), RGB (4096), LAB (4096), and HSV (4096), where the number in parentheses denotes the feature dimensionality. 
+
+Evaluation Metrics. Following previous work (Liu et al., 2023b; 2024c), we evaluate our model and all baseline methods using six commonly used metrics for multi-label classification. These include Average Precision (AP), Hamming Loss (HL), Adapted Area Under Curve (AUC), Ranking Loss (RL), OneError (OE), and Coverage (Cov). For four of these metrics, we record 1−HL, 1−RL, 
+
+1−OE, and 1−Cov in figures and tables. In this way, all six evaluation metrics follow a consistent convention: a larger value indicates better performance. 7Preprint AP 
+
+> [0.31,0.56]
+> 1-HL
+> [0.98,0.99]
+> 1-RL
+> [0.88,0.95]
+> AUC
+> [0.89,0.95]
+> 1-OE
+> [0.36,0.65]
+> 1-Cov
+> [0.74,0.87]
+> IMvWL
+> NAIM3L
+> DDINet
+> DICNet
+> MTD
+> SIP
+> RANK
+> DRLS
+> SCSD
+> SIP
+> RANK
+> DRLS
+> SCSD
+
+(a) Corel5k AP  
+
+> [0.47,0.67]
+> 1-HL
+> [0.89,0.94]
+> 1-RL
+> [0.76,0.90]
+> AUC
+> [0.79,0.91]
+> 1-OE
+> [0.41,0.59]
+> 1-Cov
+> [0.70,0.86]
+> IMvWL
+> NAIM3L
+> DDINet
+> DICNet
+> MTD
+> SIP
+> RANK
+> DRLS
+> SCSD
+> SIP
+> RANK
+> DRLS
+> SCSD
+
+(b) Pascal07 AP  
+
+> [0.25,0.42]
+> 1-HL
+> [0.97,0.98]
+> 1-RL
+> [0.82,0.90]
+> AUC
+> [0.82,0.90]
+> 1-OE
+> [0.35,0.56]
+> 1-Cov
+> [0.57,0.73]
+> IMvWL
+> NAIM3L
+> DDINet
+> DICNet
+> MTD
+> SIP
+> RANK
+> DRLS
+> SCSD
+> SIP
+> RANK
+> DRLS
+> SCSD
+
+(c) Espgame AP 
+
+> [0.25,0.47]
+> 1-HL
+> [0.97,0.98]
+> 1-RL
+> [0.84,0.93]
+> AUC
+> [0.84,0.93]
+> 1-OE
+> [0.38,0.60]
+> 1-Cov
+> [0.58,0.79]
+> IMvWL
+> NAIM3L
+> DDINet
+> DICNet
+> MTD
+> SIP
+> RANK
+> DRLS
+> SCSD
+> SIP
+> RANK
+> DRLS
+> SCSD
+
+(d) Iaprtc12 AP  
+
+> [0.49,0.69]
+> 1-HL
+> [0.84,0.91]
+> 1-RL
+> [0.81,0.91]
+> AUC
+> [0.79,0.90]
+> 1-OE
+> [0.52,0.76]
+> 1-Cov
+> [0.58,0.74]
+> IMvWL
+> NAIM3L
+> DDINet
+> DICNet
+> MTD
+> SIP
+> RANK
+> DRLS
+> SCSD
+> SIP
+> RANK
+> DRLS
+> SCSD
+
+(e) Mirflickr 
+
+Figure 2: The radar charts are based on results with complete views, complete labels, and 70% training data, covering nine methods, five datasets, and six metrics. In each chart, the center denotes the worst result and the vertex denotes the best. 1e-3 
+
+1e-2 
+
+1e-1 
+
+2e-1 
+
+3e-1 
+
+5e-1 
+
+1e-2 
+
+1e-1 
+
+1e0 
+
+5e0 
+
+1e1 
+
+2e1 
+
+AP 
+
+0.20 
+
+0.25 
+
+0.30 
+
+0.35 
+
+0.40 
+
+(a) Corel5k 1e-3 
+
+1e-2 
+
+1e-1 
+
+2e-1 
+
+3e-1 
+
+5e-1 
+
+1e-2 
+
+1e-1 
+
+1e0 
+
+5e0 
+
+1e1 
+
+2e1 
+
+AP 
+
+0.20 
+
+0.30 
+
+0.40 
+
+0.50 
+
+0.60 (b) Pascal07 1e-1 3e-1 5e-1 1e0 5e0 1e1 
+
+0.30 
+
+0.35 
+
+0.40 
+
+0.45 
+
+0.50 
+
+> AP
+
+AP 
+
+AUC 
+
+0.80 
+
+0.85 
+
+0.90 
+
+0.95 
+
+1.00 
+
+> AUC
+
+(c) Corel5k 1e-1 3e-1 5e-1 1e0 5e0 1e1 
+
+0.40 
+
+0.45 
+
+0.50 
+
+0.55 
+
+0.60 
+
+0.65 
+
+0.70 
+
+> AP
+
+AP 
+
+AUC 
+
+0.80 
+
+0.85 
+
+0.90 
+
+0.95 
+
+1.00  
+
+> AUC
+
+(d) Pascal07 
+
+Figure 3: The parameter sensitivity analysis of the SCSD model is conducted under the setting of 50% missing views, 50% missing labels, and 70% training data. 3.2 COMPARISON METHODS 
+
+To more comprehensively evaluate the effectiveness of the proposed method, we select eight incom-plete multi-view multi-label learning methods specifically designed for the dual-missing problem as baselines in the comparative experiments. This enables a more comprehensive evaluation of the model’s ability to handle dual-missing scenarios. The specific methods include iMvWL (Tan et al., 2018), NAIM3L (Li & Chen, 2021), DDINet (Wen et al., 2023), DICNet (Liu et al., 2023b), MTD (Liu et al., 2024b), SIP (Liu et al., 2024c), RANK (Liu et al., 2025), and DRLS (Yan et al., 2025), whose related descriptions are already provided in the Introduction 1 and Related Work A.1 sections. 3.3 IMPLEMENTATION DETAILS 
+
+To simulate the random missingness of multi-view and multi-label data in real-world scenarios, we follow previous studies to generate missing data (Tan et al., 2018; Liu et al., 2024c). Specifically, for 8Preprint multi-view data, we randomly discard 50% of the views while ensuring that each sample retains at least one available view. For multi-label data, we randomly discard 50% of the positive and negative labels, and we use zeros to fill in the missing views and labels. The dataset is divided into 70% for training and 30% for validation and testing. The proposed SCSD model is implemented in PyTorch and the experiments are conducted on an Ubuntu operating system with an RTX 4090 GPU and an i9-13900K CPU. The learning rate is set to 0.001, the optimizer is AdamW with a weight decay of 0.001, and the batch size is 128. The codebook is initialized with k-means, the codebook size k is set to 2048, and the codebook embedding dimension dc is set to 4. 3.4 EXPERIMENTAL RESULTS 
+
+Table 2 compares eight state-of-the-art methods on five public multi-view multi-label datasets, with both view and label missing rates set to 50%. It can be observed that the proposed SCSD model out-performs all baseline methods, especially on the AP metric of the Espgame and Iaprtc12 datasets, where SCSD achieves improvements of 5.83% and 8.15% over the second-best method, DRLS. The Espgame and Iaprtc12 datasets have more complex label spaces, which introduce a higher level of learning difficulty. Achieving significant improvements under these more challenging label struc-tures indicates that SCSD has a stronger capability to model complex multi-label relationships and learn cross-view consistency. Compared with DICNet, which learns multi-view consistent features through contrastive loss, and SIP, which suppresses non-shared information based on the informa-tion bottleneck principle to obtain consistent representations, the proposed SCSD achieves average improvements of 14.94% and 8.65% in AP across the five datasets. These results clearly demon-strate the advantage of SCSD in multi-view consistent representation learning. This comparative experiment thoroughly validates the effectiveness of SCSD for multi-label classification under the dual-missing scenario. In addition, we also conduct comparative experiments under the setting of complete views and com-plete labels, as shown in Figure 2. It can be observed that SCSD achieves the best performance on most metrics across five datasets, which strongly demonstrates the generality of SCSD. Under the condition where both views and labels are complete, SCSD still achieves the best or near-best performance on most metrics. This suggests that the consistency representation learning mecha-nism built on the multi-view shared codebook has strong inherent representational capacity, and its effectiveness is not limited to cases with missing information. 3.5 PARAMETER ANALYSIS 
+
+Our model contains three hyperparameters: α in Lrec , λ in Ldis , and the softmax temperature parameter τ in decision fusion. Figure 3 presents the parameter sensitivity results of the SCSD model. Figures 3a and 3b show the AP metric of SCSD on Corel5k and Pascal07 under different combinations of α and λ. We observe that on the Corel5k dataset, SCSD exhibits performance fluctuations when α = 1 e − 2 or α = 2 e1, which are extreme values, while on Pascal07 the performance of SCSD remains relatively stable. On Corel5k, the best results are obtained when α
+
+takes values in the range [1 e − 2, 1e0] and λ takes values in the range [1 e − 2, 2e − 1] , whereas on Pascal07, better performance is achieved when α takes values in the range [5 e0, 2e1] and λ takes values in the range [1 e − 2, 2e − 1] . Figures 3c and 3d present the influence of τ on the model, where the left y-axis indicates AP and the right y-axis indicates AUC. The proposed method is not sensitive to variations of the temperature parameter τ . On Corel5k, τ takes values in the range [5 e − 1, 5e0] 
+
+to achieve the best results, while on Pascal07, τ takes values in the range [1 e − 1, 5e − 1] for the best performance. 3.6 ABLATION STUDY 
+
+Table 3 presents the ablation study of SCSD, where the gray background in the middle highlights the full version of SCSD. The upper part removes different loss functions. Among them, Ldis KL 
+
+denotes the first term in Ldis , which encourages the student to imitate the output of the fused teacher. We observe that removing any loss function leads to a performance drop of SCSD. The lower part of the table removes certain structural designs. In the fifth row, “w/o VQ” indicates that vector quantization is not used, and the continuous features {Z(v)}mv=1 output by the encoder are directly employed. A clear performance drop is observed, since our multi-view shared codebook design 9Preprint Table 3: The ablation results on two datasets under the setting of 50% missing views, 50% missing labels, and 70% training data are reported. Here, “w/o” denotes “without”. The bold numbers indicate the best results, while the underlined numbers indicate the second-best results. Method Corel5k Pascal07 AP 1-RL AUC AP 1-RL AUC SCSD w/o Ldis 0.376 0.882 0.884 0.560 0.834 0.855 
+
+SCSD w/o Ldis KL 0.411 0.906 0.909 0.572 0.843 0.864 
+
+SCSD w/o Lrec 0.439 0.916 0.919 0.560 0.839 0.860 
+
+SCSD SCSD SCSD 0.447 0.447 0.447 0.920 0.920 0.920 0.923 0.923 0.923 0.578 0.578 0.578 0.846 0.846 0.846 0.866 0.866 0.866 
+
+SCSD w/o VQ 0.430 0.914 0.916 0.565 0.841 0.860 
+
+SCSD w/o cross view rec 0.442 0.918 0.921 0.553 0.837 0.859 
+
+SCSD w/o S fusion 0.445 0.919 0.922 0.570 0.844 0.864 
+
+better supports consistent representation learning. In the sixth row, “w/o cross view rec” denotes removing cross-view reconstruction and training with standard single-view reconstruction, which also results in performance degradation to some extent. The last row, “w/o S fusion,” denotes re-moving our weighted fusion strategy and replacing it with a simple masked average fusion strategy: 
+
+Pi, : = ( Pmv=1 P (v) 
+
+> i, :
+
+Wi,v )/ Pmv=1 Wi,v , where we observe a performance decline, especially on the Pascal07 dataset. This is because Pascal07 has 20 labels, which provide a more reliable label correla-tion matrix S, enabling our fusion strategy to better identify the quality of predictions from different views. Overall, we find that the contributions of the multi-view shared codebook and self-distillation are the most significant for the performance of SCSD. 
+
+4 CONCLUSION 
+
+In this paper, we propose a novel method for incomplete multi-view multi-label classification. First, we use a multi-view shared codebook to learn consistent discrete representations across views, and we further enhance the consistency of different view representations through a cross-view recon-struction mechanism. Then, we allocate different weights by evaluating the ability of each view prediction to preserve label correlation structures, and we perform weighted fusion to obtain the fused prediction. Finally, we use the fused prediction as the teacher to guide the learning of each view prediction, and we feed the knowledge of all views back into each view-specific branch through the self-distillation loss, thereby improving the generalization ability of the model. Extensive exper-iments demonstrate that the SCSD method effectively addresses the problem of multi-view multi-label classification under dual-missing conditions. 
+
+Limitations. Although our method achieves strong performance on the incomplete multi-view multi-label learning task, it still has several limitations that may affect its applicability in broader scenarios. First, introducing a multi-view shared codebook brings additional memory and compu-tational overhead. The memory overhead mainly comes from storing and updating the codebook embeddings, while the computational cost is largely due to computing the distance matrix between input features and the codebook embeddings during quantization. In addition, the quantization mod-ules in SCSD assume that representations from different views can be aligned in a shared latent space. When the view-missing rate becomes very high, the amount of cross-view information avail-able for alignment is greatly reduced, which can weaken the generalization ability of the shared codebook mechanism. REPRODUCIBILITY STATEMENT 
+
+All experiments in this paper are conducted on five publicly available multi-view multi-label datasets, ensuring that no private or proprietary data are used. The pseudocode of the training procedure is provided in Appendix A.2. The source code of SCSD is available on GitHub. ACKNOWLEDGMENTS 
+
+This work was supported by the National Natural Science Foundation of China (Grant No. 62476166 and No. 62576206). 10 Preprint 
+
+REFERENCES 
+
+Alexei Baevski, Steffen Schneider, and Michael Auli. vq-wav2vec: Self-supervised learning of discrete speech representations. arXiv preprint arXiv:1910.05453 , 2019. Ze-Sen Chen, Xuan Wu, Qing-Guo Chen, Yao Hu, and Min-Ling Zhang. Multi-view partial multi-label learning with graph-based disambiguation. In Proceedings of the AAAI Conference on arti-ficial intelligence , volume 34, pp. 3553–3560, 2020. Zhao-Min Chen, Xiu-Shen Wei, Peng Wang, and Yanwen Guo. Multi-label image recognition with graph convolutional networks. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pp. 5177–5186, 2019. Pinar Duygulu, Kobus Barnard, Joao FG de Freitas, and David A Forsyth. Object recognition as machine translation: Learning a lexicon for a fixed image vocabulary. In Computer Vision—ECCV 2002: 7th European Conference on Computer Vision Copenhagen, Denmark, May 28–31, 2002 Proceedings, Part IV 7 , pp. 97–112. Springer, 2002. Mark Everingham, Luc Van Gool, Christopher KI Williams, John Winn, and Andrew Zisserman. The pascal visual object classes (voc) challenge. International journal of computer vision , 88: 303–338, 2010. Michael Grubinger, Paul Clough, Henning M¨ uller, and Thomas Deselaers. The iapr tc-12 bench-mark: A new evaluation resource for visual information systems. In International workshop ontoImage , volume 2, 2006. Jun-Yi Hang and Min-Ling Zhang. Collaborative learning of label semantics and deep label-specific features for multi-label classification. IEEE Transactions on Pattern Analysis and Machine Intel-ligence , 44(12):9860–9871, 2021. Mark J Huiskes and Michael S Lew. The mir flickr retrieval evaluation. In Proceedings of the 1st ACM international conference on Multimedia information retrieval , pp. 39–43, 2008. Xiang Li and Songcan Chen. A concise yet effective model for non-aligned incomplete multi-view and missing multi-label learning. IEEE Transactions on Pattern Analysis and Machine Intelligence , 44(10):5918–5932, 2021. Bo Liu, Weibin Li, Yanshan Xiao, Xiaodong Chen, Laiwang Liu, Changdong Liu, Kai Wang, and Peng Sun. Multi-view multi-label learning with high-order label correlation. Information Sci-ences , 624:165–184, 2023a. Chengliang Liu, Jie Wen, Xiaoling Luo, Chao Huang, Zhihao Wu, and Yong Xu. Dicnet: Deep instance-level contrastive network for double incomplete multi-view multi-label classification. In 
+
+Proceedings of the AAAI conference on artificial intelligence , volume 37, pp. 8807–8815, 2023b. Chengliang Liu, Jie Wen, Xiaoling Luo, and Yong Xu. Incomplete multi-view multi-label learning via label-guided masked view-and category-aware transformers. In Proceedings of the AAAI conference on artificial intelligence , volume 37, pp. 8816–8824, 2023c. Chengliang Liu, Jinlong Jia, Jie Wen, Yabo Liu, Xiaoling Luo, Chao Huang, and Yong Xu. Attention-induced embedding imputation for incomplete multi-view partial multi-label classifi-cation. In Proceedings of the AAAI conference on artificial intelligence , volume 38, pp. 13864– 13872, 2024a. Chengliang Liu, Jie Wen, Yabo Liu, Chao Huang, Zhihao Wu, Xiaoling Luo, and Yong Xu. Masked two-channel decoupling framework for incomplete multi-view weak multi-label learning. Ad-vances in Neural Information Processing Systems , 36, 2024b. Chengliang Liu, Gehui Xu, Jie Wen, Yabo Liu, Chao Huang, and Yong Xu. Partial multi-view multi-label classification via semantic invariance learning and prototype modeling. In Forty-first international conference on machine learning , 2024c. 11 Preprint Chengliang Liu, Jie Wen, Yong Xu, Bob Zhang, Liqiang Nie, and Min Zhang. Reliable representa-tion learning for incomplete multi-view missing multi-label classification. IEEE Transactions on Pattern Analysis and Machine Intelligence , 47(6):4940–4956, 2025. doi: 10.1109/TPAMI.2025. 3546356. Gengyu Lyu, Xiang Deng, Yanan Wu, and Songhe Feng. Beyond shared subspace: A view-specific fusion for multi-view multi-label learning. In Proceedings of the AAAI conference on artificial intelligence , volume 36, pp. 7647–7654, 2022. Tal Ridnik, Emanuel Ben-Baruch, Nadav Zamir, Asaf Noy, Itamar Friedman, Matan Protter, and Lihi Zelnik-Manor. Asymmetric loss for multi-label classification. In Proceedings of the IEEE/CVF international conference on computer vision , pp. 82–91, 2021. Qiaoyu Tan, Guoxian Yu, Carlotta Domeniconi, Jun Wang, and Zili Zhang. Incomplete multi-view weak-label learning. In Ijcai , pp. 2703–2709, 2018. Aaron Van Den Oord, Oriol Vinyals, et al. Neural discrete representation learning. Advances in neural information processing systems , 30, 2017. Luis Von Ahn and Laura Dabbish. Labeling images with a computer game. In Proceedings of the SIGCHI conference on Human factors in computing systems , pp. 319–326, 2004. Jie Wen, Chengliang Liu, Shijie Deng, Yicheng Liu, Lunke Fei, Ke Yan, and Yong Xu. Deep double incomplete multi-view multi-label learning with incomplete labels and missing views. IEEE transactions on neural networks and learning systems , 2023. Xuan Wu, Qing-Guo Chen, Yao Hu, Dengbao Wang, Xiaodong Chang, Xiaobo Wang, and Min-Ling Zhang. Multi-view multi-label learning with view-specific information extraction. In IJCAI ,pp. 3884–3890, 2019. Xiaoqiang Yan, Shizhe Hu, Yiqiao Mao, Yangdong Ye, and Hui Yu. Deep multi-view learning methods: A review. Neurocomputing , 448:106–129, 2021. Xu Yan, Jun Yin, and Jie Wen. Incomplete multi-view multi-label learning via disentangled rep-resentation and label semantic embedding. In Proceedings of the Computer Vision and Pattern Recognition Conference , pp. 30722–30731, 2025. Penghui Yang, Ming-Kun Xie, Chen-Chen Zong, Lei Feng, Gang Niu, Masashi Sugiyama, and Sheng-Jun Huang. Multi-label knowledge distillation. In Proceedings of the IEEE/CVF interna-tional conference on computer vision , pp. 17271–17280, 2023. Jun Yin and Shiliang Sun. Incomplete multi-view clustering with reconstructed views. IEEE Trans-actions on Knowledge and Data Engineering , 35(3):2671–2682, 2021. Jiahui Yu, Xin Li, Jing Yu Koh, Han Zhang, Ruoming Pang, James Qin, Alexander Ku, Yuanzhong Xu, Jason Baldridge, and Yonghui Wu. Vector-quantized image modeling with improved vqgan. 
+
+arXiv preprint arXiv:2110.04627 , 2021. Zhiwen Yu, Ziyang Dong, Chenchen Yu, Kaixiang Yang, Ziwei Fan, and CL Philip Chen. A review on multi-view learning. Frontiers of Computer Science , 19(7):197334, 2025. Linfeng Zhang, Chenglong Bao, and Kaisheng Ma. Self-distillation: Towards efficient and compact neural networks. IEEE Transactions on Pattern Analysis and Machine Intelligence , 44(8):4388– 4403, 2021. Dawei Zhao, Qingwei Gao, Yixiang Lu, Dong Sun, and Yusheng Cheng. Consistency and diversity neural network multi-view multi-label learning. Knowledge-Based Systems , 218:106841, 2021. Jing Zhao, Xijiong Xie, Xin Xu, and Shiliang Sun. Multi-view learning overview: Recent progress and new challenges. Information Fusion , 38:43–54, 2017. 12 Preprint 
+
+A APPENDIX 
+
+A.1 RELATED WORK 
+
+Multi-View Multi-Label Learning . Under complete views and labels, several representative meth-ods have been proposed. SIMM (Wu et al., 2019) jointly optimizes a confusion-adversarial loss and a multi-label loss to exploit shared information, while imposing orthogonal constraints on the shared subspace to preserve discriminative features. To explicitly address both view consistency and diver-sity, CDMM (Zhao et al., 2021) models view consistency with independent classifiers, incorporates the Hilbert–Schmidt independence criterion to capture diversity, and introduces label correlations and view contribution factors to enhance performance. From a graph-based perspective, D-VSM (Lyu et al., 2022) encodes view features with deep GCNs and integrates cross-view relations within a unified graph. Moreover, focusing on label dependency modeling, ELSMML (Liu et al., 2023a) constructs a label correlation matrix using high-order strategies, combines dimensionality reduction to extract latent semantic features, introduces manifold regularization to preserve structural infor-mation, and trains classifiers with an accelerated optimization algorithm. 
+
+Incomplete Multi-View Multi-Label Learning . To handle missing views and labels, several meth-ods have been developed for incomplete multi-view multi-label learning. iMvWL (Tan et al., 2018) learns cross-view relationships and weak label information simultaneously in the shared subspace, while capturing local label correlations and learning the corresponding predictors. To tackle label insufficiency and view misalignment under incomplete settings, NAIM3L (Li & Chen, 2021) alle-viates label insufficiency through consistency constraints and label structure modeling, and jointly models both global and local structures in a common label space. From a network architecture perspective, DDINet (Wen et al., 2023) consists of feature extraction, weighted fusion, classifica-tion, and decoding modules, effectively integrating available data and labels under dual-missing scenarios. By introducing a masked mechanism, MTD (Liu et al., 2024b) proposes a masked dual-channel disentanglement framework that separates representations into shared and private channels, and enhances feature learning with contrastive loss and graph regularization. Moreover, focusing on representation disentanglement, DRLS (Yan et al., 2025) extracts shared features via cross-view re-construction, learns view-specific features with mutual information constraints, and leverages label correlations to guide semantic embeddings for preserving topological structures. 
+
+Algorithm 1: The training process of SCSD 
+
+Input: Incomplete multi-view data {X(v)}mv=1 , incomplete label matrix Y , missing-view indicator matrix W, missing-label indicator matrix G, hyperparameters α, λ, and τ ,and training epochs H.
+
+Output: Prediction P.  
+
+> 1
+
+Initialize the model parameters. Use Eq 4 to compute the label correlation matrix S. Set 
+
+codebook initialized = False.  
+
+> 2
+
+for h = 1 to H do  
+
+> 3
+
+Extract multi-view continuous features {Z(v) = E(v)(X(v))}mv=1 through the encoders.  
+
+> 4
+
+Split the non-missing features {Z(v)}mv=1 into feature segments 
+
+{ ˜Z(v) 
+
+> i, :
+
+= [ z1, z 2, . . . , z g ]⊤ ∈ R g×(de/g ) | i = 1 , . . . , n, v = 1 , . . . , m, Wi,v ̸ = 0 }. 
+
+> 5
+
+if not codebook initialized then  
+
+> 6
+
+Use all available view features { ˜Z(v) 
+
+> i, :
+
+} within the current batch to perform k-means clustering for initializing the codebook embeddings.  
+
+> 7
+
+codebook initialized = True  
+
+> 8
+
+Use Eq 1 to find the nearest codebook embedding et∗ for each zt, and concatenate them to obtain the discrete features { ˆZ(v)}mv=1 . 
+
+> 9
+
+Obtain the cross-view reconstruction results through the decoders: 
+
+{ ˆX(j,v ) = D(j)( ˆZ(v))}mv=1 , j = 1 , . . . , m . 
+
+> 10
+
+Obtain the predictions of each view through the classifiers: {P (v) = σ(F (v) 
+
+> cls
+
+( ˆZ(v))) }mv=1 . 
+
+> 11
+
+Compute the weights according to Eq 5, 6, 7 and obtain the fused multi-view prediction P . 
+
+> 12
+
+Compute the overall loss L according to Eq 10 and update the parameters. 13 Preprint AP 1-RL AUC 
+
+> Metrics
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> Value
+> 0%
+> 30%
+> 50%
+> 70%
+
+(a) Corel5k(View Missing) AP 1-RL AUC  
+
+> Metrics
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> Value
+> 0%
+> 30%
+> 50%
+> 70%
+
+(b) Pascal07(View Missing) AP 1-RL AUC  
+
+> Metrics
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> Value
+> 0%
+> 30%
+> 50%
+> 70%
+
+(c) Corel5k(Label Missing) AP 1-RL AUC 
+
+> Metrics
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> Value
+> 0%
+> 30%
+> 50%
+> 70%
+
+(d) Pascal07(Label Missing) AP 1-RL AUC  
+
+> Metrics
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> Value
+> 10%
+> 30%
+> 50%
+> 70%
+
+(e) Corel5k(Train Ratio) AP 1-RL AUC  
+
+> Metrics
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> Value
+> 10%
+> 30%
+> 50%
+> 70%
+
+(f) Pascal07(Train Ratio) 
+
+Figure 4: The experimental results of the SCSD model under different view-missing rates, different label-missing rates, and different training set proportions are reported. The figure presents two datasets and three evaluation metrics. A.2 ALGORITHM 
+
+The training procedure of the SCSD model is provided in Algorithm 1. A.3 ADDITIONAL EXPERIMENTAL RESULTS 
+
+Missing and Training Sample Rates Analysis. Figures 4a and 4b show the results of the SCSD model under different view-missing rates when the label-missing rate is fixed at 50%. Figures 4c and 4d present the results under different label-missing rates when the view-missing rate is fixed at 50%. As the view-missing rate or the label-missing rate gradually increases, the model performance also decreases. However, our model is able to maintain relatively stable performance even when the missing rate reaches 70%. Moreover, we observe that increasing the view-missing rate has a greater impact on our model than increasing the label-missing rate. This is because our model relies on the learned multi-view consistent representations, and the quality of the learned representations decreases when the view-missing rate increases. Figures 4e and 4f show the results of SCSD under 50% missing views and 50% missing labels with different proportions of the training set. As the proportion of the training set increases, the model performance also improves. Furthermore, our model achieves a satisfactory result even under the extreme case of only 10% training data. 
+
+Additional Parameter Analysis. In Figures 5a and 5b, we also retrain and evaluate the model with different scales of the codebook size k and the codebook embedding dimension dc to systematically analyze the impact of the multi-view shared codebook on representation capacity and final perfor-mance. The experimental results show that appropriately increasing the codebook size improves the model performance within a certain range, but overly large values lead to higher computational cost with diminishing returns. At the same time, a smaller embedding dimension stabilizes the quantiza-tion process and improves codebook utilization, thereby leading to better model performance. 
+
+Codebook Utilization Analysis. Figure 6 shows the changes in codebook utilization of the SCSD model on the validation set during the training process. In this codebook utilization experiment, we compute the utilization rate by counting the number of codebook embeddings that are actually selected during the forward pass and dividing it by the total codebook size; codebook embeddings that are not assigned to any input features are regarded as inactive. This approach intuitively reflects how well the model covers the codebook prototypes during the quantization stage and indicates the efficiency of the model. We only present 10 epochs, because afterward all datasets maintain 100% codebook utilization until the end of training. From the figure, we observe that SCSD reaches 100% codebook utilization within only a few epochs on all datasets and keeps it stable throughout the subsequent training. This indicates that SCSD is able to fully activate all embedding units in the shared codebook, thereby avoiding the codebook collapse problem (i.e., only a very small number of codebook embeddings are frequently used while most vectors remain idle and inactive, 14 Preprint dc
+
+> 2
+> 4
+> 8
+> 16
+> 32
+> 64 k
+> 256
+> 512
+> 768
+> 1024
+> 2048
+> 4096
+> AP
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> 0.40
+
+(a) Corel5k dc 
+
+> 2
+> 4
+> 8
+> 16
+> 32
+> 64 k
+> 256
+> 512
+> 768
+> 1024
+> 2048
+> 4096
+> AP
+> 0.20
+> 0.30
+> 0.40
+> 0.50
+> 0.60
+
+(b) Pascal07 
+
+Figure 5: An additional parameter sensitivity analysis of the SCSD model is conducted under the setting of 50% missing views, 50% missing labels, and 70% training data. 0 2 4 6 8 10 
+
+> Epoch
+> 86
+> 88
+> 90
+> 92
+> 94
+> 96
+> 98
+> 100
+> Codebook Usage (%)
+> Corel5k
+> Pascal07
+> Espgame
+> Iaprtc12
+> Mirflickr
+
+Figure 6: The codebook utilization of the SCSD method is reported under the training setting of 50% missing views, 50% missing labels, and 70% training data, covering all five datasets. leading to insufficient representation capacity and low information utilization). In other words, the shared codebook design of SCSD not only preserves the rich representational capacity of multi-view data but also effectively suppresses redundant features through a limited number of codebook embeddings, thereby enhancing the generalization ability of the learned representations. A.4 LARGE LANGUAGE MODEL USAGE STATEMENT 
+
+In this paper, we use a large language model to polish the introduction section. 15
