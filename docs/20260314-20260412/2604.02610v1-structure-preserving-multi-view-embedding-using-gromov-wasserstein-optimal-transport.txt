@@ -1,0 +1,622 @@
+Title: Structure-Preserving Multi-View Embedding Using Gromov-Wasserstein Optimal Transport
+
+URL Source: https://arxiv.org/pdf/2604.02610v1
+
+Published Time: Mon, 06 Apr 2026 00:20:19 GMT
+
+Number of Pages: 23
+
+Markdown Content:
+# Structure-Preserving Multi-View Embedding Using Gromov-Wasserstein Optimal Transport 
+
+Rafael Pereira Eufrazio 1,3
+
+rafael.eufrazio@ifce.edu.br 
+
+Eduardo Fernandes Montesuma 2
+
+eduardo.montesuma@sigmanova.ai 
+
+Charles Casimiro Cavalcante 3
+
+charles@ufc.br 
+
+> 1
+
+Instituto Federal de Educação, Ciência e Tecnologia do Ceará, Canindé, Ceará, Brazil 
+
+> 2
+
+Sigma Nova, Paris, France 
+
+> 3
+
+Department of Teleinformatics Engineering, Federal University of Ceará, Fortaleza, Ceará, Brazil 
+
+Abstract 
+
+Multi-view data analysis seeks to integrate multiple representations of the same samples in order to recover a coherent low-dimensional structure. Classical approaches often rely on feature concatenation or explicit alignment assumptions, which become restrictive under heterogeneous geometries or nonlinear distortions. In this work, we propose two geometry-aware multi-view embedding strategies grounded in Gromov-Wasserstein (GW) optimal transport. The first, termed Mean-GWMDS, aggregates view-specific relational information by av-eraging distance matrices and applying GW-based multidimensional scaling to obtain a representative embedding. The second strategy, referred to as Multi-GWMDS, adopts a selection-based paradigm in which multiple geometry-consistent candidate embeddings are generated via GW-based alignment and a representative embedding is selected. Experiments on synthetic manifolds and real-world datasets show that the proposed methods effectively preserve intrinsic relational structure across views. These results highlight GW-based approaches as a flexible and principled framework for multi-view representation learning. 
+
+Keywords: Multi-view learning, Optimal Transport, Gromov–Wasserstein, 1
+
+> arXiv:2604.02610v1 [stat.ML] 3 Apr 2026
+
+Dimensionality Reduction, Manifold Learning. 
+
+## 1 Introduction 
+
+Many real-world datasets are naturally described through multiple represen-tations, or views, arising from different sensing modalities, feature extractors, or measurement processes. Effectively integrating such heterogeneous infor-mation remains a central challenge in signal processing and machine learning, as naive fusion strategies often fail to capture the underlying structure shared across views. Multi-view learning has emerged as a principled framework to address this challenge by jointly exploiting complementary representations of the same set of samples. Classical approaches typically rely on feature concatenation or decision-level fusion [ 1]. While effective in homogeneous scenarios, these assumptions become restrictive when views exhibit nonlinear distortions, heterogeneous geometries, or complex relational structures, which are usual in manilfolds. From a geometric perspective, this challenge is closely related to manifold learning, which aims to uncover low-dimensional structures embedded in high-dimensional observation spaces. In particular, optimal transport and its extensions provide powerful tools for comparing and aligning distributions through their intrinsic structure [2 , 3, 4, 5 , 6 ]. The Gromov-Wasserstein framework, in particular, enables the comparison of distributions supported on distinct metric spaces [ 7 , 8] by matching their internal distance relations, making it especially suitable for heterogeneous and multi-view settings. In this work, we build upon these ideas and investigate geometry-driven strategies for multi-view representation learning based on Gromov-Wasserstein optimal transport. We introduce two complementary strategies for aggregating information across views: a distance averaging approach, denoted as Mean-GWMDS, and a selection-based strategy, denoted as Multi-GWMDS, which identifies a representative structure through consistency across views. Through extensive experiments on synthetic manifolds and a large-scale real-world electricity consumption dataset, we show that geometry-aware ag-gregation consistently improves the preservation of relational structure across views. In particular, the proposed strategies exhibit increased robustness under nonlinear distortions when compared to classical multi-view baselines based on linear correlation or Euclidean assumptions. 2Overall, the proposed framework provides a flexible and principled ap-proach for integrating heterogeneous views by explicitly accounting for rela-tional geometry, offering improved robustness, interpretability, and compact-ness in multi-view representation learning. The remainder of this paper is organized as follows. Section 2 reviews the background concepts required for this work, including optimal trans-port with an emphasis on Gromov-Wasserstein formulations and multi-view learning. Section 3 introduces the proposed multi-view GWMDS framework and presents the two aggregation strategies, namely Mean-GWMDS and Multi-GWMDS. Experimental results on synthetic manifolds and real-world datasets are reported in Section 4, analyzing the impact of different dissimi-larity choices and aggregation mechanisms. Finally, Section 5 concludes the paper and discusses potential directions for future research. 
+
+## 2 Background 
+
+This section reviews the fundamental concepts required to support the pro-posed methodology. We first introduce optimal transport as a geometry-aware framework for comparing probability distributions, followed by the Gromov-Wasserstein distance, which extends optimal transport to the comparison of distributions supported on distinct metric spaces. Finally, we review the multi-view learning paradigm, which provides the general framework for integrating multiple relational representations of the same data. Together, these concepts establish the theoretical foundation for the proposed approach. 
+
+2.1 Optimal Transport 
+
+Optimal Transport (OT) provides a principled framework for comparing probability distributions by explicitly modeling how mass is transported between discrete supports at minimal cost [ 4]. In signal processing and machine learning, OT has emerged as a powerful tool for distributional comparison due to its ability to incorporate geometric information and to define soft correspondences between samples. Consider two empirical probability distributions supported on finite sets, 
+
+μ = 1
+
+n
+
+> n∑
+> i=1
+
+δxi , ν = 1
+
+m
+
+> m∑
+> j=1
+
+δyj , (1) where {xi}ni=1 ⊂ Rdx and {yj }mj=1 ⊂ Rdy denote the supports, and δx denotes the Dirac measure centered at x.3Given a cost matrix C ∈ Rn×m, where each entry Cij represents the cost of transporting a unit mass from xi to yj , the discrete optimal transport problem is formulated as [4] 
+
+π⋆ = argmin 
+
+> π∈Π( μ,ν )
+> n∑
+> i=1
+> m∑
+> j=1
+
+πij Cij , (2) where the set of admissible transport plans is defined by 
+
+Π( μ, ν ) = 
+
+> {
+
+π ∈ Rn×m 
+
+> +
+
+: π1m = a, π⊤1n = b
+
+> }
+
+, (3) The transport plan π defines a soft alignment between the supports of the two distributions. Rather than enforcing pointwise correspondences, OT allows each element xi to distribute its mass across multiple elements yj ,weighted according to the values of πij .When the cost matrix C ∈ Rn×m is induced by a metric, such as Cij =
+
+∥xi − yj ∥p, p ≥ 1, the optimal value of the Kantorovich transport problem 
+
+W pp (μ, ν ) = min 
+
+> π∈Π( μ,ν )
+> n∑
+> i=1
+> m∑
+> j=1
+
+πij Cij , (4) defines the discrete Wasserstein distance of order p between the empirical measures. This formulation assumes that the elements xi and yj lie in a common metric space, so that pairwise comparisons across the two supports are well defined. However, in many practical scenarios, this requirement is restrictive. When the supports {xi} and {yj } belong to heterogeneous feature spaces, defining a reliable point-wise cost becomes ill-posed or infeasible. This situation happens, for instance, when embeddings are learned independently, or data represents graphs or distance matrices. These limitations motivate extensions of optimal transport that replace explicit cross-domain costs with comparisons based on intra-domain relational structures, enabling the alignment of distributions supported on distinct spaces. Such extensions are particularly relevant in multi-view and structured data settings and form the basis of Gromov–Wasserstein-type. 
+
+2.1.1 Gromov–Wasserstein Distance 
+
+We start our discussion of the Gromov-Wasserstein distance by defining the notion of metric measure space [9], which is central to this distance. 
+
+Definition 1. A metric measure space is a triple (X , d X , μ ) where (X , d X )
+
+is a compact metric space and μ is a Borel measure on X .
+
+4Consider two metric measure spaces denoted (X , d X , μ ) and (Y, D Y , ν ).Let X = {x1, · · · , x n}, xi ∈ X and Y = {y1, · · · , y m}, yj ∈ Y . Denote 
+
+DX ∈ Rn×n and DY ∈ Rm×m the intra-domain distance matrices, i.e., 
+
+(DX )iℓ = dX (xi, x ℓ). The squared Gromov-Wasserstein distance [ 10 ] is defined as 
+
+GW 22(μ, ν ) = min 
+
+> π∈Π( μ,ν )
+> n∑
+> i,ℓ =1
+> m∑
+> j,k =1
+
+L(( DX )iℓ , (DY )jk ) πij πℓk . (5) where L(·, ·) is typically chosen as the squared loss L(x, y ) = ( x − y)2,and Π( μ, ν ) denotes the set of couplings satisfying the marginal constraints (cf. equation 3). The Gromov-Wasserstein (GW) does not require the two spaces to share the same ambient dimension, coordinate system, or feature representation [10]. Since the GW distance only depends on the intra-domain distance matri-ces DX and DY , we adopt an abuse of notation and denote GW 2(DX , D Y )2,implicitly assuming that DX and DY come from the pairwise distances in domains X and Y.
+
+2.1.2 Gromov–Wasserstein Multidimensional Scaling 
+
+Beyond pairwise comparison, the Gromov-Wasserstein framework can be used to learn a geometric representation that preserves the relational structure of a given metric measure space [ 7 ]. In this context, Gromov-Wasserstein multidimensional scaling (GWMDS) is a geometry-aware dimensionality reduction technique, closely related to manifold learning methods, whose goal is to recover a low-dimensional representation that preserves intrinsic relational distances. Given an empirical structure (X , D X , μ ), the objective is to estimate a configuration Y ∈ Rn×q whose induced pairwise distances DY
+
+are consistent, in the Gromov-Wasserstein sense, with the original distances 
+
+DX . Formally, this amounts to solving 
+
+Y ⋆ = GW-MDS (DX ) = argmin  
+
+> Y∈Rn×d
+
+GW 2(DX , D Y )2 , (6) where the dependence of GW 2(μ, ν ) on the distance matrices DX and DY is implicit. We use GW-MDS (DX ) to denote the procedure that receives DX
+
+as input, and outputs the embedding vectors Y ⋆ [7, Algorithm 1]. 
+
+2.2 Multi-View Learning 
+
+In the multi-view setting, we are given v = 1 , · · · , V different views of the same objects. We model this problem through the lens of metric measure 5spaces (cf. Definition 1): {X (v), d X (v) , μ v}Vv=1 . On each of these spaces, we collect a set of n samples, 
+
+X =
+
+> {
+
+X(1) , X (2) , . . . , X (V )}
+
+, (7) where each view X(v) ∈ Rn×pv corresponds to a distinct feature space describing the same underlying samples. Although the dimensionality pv
+
+and the nature of the features may vary across views, all representations are assumed to be generated from a common phenomenon. The main challenge of this setting is account for the different geometries in each measure metric space. Multi-view learning is motivated by the fact that a single representation often provides only a partial description of complex data. By jointly exploiting multiple views, learning algorithms can leverage complementary information and improve robustness and generalization, particularly in heterogeneous settings [1]. Despite their diversity, most multi-view learning methods rely on two fundamental principles [ 1 , 11 ]. The consensus principle assumes that different views share a common latent structure. In practice, this principle implies that there exists some form of agreement among representations, often modeled by encouraging similarity between view-specific latent variables. Conversely, the complementarity principle acknowledges that each view may encode unique information that cannot be recovered from others. Effective multi-view learning must therefore balance agreement across views while preserving view-specific characteristics, rather than enforcing strict equivalence between representations. From a methodological perspective, classical multi-view approaches are often distinguished by how information from different views is combined [ 12 ]. Early fusion strategies aggregate views at the input or representation level, for example by concatenating features into a single vector, 
+
+xi =
+
+> [
+
+x(1)  
+
+> i
+
+, x (2)  
+
+> i
+
+, . . . , x (V )
+
+> i
+> ]
+
+, (8) and subsequently applying a standard learning algorithm. While simple, such strategies are sensitive to scale differences, high dimensionality, and redun-dancy across views. Late fusion strategies instead learn separate models for each view and combine their outputs at the decision level, typically through averaging or voting schemes. Although more flexible, these approaches may fail to exploit cross-view relationships encoded in the data geometry. To overcome these limitations, a large body of work has focused on multi-view representation learning, where each view X(v) is mapped to a latent 6representation Z(v) ∈ Rn×q [12 , 13 ]. The goal is to learn representations that capture shared information across views while maintaining discriminative and compact structures. However, many existing methods implicitly assume that the latent spaces Z(v) can be aligned through linear transformations or that they lie in compatible Euclidean spaces. Such assumptions become restrictive when views exhibit nonlinear distortions, different intrinsic geometries, or complex relational dependencies [12, 14]. In summary, multi-view learning provides a principled framework for inte-grating heterogeneous representations by exploiting both consensus and com-plementarity across views. Nevertheless, traditional fusion and representation-level representation-level methods face intrinsic limitations when views are nonlinear, heterogeneous, or structurally complex. Addressing these chal-lenges requires alignment strategies that go beyond feature correspondence and explicitly account for the underlying relational structure of the data, which motivates the geometry-aware approaches explored in the subsequent sections. 
+
+## 3 Proposed Methods 
+
+In this section, we introduce two complementary algorithms for the multi-view dimensionality reduction problem. Both approaches rely on distance-based representations and optimization principles, but differ in how information from multiple views is combined prior to embedding. The first approach, referred to as Mean-GWMDS, constructs a represen-tative structure by directly combining the distance matrices obtained from the different views. The second approach, denoted as Multi-GWMDS, follows a selection-based strategy, where a representative embedding is chosen from a set of candidate structures derived from the individual views. While Mean-GWMDS provides a simple and computationally efficient baseline based on explicit aggregation, Multi-GWMDS offers a more geometry-aware alternative by selecting a structure that best reflects the shared relational patterns across views. Together, these two methods enable a sys-tematic comparison between averaging-based and selection-based strategies in multi-view geometric embedding. 
+
+3.1 Mean-GWMDS: Distance Averaging Strategy 
+
+The Mean-GWMDS strategy constructs a representative geometric structure by directly aggregating the distance information provided by multiple views. The algorithm can be consulted at 1. Let {DX(v) ∈ Rn×n}Vv=1 denote the 7pairwise distance matrices computed independently from each view. These matrices encode the intrinsic geometry of the data within each representation. In the Mean-GWMDS approach, a single representative distance matrix 
+
+¯D is obtained by averaging the view-specific distances: 
+
+¯D = 1
+
+V
+
+> V∑
+> v=1
+
+DX(v) . (9) This operation is possible, due the special structure of the multi-view problem. For instance, the i−th sample from each view, x(v) 
+
+> i
+
+, corresponds to the same underlying object. Once the averaged distance matrix ¯D is obtained, we use it as input to the Gromov-Wasserstein MDS (GW-MDS) algorithm [ 7 ,Algorithm 1], described in Section 2.1.2. Specifically, GW-MDS seeks a low-dimensional embedding Y ∈ Rn×q whose pairwise Euclidean distances approximate ¯D in the Gromov-Wasserstein sense. The resulting embedding can be interpreted as a global geometric representation that reflects the mean behavior of the multiple views. This strategy is shown in Algorithm 1. 
+
+Algorithm 1 Mean-GWMDS: Distance Averaging Strategy 
+
+Input: Multi-view data X = {X(1) , . . . , X (V )}, embedding dimension q,learning rate η
+
+Result: Representation embeddings Y ∈ Rn×q 
+
+> 1:
+
+for v = 1 , . . . , V do  
+
+> 2:
+
+DX(v) = {dX (x(v) 
+
+> i
+
+, x (v) 
+
+> j
+
+)}ni,j =1  
+
+> 3:
+
+end for  
+
+> 4:
+
+¯D ← 1 
+
+> V
+> ∑Vv=1
+
+DX(v) 
+
+> 5:
+
+Y ⋆ = GW-MDS ( ¯D) 
+
+> 6:
+
+return Y ⋆
+
+The main advantage of the Mean-GWMDS strategy lies in its simplicity and computational efficiency. By aggregating distances prior to embedding, the method avoids the need for multiple GW optimizations and provides a natural baseline for multi-view geometric integration. However, this ap-proach may be sensitive to views that exhibit strong distortions or highly heterogeneous geometries, as such effects are directly propagated into the averaged distance matrix. 
+
+3.2 Multi-GWMDS: Selection-Based Strategy 
+
+The Multi-GWMDS strategy adopts a selection-based paradigm in which sev-eral geometry-consistent candidate embeddings are first generated, and a rep-8resentative embedding is subsequently selected based on cross-view relational agreement. This strategy is inspired by the notion of Gromov-Wasserstein barycenters, which aim to summarize multiple relational structures through a common geometric representation [ 15 ]. Algorithm 2 summarizes the proce-dure. Given a collection of view-specific relational structures {D(v)}Vv=1 and view weights λ ∈ ∆V , the Multi-GWMDS strategy starts by computing V
+
+transport plans and a shared embedding, 
+
+(Y ⋆, {π(v)}Vv=1 ) = argmin  
+
+> Y∈Rn×d,
+> {π(v)∈Π( μ(v),ν )}Vv=1
+> V
+
+∑
+
+> v=1
+
+λvn∑
+
+> i,k =1
+> n
+
+∑
+
+> j,ℓ =1
+
+L(DX(v),i,k , D Y,j,ℓ )π(v) 
+
+> ij
+
+π(v) 
+
+> kℓ
+
+,
+
+(10) where DX(v),i,k denotes dX (x(v) 
+
+> i
+
+, x (v) 
+
+> k
+
+), i.e., the distance between the i−th and 
+
+k−th samples in the X . Intuitively, each π(v) 
+
+> ij
+
+encodes the soft-correspondence between the j−th embedding vector yj ∈ Rq and the i−th point of the v−th view, x(v) 
+
+> i
+
+. Equation 10 implies that embeddings might correspond to different points in the views. We then align the views via, 
+
+y(v) 
+
+> k
+
+=
+
+> n
+
+∑
+
+> i=1
+
+π(v)
+
+> ik
+
+∑nj=1 π(v)
+
+> jk
+
+yi, and v⋆ = argmin  
+
+> v=1 ,··· ,V
+
+1
+
+V
+
+> V
+
+∑
+
+> u=1
+
+ρ(DX(u) , D Y (v) ), (11) in other words, we choose the alignment that results in the most plausible embeddings, on average. Equation 11 can be interpreted as the multi-view analogue of the embedding alignment of [ 7 , Algorithm 1, Line 8]. The overall strategy is shown in Algorithm 2. The two proposed strategies are designed to address complementary multi-view scenarios. The Mean-GWMDS approach is particularly effective when the views exhibit comparable geometric structures and similar levels of distortion, as direct averaging at the distance level provides a stable and computationally efficient representation of the shared geometry. In contrast, the Multi-GWMDS approach is tailored for heterogeneous settings, where views may differ significantly in terms of noise, deformation, or underlying relational structure. By selecting a representative structure based on a robust aggregation of view-wise correlations, Multi-GWMDS mitigates the influence of atypical or degraded views and favors a consensus geometry that is maximally consistent across the ensemble. 9Algorithm 2 Multi-GWMDS: Selection-Based Strategy 
+
+Input: Multi-view data X = {X(1) , . . . , X (V )}, embedding dimension d,learning rate η
+
+Result: Selected embedding Y (v⋆) ∈ Rn×d 
+
+> 1:
+
+for v = 1 , . . . , V do  
+
+> 2:
+
+D(v) ← dX (X(v)) 
+
+> 3:
+
+end for  
+
+> 4:
+
+(Y ⋆, {π(v)}Vv=1 ) minimizing Equation 10  
+
+> 5:
+
+Create view-aligned embeddings Y (v) using equation 11  
+
+> 6:
+
+v⋆ ← argmin  
+
+> v=1 ,··· ,V
+
+1
+
+V 
+
+> ∑Vu=1
+
+ρ(DX(u) , D Y (v) ) 
+
+> 7:
+
+return Y (v⋆)
+
+## 4 Experiments and Discussion 
+
+This section presents an experimental evaluation of the proposed methods on both synthetic and real-world datasets. The experiments are designed to assess the ability of the proposed strategies to capture and preserve relational structures across multiple views. In particular, we consider the Electricity Load Diagrams (ELD) dataset [ 16 ], publicly available from the UCI (University of California, Irvine) Machine Learning Repository [ 17 ]. In dataset is particularly well suited for evaluating robustness to heterogeneity, as consumption profiles may vary significantly across time periods due to seasonal effects, external factors, and user-specific behavior [18]. 
+
+4.1 Manifold experiments 
+
+Within this context, synthetic manifold datasets play a central role in evalu-ating representation learning methods. By considering classical nonlinear manifolds with known intrinsic geometry, such as those commonly used in the literature (Swiss Roll and S-curve), it becomes possible to systematically assess how well a given method preserves geometric relationships under controlled distortions. These datasets therefore provide an ideal testbed for analyzing the geometric behavior of the proposed strategies before moving to real-world scenarios. We consider several synthetic manifolds, including the S-curve, the Swiss roll, and the Mobius strip. These datasets exhibit distinct geometric and topo-logical properties, ranging from smooth nonlinear embeddings in Euclidean 10 space to non-orientable surfaces. For each manifold, view-specific relational structures are constructed and used as inputs to the proposed multi-view strategies. Both Mean-GWMDS and Multi-GWMDS are applied to integrate information across views, and the resulting embeddings are analyzed in terms of structure preservation and robustness to view heterogeneity. In the manifold experiments, a two-view setting is considered to analyze the behavior of the proposed strategies under controlled geometric transfor-mations. Given an original manifold, two distinct views are constructed: The first view is produced by applying a rigid rotation of 40 ◦ around the 
+
+z-axis. Let θ = 40 ◦ and define the rotation matrix 
+
+X(1) = X R (θ)⊤, where R(θ) = 
+
+> 
+
+cos θ − sin θ 0sin θ cos θ 00 0 1 
+
+> 
+
+. (12) The second view is generated through a linear deformation combining scaling (elongation) and shear 
+
+X(2) = X A ⊤, where A =
+
+> 
+
+1.8 0.3 00 1.0 00 0 0.6 
+
+> 
+
+(13) These transformations preserve the underlying sample correspondence while inducing heterogeneous geometric distortions across views. For each view, pairwise dissimilarities are initially computed using the Euclidean distance, providing a baseline relational representation, as reported in Table 1. The proposed methods are compared against several classical multi-view baselines, including Canonical Correlation Analysis (CCA) [ 19 ,20 ], Multiset Canonical Correlation Analysis (MCCA) [ 21 ], and multi-view multidimensional scaling (MVMDS) [22]. As shown in Table 1, Mean-GWMDS achieves the highest average correla-tions across most synthetic manifolds, indicating that averaging view-specific relational structures provides a strong and stable multi-view representa-tion when Euclidean distances are employed. Multi-GWMDS also attains competitive performance, particularly on individual views, while offering a more flexible alignment strategy across views. In contrast, Euclidean and correlation-based baselines may perform well on specific views but exhibit less consistent behavior when aggregating relational information across views. Figure 1 presents a qualitative comparison of embeddings obtained on the S-curve dataset using different multi-view methods under Euclidean 11 Multi GWMDS Mean GWMDS CCA MCCA MVMDS S-curve view 1 0.8484 0.7750 0.7776 0.7726 0.7748 view 2 0.8530 0.9334 0.8878 0.8545 0.8491 mean 0.8507 0.8542 0.8327 0.8135 0.8119 Swiss Roll view 1 0.7762 0.8095 0.7620 0.7418 0.8235 
+
+view 2 0.9289 0.9055 0.8066 0.4527 0.8872 mean 0.8525 0.8575 0.7843 0.5973 0.8554 Mobius view 1 0.9205 0.9231 0.9293 0.7106 0.9292 view 2 0.9660 0.9644 0.8931 0.6591 0.8830 mean 0.9433 0.9437 0.9112 0.6849 0.9061 Torus view 1 0.6481 0.7970 0.6671 0.8304 0.8257 view 2 0.9431 0.8284 0.8622 0.3726 0.7840 mean 0.7956 0.8127 0.7647 0.6015 0.8049 Table 1: Correlation results for each view across different multi-view methods. For Multi-GWMDS and Mean-GWMDS, Euclidean distances are used to construct the relational structures in each view. dissimilarities. The Multi-GWMDS embedding (top-left) exhibits a clear preservation of the characteristic nonlinear structure of the S-curve, indicat-ing that the proposed framework is able to integrate information across views while maintaining global geometric coherence. The Mean-GWMDS embed-ding (top-right) also captures the overall manifold structure and produces a visually coherent representation, suggesting that averaging view-specific rela-tional information already yields a stable and faithful embedding. However, subtle distortions and local irregularities can be observed when compared to Multi-GWMDS, reflecting the limitations of simple averaging in the presence of view-dependent geometric variations. The MVMDS embedding, shows noticeable distortions, particularly in re-gions where nonlinear geometry plays a dominant role. This behavior reflects the limitations of distance averaging and stress-based optimization when operating purely under Euclidean assumptions in multi-view settings. The embeddings produced by MCCA and CCA further highlight the challenges faced by correlation-based approaches. While these methods preserve certain ordering or variance directions in the data, they fail to recover the intrinsic curved geometry of the manifold, resulting in representations that do not faithfully reflect the underlying structure of the S-curve. 12 Overall, this comparison illustrates the advantage of explicitly modeling relational alignments across views. Even when restricted to Euclidean dis-tances, Multi-GWMDS benefits from view-dependent transport couplings, leading to an improved preservation of nonlinear manifold structure when compared to classical multi-view baselines. 0.4 0.2 0.0 0.2 0.4 
+
+> Embedding Dim 1
+> 0.4
+> 0.3
+> 0.2
+> 0.1
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> Embedding Dim 2
+
+(a) Multi-GWMDS 0.4 0.3 0.2 0.1 0.0 0.1 0.2 0.3 0.4  
+
+> Embedding Dim 1
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> Embedding Dim 2
+
+(b) Mean-GWMDS 0.04 0.02 0.00 0.02 0.04 
+
+> Embedding Dim 1
+> 0.06
+> 0.04
+> 0.02
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> Embedding Dim 2
+
+(c) MVMDS 0.04 0.02 0.00 0.02 0.04  
+
+> Embedding Dim 1
+> 0.04
+> 0.02
+> 0.00
+> 0.02
+> 0.04
+> Embedding Dim 2
+
+(d) MCCA 1.5 1.0 0.5 0.0 0.5 1.0 1.5  
+
+> Embedding Dim 1
+> 1.5
+> 1.0
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> Embedding Dim 2
+
+(e) CCA 
+
+Figure 1: Embeddings obtained on the S-curve dataset using different multi-view methods. Next, we extend the manifold learning experiments by replacing Euclidean dissimilarities with geodesic distances in order to better capture the intrinsic geometry of the data. For each view, we first construct a k-nearest neighbor graph using the original representation, where each node corresponds to a sample and edges connect pairs of samples that are among the k closest according to the Euclidean distance. Once the neighborhood graph is built, geodesic distances between all pairs of samples are approximated by computing the shortest path distances on this graph. This procedure effectively estimates the length of the paths that lie along the underlying data manifold, rather than relying on direct 13 Euclidean distances that may cut through low-density regions. The resulting shortest path distances define a view-specific geodesic distance matrix, which is subsequently used. In this setting, the proposed strategies are evaluated using geodesic distance matrices computed independently for each view. Both variants of the proposed framework, namely Mean-GWMDS and Multi-GWMDS, are applied under this geodesic formulation. This allows us to assess their ability to integrate nonlinear geometric information across views while preserving the intrinsic manifold structure. For comparison, we consider the Multi-Isomap [ 23 ] approach as a reference baseline, see Table 2. Multi-Isomap extends the classical Isomap algorithm to the multi-view setting by aggregating neighborhood graphs or geodesic distances across views prior to embedding. As such, it provides a natural benchmark for evaluating geometry-based multi-view methods that rely on geodesic information. By adopting a common geodesic distance construction across all methods, this experimental setup ensures a fair comparison focused on the ability of each approach to recover the underlying manifold geometry under. Figure 2 presents a comparison of embeddings obtained on the S-curve dataset using geodesic. Multi-GWMDS Mean-GWMDS Multi-Isomap S-curve view 1 0.9556 0.9788 0.8009 view 2 0.9811 0.9765 0.8197 mean 0.9684 0.9777 0.8103 Swiss Roll view 1 0.9771 0.8507 0.7472 view 2 0.3002 0.6452 0.6833 
+
+mean 0.6387 0.7480 0.7153 Mobius view 1 0.9406 0.9412 0.9386 view 2 0.9714 0.9711 0.9568 mean 0.9560 0.9562 0.9477 Torus view 1 0.7430 0.7546 0.7500 view 2 0.9261 0.9348 0.9068 mean 0.8346 0.8447 0.8284 Table 2: Correlation results for each view across different multi-view methods. For all methods, relational structures are constructed from geodesic distance. 14 0.4 0.3 0.2 0.1 0.0 0.1 0.2 0.3 
+
+> Embedding Dim 1
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> Embedding Dim 2
+
+(a) Multi-GWMDS 0.4 0.2 0.0 0.2 0.4  
+
+> Embedding Dim 1
+> 0.4
+> 0.3
+> 0.2
+> 0.1
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> Embedding Dim 2
+
+(b) Mean-GWMDS 0.06 0.04 0.02 0.00 0.02 0.04  
+
+> Embedding Dim 1
+> 0.06
+> 0.04
+> 0.02
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> Embedding Dim 2
+
+(c) Multi-Isomap 
+
+Figure 2: Embeddings obtained on the S-curve dataset using different multi-view strategies with geodesic distance. Overall, this comparison highlights that while geodesic distances sub-stantially improve manifold recovery for all methods, explicitly modeling and selecting among view-dependent relational alignments, as done in Multi-GWMDS, provides a more faithful and robust representation of the underlying geometry. 
+
+4.2 Real-World Experiments: Electricity Load Diagrams 
+
+We use the Electricity Load Diagrams 2011–2014 dataset from the UCI Machine Learning Repository, which contains electricity consumption mea-surements collected over a four-year period. The dataset comprises 370 individual customers, each represented by a high-resolution electricity load time series recorded at 15-minute intervals between 2011 and 2014. After removing the timestamp information, the full dataset can be rep-resented as a matrix, X ∈ R370 ×140256 , where each row corresponds to a customer and each column corresponds to a time step. This representation highlights the extreme dimensionality and strong temporal structure of the data. To construct a multi-view setting, we consider a daily decomposition of the time series. Specifically, four distinct days are selected, and each day is treated as an individual view of the data. Each daily view can thus be represented as a matrix, X(v) ∈ R370 ×96 , where rows correspond to customers and columns correspond to the 15-minute time slots within a 24-hour period. This formulation allows each day to be interpreted as a multivariate snapshot capturing the joint electricity consumption patterns of all customers over a single day. By treating different days as distinct but related views, the dataset naturally induces a multi-view structure with shared instances and view-dependent temporal characteristics. 15 We next evaluate the proposed framework on the Electricity Load Dia-grams dataset using geodesic dissimilarities in order to capture the intrinsic temporal structure of electricity consumption patterns. For each view, a neighborhood graph is built and geodesic distances are computed, yielding a view-specific relational structure that reflects nonlinear temporal dependencies. This experimental setup enables the assessment of the proposed strategies in a realistic and large-scale scenario, where temporal heterogeneity and nonlinear structure are naturally present in the data. Figure 3a shows the embedding obtained using the Mean-GWMDS. Al-though a single distance matrix is used at this stage, the resulting embedding still reflects the multi-view nature of the data, as the averaged structure encodes shared geometric information across views. The points located farther from the main cluster in the Mean-GWMDS embedding do not nec-essarily correspond to customers with higher energy consumption. Instead, these points represent customers whose daily consumption profiles exhibit relational patterns that are less similar to those of the majority. 0.4 0.2 0.0 0.2 0.4 
+
+> Embedding Dim 1
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> Embedding Dim 2
+
+(a) Mean-GWMDS 0.2 0.0 0.2 0.4 0.6 0.8  
+
+> Embedding Dim 1
+> 0.6
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> Embedding Dim 2
+
+(b) Multi-GWMDS 0.100 0.075 0.050 0.025 0.000 0.025 0.050 0.075  
+
+> Embedding Dim 1
+> 0.20
+> 0.15
+> 0.10
+> 0.05
+> 0.00
+> 0.05
+> Embedding Dim 2
+
+(c) Multi-Isomap 
+
+Figure 3: Low-dimensional embeddings of the Electricity Load Diagrams (ELD) dataset obtained using different multi-view methods under geodesic distances. Figure 4 illustrates a key aspect of the proposed Multi-GWMDS frame-work. Although all embeddings are learned with respect to the same reference distance structure, each view induces a distinct optimal transport plan be-tween the original space and the representation space. As a consequence, even when the target dimensionality and the distance definition are fixed, the resulting embeddings differ due to the view-specific transport couplings. This variability reflects the fact that each view emphasizes different rela-tional patterns, which are encoded in its corresponding transport matrix. A 16 Emb. view 1 Emb. view 2 Emb. view 3 Emb. view 4 Figure 4: Low-dimensional embeddings of the Electricity Load Diagrams (ELD) dataset obtained with Multi-GWMDS using geodesic distances. Each panel corresponds to an embedding induced by a different view. representative embedding is then selected based on cross-view consistency, quantified through correlation measures between distance matrices. Depend-ing on the application, this consistency can be aggregated using different criteria, such as the mean, the median, or a max-min strategy, each reflecting a different notion of robustness across views. This selection mechanism constitutes the core idea of the Multi-GWMDS approach, instead of collapsing view-specific geometries prematurely, it lever-ages the diversity of transport plans to identify the embedding that best preserves the shared relational structure across views. Figure 3b presents the representative embedding obtained with the Multi-GWMDS. The embedding shown corresponds to the selected representation after evaluating cross-view consistency through correlation analysis. The final embedding is chosen as the one that maximizes this consistency measure, ensuring that the selected representation best preserves the shared relational structure across views. Table 3 reports correlation results on the Electricity Load Diagrams dataset using geodesic dissimilarities. The results highlight distinct behaviors among the evaluated multi-view strategies. In contrast to averaging-based strategies, the Multi-GWMDS embedding 3b exhibits a broader dispersion, reflecting the preservation of view-dependent relational variability across different days. This behavior highlights the ability of Multi-GWMDS to ex-pose heterogeneous temporal structures by explicitly evaluating and selecting among multiple relational alignments. In Table 3 the Multi-Isomap baseline consistently yields lower correlations across all views, reflecting the limitations of graph-averaging approaches in capturing heterogeneous temporal or structural variations present in real-17 Geodesic distances 
+
+Multi-GWMDS Mean-GWMDS Multi-Isomap view 1 0.3342 0.4814 0.2956 view 2 0.3891 0.5004 0.3484 view 3 0.7913 0.4771 0.3697 view 4 0.3950 0.5036 0.3744 mean 0.4774 0.4906 0.3470 
+
+Euclidean distances 
+
+Multi-GWMDS Mean-GWMDS MVMDS MCCA view 1 0.2990 0.3921 0.3713 0.3312 view 2 0.3891 0.4198 0.3910 0.3399 view 3 0.3836 0.4139 0.3767 0.3296 view 4 0.7789 0.4384 0.4347 0.3787 mean 0.4627 0.4161 0.3934 0.3449 Table 3: Correlation between the low-dimensional embeddings and the ground-truth temporal manifold coordinates on the Electricity Load Diagrams (ELD) dataset. Results are reported using geodesic distances (top block) and Euclidean distances (bottom block). world consumption data. While Multi-Isomap (Figure 3c) is able to preserve a smooth global geometry through graph averaging, it lacks an explicit mechanism to assess view consistency, leading to oversmoothing and reduced sensitivity to temporal heterogeneity when compared to transport-based multi-view strategies such as Mean-GWMDS and Multi-GWMDS. Overall, these results confirm the complementary nature of the proposed strategies: Mean-GWMDS favors robustness and global consistency, while Multi-GWMDS excels in retaining distinctive relational structures present in individual views. Including Euclidean distances allows us to assess the sensitivity of the proposed methods to the choice of relational representation and to contrast topology-aware and feature-based notions of similarity on the same data, see Table 3. Table reports correlation results on the Electricity Load Diagrams dataset using Euclidean dissimilarities. The results reveal distinct behaviors among the evaluated methods across different views. Mean-GWMDS achieves the highest correlations on most individual views (views 1, 2, and 3), indicating that averaging view-specific relational 18 structures provides an effective representation when Euclidean distances are employed. Multi-GWMDS, in turn, attains the highest correlation on the most structurally informative view (view 4) and achieves the best average performance across all views. MVMDS yields competitive but consistently lower correlations, reflecting the limitations of directly preserving Euclidean distances in heterogeneous multi-view settings. MCCA exhibits the lowest correlations across all views, which is expected given its reliance on linear correlations in the feature space and the absence of an explicit distance-based objective. Overall, these results suggest that while Euclidean baselines may perform well on individual views, the proposed Multi-GWMDS framework provides superior robustness when aggregating heterogeneous relational information across multiple views. Figure 5 provides a qualitative comparison of embeddings obtained using Multi-GWMDS, Mean-GWMDS, MVMDS, and MCCA on the Electricity Load Diagrams dataset. The Multi-GWMDS embedding exhibits a coherent and well-organized geometric structure, reflecting the explicit alignment of relational information across views through view-dependent optimal trans-port couplings. The resulting configuration preserves global relationships while maintaining local consistency, indicating an effective integration of heterogeneous temporal views. The Mean-GWMDS embedding also yields a structured and visually coherent representation, capturing the overall relational organization of the data through the averaging of view-specific distance structures. However, when compared to Multi-GWMDS, the resulting geometry appears more concentrated and less expressive, suggesting that simple averaging may at-tenuate view-specific relational variations present in heterogeneous temporal data. In contrast, the MVMDS embedding shows noticeable geometric distor-tions. Although some local groupings are preserved, the global structure appears less stable, indicating sensitivity to view aggregation through distance averaging and limitations in handling heterogeneous relational patterns. The MCCA embedding further highlights the impact of linear assumptions. By operating exclusively on correlations in the feature space, MCCA produces a representation with reduced geometric coherence, failing to adequately capture the nonlinear relational structures present in the data. Overall, this visual comparison reinforces the quantitative results reported earlier: while Mean-GWMDS provides a strong and stable baseline, explicitly modeling view-dependent relational alignments via optimal transport enables Multi-GWMDS to better preserve the intrinsic structure of real-world multi-view data when compared to Euclidean and correlation-based baselines. 19 0.4 0.2 0.0 0.2 0.4 0.6 
+
+> Embedding Dim 1
+> 0.6
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> Embedding Dim 2
+
+(a) Multi-GWMDS 0.6 0.4 0.2 0.0 0.2 0.4 0.6  
+
+> Embedding Dim 1
+> 0.6
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> Embedding Dim 2
+
+(b) Mean-GWMDS 0.0 0.1 0.2 0.3 0.4 
+
+> Embedding Dim 1
+> 0.050
+> 0.025
+> 0.000
+> 0.025
+> 0.050
+> 0.075
+> 0.100
+> 0.125
+> Embedding Dim 2
+
+(c) MCCA 0.8 0.6 0.4 0.2 0.0  
+
+> Embedding Dim 1
+> 0.05
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> Embedding Dim 2
+
+(d) MVMDS 
+
+Figure 5: Embeddings on the Electricity Load Diagrams dataset obtained with different multi-view methods. Multi-GWMDS and Mean-GWMDS use Euclidean distances and are contrasted with Euclidean and correlation-based baselines. 
+
+## 5 Conclusions and future directions 
+
+In this work, we investigated geometry-aware strategies for multi-view rep-resentation learning grounded in Gromov-Wasserstein optimal transport, with the goal of integrating heterogeneous views through their intrinsic rela-tional structure rather than feature-level correspondences. We introduced two complementary aggregation mechanisms: a distance averaging strategy, denoted as Mean-GWMDS, which captures consensus geometry across views, and a selection-based strategy, denoted as Multi-GWMDS, which identi-fies a representative structure via cross-view consistency. These strategies 20 were evaluated under Euclidean and geodesic dissimilarities, highlighting the ability of the proposed framework to adapt to both linear and nonlinear geometric settings. Extensive experiments on synthetic manifolds and a large-scale real-world electricity consumption dataset demonstrate that the proposed methods consistently improve robustness to view heterogeneity and nonlinear distortions when compared to classical multi-view baselines relying on Euclidean or correlation-based assumptions. Beyond the results presented here, several natural extensions emerge from this framework, including the manipulation of view weights λv to prioritize specific views in a task-driven manner, the integration of heterogeneous dissimilarities across views, such as combining Euclidean and geodesic distances within a single multi-view setting, and the development of clustering-oriented formulations that exploit the semi-relaxed structure to learn representative geometric prototypes, po-sitioning geometry-aware and semi-relaxed optimal transport as a flexible and principled foundation for future advances in multi-view learning. More broadly, this work highlights the potential of optimal transport as a unifying geometric framework for extending manifold learning to multi-view and heterogeneous settings, where classical feature-based assumptions no longer hold. 
+
+## References 
+
+[1] Z. Yu, Z. Dong, C. Yu, K. Yang, Z. Fan, C. P. Chen, A review on multi-view learning, Frontiers of Computer Science 19 (7) (2025) 197334. [2] Q. Zhang, L. Zhang, R. Song, R. Cong, Y. Liu, W. Zhang, Learning common semantics via optimal transport for contrastive multi-view clustering, IEEE Transactions on Image Processing (2024). [3] R. Lin, S. Du, S. Wang, W. Guo, Multi-view clustering via optimal transport algorithm, Knowledge-Based Systems 279 (2023) 110954. [4] G. Peyré, M. Cuturi, Computational optimal transport: With applica-tions to data science, Foundations and Trends ® in Machine Learning 11 (5-6) (2019) 355–607. [5] H. Van Assel, Cédric Vincent-Cuaz, Nicolas Courty, Rémi Flamary, Pascal Frossard, Titouan Vayer, Distributional Reduction: Unifying Dimensionality Reduction and Clustering with Gromov-Wasserstein, Transactions on Machine Learning Research (2025). URL https://openreview.net/forum?id=cllm6SS354 
+
+21 [6] R. A. Clark, T. Needham, T. Weighill, Generalized dimension reduction using semi-relaxed Gromov-Wasserstein distance, in: Proceedings of the AAAI Conference on Artificial Intelligence, Vol. 39, 2025, pp. 16082– 16090. [7] R. P. Eufrazio, E. F. Montesuma, C. C. Cavalcante, A dimensionality reduction technique based on the Gromov-Wasserstein distance, in: International Conference on Geometric Science of Information, Springer, 2025, pp. 111–120. [8] E. F. Montesuma, F. M. N. Mboula, A. Souloumiac, Recent advances in optimal transport for machine learning, IEEE Transactions on Pattern Analysis and Machine Intelligence (2024). [9] F. Mémoli, Gromov–Wasserstein distances and the metric approach to object matching, Foundations of Computational Mathematics 11 (2011) 417–487. [10] T. Kerdoncuff, R. Emonet, M. Sebban, Sampled Gromov-Wasserstein, Machine Learning 110 (8) (2021) 2151–2186. [11] Y. Qin, X. Zhang, S. Yu, G. Feng, A survey on representation learning for multi-view data, Neural Networks 181 (2025) 106842. [12] A. R. Chowdhury, A. Gupta, S. Das, Deep multi-view clustering: A comprehensive survey of the contemporary techniques, Information Fusion (2025) 103012. [13] M. Salter-Townshend, T. H. McCormick, Latent space models for mul-tiview network data, The Annals of Applied Statistics 11 (3) (2017) 1217. [14] C. Xu, D. Tao, C. Xu, A survey on multi-view learning, arXiv preprint arXiv:1304.5634 (2013). [15] G. Peyré, M. Cuturi, J. Solomon, Gromov-wasserstein averaging of kernel and distance matrices, in: International conference on machine learning, PMLR, 2016, pp. 2664–2672. [16] A. Trindade, ElectricityLoadDiagrams20112014, UCI Machine Learning Repository, DOI: https://doi.org/10.24432/C58C86 (2015). [17] M. Kelly, R. Longjohn, K. Nottingham, The UCI machine learning repository (2023). 22 [18] Y. Shi, T. Yu, Q. Liu, H. Zhu, F. Li, Y. Wu, An approach of electrical load profile analysis based on time series data mining, IEEE Access 8 (2020) 209915–209925. [19] H. Hotelling, Relations between two sets of variates, in: Breakthroughs in Statistics: Methodology and Distribution, Springer, 1992, pp. 162–190. [20] S. Sun, A survey of multi-view machine learning, Neural Computing and Applications 23 (7) (2013) 2031–2038. [21] J. R. Kettenring, Canonical analysis of several sets of variables, Biometrika 58 (3) (1971) 433–451. [22] S. Bai, X. Bai, L. J. Latecki, Q. Tian, Multidimensional scaling on mul-tiple input distance matrices, in: Proceedings of the AAAI Conference on Artificial Intelligence, Vol. 31, 2017, pp. 1281–1287. [23] T. Rodosthenous, V. Shahrezaei, M. Evangelou, Multi-view data vi-sualisation via manifold learning, PeerJ Computer Science 10 (2024) e1993. 23

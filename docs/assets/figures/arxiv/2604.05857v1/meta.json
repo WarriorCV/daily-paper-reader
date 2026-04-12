@@ -1,0 +1,62 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.05857v1/fig-001.webp",
+      "caption": "Table 1. Clustering quality of all methods. Bold and underlined denote the best and second-best results, respectively.",
+      "page": 6,
+      "index": 1,
+      "width": 479,
+      "height": 719
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05857v1/fig-002.webp",
+      "caption": "Figure 3. Pairwise ARI comparisons between WISE and each baseline.",
+      "page": 7,
+      "index": 2,
+      "width": 994,
+      "height": 204
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05857v1/fig-003.webp",
+      "caption": "Figure 1. Overview of WISE. It consists of four modules: Module 1 converts mixed-type tabular data into a unified representation using Binary Encoding with Padding (BEP); Module 2 senses and selects diverse feature-weight vectors via a Leave-One-Feature-Out (LOFO) strategy; Module 3 aggregates multiple weighted views through a two-stage, weight-informed clustering procedure; Finally, Module 4 produces intrinsic and consistent explanations at both the cluster and instance levels using Discriminative FreqItems (DFI).",
+      "page": 3,
+      "index": 3,
+      "width": 977,
+      "height": 532
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05857v1/fig-004.webp",
+      "caption": "Table 8. Quantitative evaluation of DFI faithfulness.",
+      "page": 18,
+      "index": 4,
+      "width": 491,
+      "height": 246
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05857v1/fig-005.webp",
+      "caption": "Figure 9. Pairwise comparisons between WISE and each baseline under remaining four metrics.",
+      "page": 19,
+      "index": 5,
+      "width": 997,
+      "height": 976
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05857v1/fig-006.webp",
+      "caption": "Table 7. Key hyperparameters for baselines (others use official defaults). Abbreviations: OH = one-hot encoding; TE = target encoding; AE = auto-encoding; ER = entity-resolution mode.",
+      "page": 17,
+      "index": 6,
+      "width": 804,
+      "height": 850
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05857v1/fig-007.webp",
+      "caption": "Table 6. Dataset-specific hyperparameter settings for WISE. B is the number of bits assigned to each column in BEP. LOFO weight sensing uses T trees (shared defaults: m=3; Q-D balance λQD=0.5; max depth = 20; min samples leaf = 50; train sample frac = 0.1). Clustering Stage I runs k-FreqItems on BEP with (k0, α0, β0); Stage II refines in record space with (K,α).",
+      "page": 16,
+      "index": 7,
+      "width": 787,
+      "height": 200
+    }
+  ]
+}

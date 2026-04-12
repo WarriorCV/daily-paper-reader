@@ -1,0 +1,62 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.02610v1/fig-001.webp",
+      "caption": "Figure 2: Embeddings obtained on the S-curve dataset using different multiview strategies with geodesic distance.",
+      "page": 15,
+      "index": 1,
+      "width": 738,
+      "height": 230
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02610v1/fig-002.webp",
+      "caption": "Table 2: Correlation results for each view across different multi-view methods. For all methods, relational structures are constructed from geodesic distance.",
+      "page": 14,
+      "index": 2,
+      "width": 762,
+      "height": 428
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02610v1/fig-003.webp",
+      "caption": "Table 3: Correlation between the low-dimensional embeddings and the ground-truth temporal manifold coordinates on the Electricity Load Diagrams (ELD) dataset. Results are reported using geodesic distances (top block) and Euclidean distances (bottom block).",
+      "page": 18,
+      "index": 3,
+      "width": 706,
+      "height": 473
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02610v1/fig-004.webp",
+      "caption": "Figure 1: Embeddings obtained on the S-curve dataset using different multiview methods.",
+      "page": 13,
+      "index": 4,
+      "width": 738,
+      "height": 566
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02610v1/fig-005.webp",
+      "caption": "Table 1: Correlation results for each view across different multi-view methods. For Multi-GWMDS and Mean-GWMDS, Euclidean distances are used to construct the relational structures in each view.",
+      "page": 12,
+      "index": 5,
+      "width": 762,
+      "height": 446
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02610v1/fig-006.webp",
+      "caption": "Figure 5: Embeddings on the Electricity Load Diagrams dataset obtained with different multi-view methods. Multi-GWMDS and Mean-GWMDS use Euclidean distances and are contrasted with Euclidean and correlation-based baselines.",
+      "page": 20,
+      "index": 6,
+      "width": 734,
+      "height": 629
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02610v1/fig-007.webp",
+      "caption": "Figure 3: Low-dimensional embeddings of the Electricity Load Diagrams (ELD) dataset obtained using different multi-view methods under geodesic distances.",
+      "page": 16,
+      "index": 7,
+      "width": 737,
+      "height": 269
+    }
+  ]
+}

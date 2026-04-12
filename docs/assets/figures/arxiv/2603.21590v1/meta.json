@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.21590v1/fig-001.webp",
+      "caption": "Fig. 5: The ACC, F-score, and NMI results comparison in the activity recognition clustering task.",
+      "page": 11,
+      "index": 1,
+      "width": 1030,
+      "height": 304
+    },
+    {
+      "url": "assets/figures/arxiv/2603.21590v1/fig-002.webp",
+      "caption": "Fig. 4: Parameter sensitivity of FIC-MR on ACC results on six datasets.",
+      "page": 10,
+      "index": 2,
+      "width": 1022,
+      "height": 258
+    },
+    {
+      "url": "assets/figures/arxiv/2603.21590v1/fig-003.webp",
+      "caption": "Fig. 3: The influence of incremental features in the current stage with FIC-DR, FIC-DA, and FIC-MR.",
+      "page": 10,
+      "index": 3,
+      "width": 974,
+      "height": 570
+    },
+    {
+      "url": "assets/figures/arxiv/2603.21590v1/fig-004.webp",
+      "caption": "Fig. 2: Illustration of the four feature incremental clustering.",
+      "page": 3,
+      "index": 4,
+      "width": 1022,
+      "height": 646
+    },
+    {
+      "url": "assets/figures/arxiv/2603.21590v1/fig-005.webp",
+      "caption": "TABLE II: The average performance results of all methods with different RAs. The best results are highlighted in boldface.",
+      "page": 8,
+      "index": 5,
+      "width": 1056,
+      "height": 1219
+    },
+    {
+      "url": "assets/figures/arxiv/2603.21590v1/fig-006.webp",
+      "caption": "TABLE III: The average performance results of all methods with different RAs. The best results are highlighted in boldface.",
+      "page": 9,
+      "index": 6,
+      "width": 1068,
+      "height": 971
+    }
+  ]
+}

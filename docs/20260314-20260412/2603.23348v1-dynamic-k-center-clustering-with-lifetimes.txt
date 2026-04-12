@@ -1,0 +1,1157 @@
+Title: Dynamic k-center clustering with lifetimes
+
+URL Source: https://arxiv.org/pdf/2603.23348v1
+
+Published Time: Wed, 25 Mar 2026 01:25:16 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+# Dynamic k-center clustering with lifetimes 
+
+Simone Moretti 1 * Paolo Pellizzoni 2 * Andrea Pietracaprina 1 * Geppino Pucci 1 * 
+
+## Abstract 
+
+The k-center problem is a fundamental clustering variant with applications in learning systems and data summarization. In several real-world scenar-ios, the dataset to be clustered is not static, but evolves over time, as new data points arrive and old ones become stale. To account for dynamic-ity, the k-center problem has been mainly studied under the sliding window setting, where only the 
+
+N most recent points are considered non-stale, or the fully dynamic setting, where arbitrary se-quences of point arrivals and deletions without prior notice may occur. In this paper, we intro-duce the dynamic setting with lifetimes , which bridges the two aforementioned classical settings by still allowing arbitrary arrivals and deletions, but making the deletion time of each point known upon its arrival. Under this new setting, we devise a deterministic (2 + ε)-approximation algorithm with eO(k/ε ) amortized update time and mem-ory usage linear in the number of currently ac-tive points. Moreover, we develop a deterministic 
+
+(6+ ε)-approximation algorithm that under “tame” update sequences has eO(k/ε ) worst-case update time and heavily sublinear working memory. 
+
+## 1. Introduction 
+
+Clustering, which is used to summarize and to group to-gether data, is one of the most widely studied primitives in machine learning and data mining (Hennig et al., 2015). A common clustering task is k-center clustering, where, given a set of data points X from a metric space (U, d ), one needs to select k centers from X such that the maximum distance from any data point at hand to its closest center is minimized. This problem is well-known to be NP-hard (Gonzalez, 1985), so approximation algorithms are sought. Motivated by many real-world scenarios, recent years have witnessed a growing interest in devising dynamic clustering     
+
+> *Equal contribution 1University of Padova, Italy 2Max Planck Institute of Biochemistry, Germany. Correspondence to: A.P. <an-drea.pietracaprina@unipd.it >, G.P. <geppino.pucci@unipd.it >.
+> Preprint. March 25, 2026.
+
+algorithms (Chan et al., 2018; Bhattacharya et al., 2024; Cohen-Addad et al., 2016), where the set of data points is not fixed and static, but rather changes dynamically, allowing new points to be inserted and some points to be deleted. For example, the need for clustering dynamic data may arise for tracking stored products in a warehouse (Kalkha et al., 2024; Srinivasan & Moon, 1999), for analyzing the behaviors of active users in a web community (Morrison et al., 2012), or studying evolving populations (Gajer et al., 2012). Dynamic clustering focuses on the analysis of (unbounded) sequences of updates (i.e., insertions or deletions of points), focusing, at any time, on the instance defined by the active set of points, namely, those that have been inserted and not yet deleted. The two main dynamic settings that allow both insertions and deletions are the sliding window setting and the fully dynamic setting. In the sliding window setting, the active set consists of the N most recent points, that is, whenever a new point is inserted, the oldest one is deleted (Cohen-Addad et al., 2016; Borassi et al., 2020). The focus is on designing algorithms which use o(N ) memory, hence avoiding storing the entire active set. In the fully dynamic setting, both insertions and deletions are arbitrary: at any time, a new point may be inserted or an active point may be deleted (Chan et al., 2018; Bhattacharya et al., 2024). This latter setting is more general and therefore more challeng-ing than the former, but known approaches typically allow memory usage linear in the size of the active set, shifting the focus to approximation quality and fast update times. In this paper, we introduce a third setting, offering a middle-ground between the aforementioned two, which we refer to as the dynamic setting with lifetimes . In this setting, when a point is inserted, an arbitrary lifetime is also specified, and the point will be deleted as soon as the lifetime expires. This is more general than the sliding window setting, where the lifetimes are equal and fixed for all points, but it is less general than the fully dynamic one, where deletion times are not known in advance. The dynamic setting with lifetimes has several relevant real-world applications, including the aforementioned ones. For example, items might arrive at a warehouse with a pre-assigned specific departure time, and subscriptions to a web community might have known expiration dates. 1 
+
+> arXiv:2603.23348v1 [cs.DS] 24 Mar 2026 Dynamic k-center clustering with lifetimes
+
+Our contribution In this paper, we tackle the k-center problem under the dynamic setting with lifetimes. In partic-ular, we introduce: • a deterministic (2 + ε)-approximation algorithm with 
+
+eO(k/ε ) amortized update time and eO(|X|/ε ) memory; • a deterministic (6 + ε)-approximation algorithm that under tame update sequences (see Definition 4.3) has 
+
+eO(k/ε ) worst-case update time and eO(k/ε ) memory. A thorough comparison of our algorithms with previous work is carried out in Subsections 3.3 and 4.3, showing that the knowledge of lifetimes yields improved performance guarantees over the state-of-the-art algorithms in either the fully dynamic or sliding window settings. 
+
+Additional related work Several works have tackled k-center in the fully dynamic setting (Chan et al., 2024; Bateni et al., 2023), including focusing on variants with outliers (Chan et al., 2024; Biabani et al., 2024), on low-dimensional spaces (Goranci et al., 2021; Pellizzoni et al., 2023; Gan & Golin, 2024), on minimizing recourse (Lacki et al., 2024; Bhattacharya et al., 2025; Forster & Skarlatos, 2025), and on graphs (Cruciani et al., 2024). In the sliding window model, Cohen-Addad et al. (2016) tackled the k-center prob-lem while subsequent works addressed variants (Pellizzoni et al., 2022b; Wang et al., 2023; Ceccarello et al., 2025), focused on low-dimensional spaces (Pellizzoni et al., 2022a) or related clustering problems (Borassi et al., 2020). Dynamic settings akin to the one with lifetimes have been ad-dressed recently, including the deletions-look-ahead model (Peng & Rubinstein, 2023), the general expiration stream-ing model (Blank et al., 2025), and models with predicted deletion times (Liu & Srinivas, 2024), see also Appendix A. 
+
+Organization of the paper Section 2 defines preliminary technical notions and formally specifies the k-center prob-lem under the dynamic setting with lifetimes. Sections 3 and 4 present our two new algorithms and their analyses, providing, for each algorithm, a detailed comparison with previously known ones. Section 5 concludes with some final remarks and open problems. Due to space constraints, additional considerations on previous and future work, some pseudocodes and proofs are deferred to the appendix. 
+
+## 2. Preliminaries 
+
+k-center Consider a metric space (U, d ) and a finite set 
+
+X ⊆ U . For any point p ∈ X and any subset C ⊆ X, we define d(p, C ) = min q∈C d(p, q ), and for any S ⊆ X we denote the radius of C with respect to S as 
+
+rC (S) = max  
+
+> p∈S
+
+d(p, C ).
+
+The k-center problem, for a given positive integer k, re-quires to find a subset C ⊆ X such that |C| ≤ k which minimizes rC (X), i.e., C∗ = arg min C⊆X, |C|≤ k rC (X).We denote the radius of the optimal solution by r∗
+
+> k
+
+(X) = 
+
+rC∗ (X). The points of the set C are called centers . Indeed, 
+
+C induces a partition of X into |C| clusters by assigning each point to its closest center (with ties broken arbitrarily). In general metric spaces, the problem is NP-hard, and it is impossible to achieve an approximation factor 2 − ε, for any fixed ε > 0, unless P = NP (Gonzalez, 1985). 
+
+The dynamic setting with lifetimes Let X be a dataset whose subsets represent instances of a given optimization problem 1. In the dynamic with lifetimes setting , each ele-ment p ∈ X is endowed with an arrival time tarr (p) ∈ N
+
+and a deletion time tdel (p) ∈ N, with tarr (p) < t del (p), and we say that p expires at time tdel (p). We assume that for each time t ≥ 0, there exists at most one element p ∈ X
+
+with tarr (p) = t. At any time t ≥ 0, we say that an element 
+
+p is active if tarr (p) ≤ t < t del (p), and define, accordingly, the active set Xt as 
+
+Xt = {p ∈ X : tarr (p) ≤ t < t del (p)}.
+
+Also, we assume that an oracle communicates the arrivals of elements from X, ordered by their arrival time. An algo-rithm in this dynamic setting maintains a suitable represen-tation of Xt, by running a primitive UPDATE (p) upon the arrival of a new element p, and, at any time t, is able to com-pute a solution to the given computational problem, with respect to instance Xt, by running a primitive Q UERY (t).The goals that the algorithm should pursue are: 1. Good approximation of the optimal solution for Xt;2. Query time sublinear in |Xt|;3. Update time (possibly amortized) sublinear in |Xt|;4. Memory requirements at most linear in |Xt|
+
+(Optionally : memory sublinear in |Xt|). Note that the main requirements are shared with both the fully dynamic and sliding window settings. The optional one, typical of the sliding window but not of the fully dy-namic setting, makes the algorithm design more challenging. Under this requirement, our setting is analogous to the gen-eral expiration streaming model , which was recently intro-duced in Blank et al. (2025) as an extension of the streaming model, thus focusing mainly on memory requirements. 
+
+> 1Although we define the dynamic setting with lifetimes with respect to optimization problems, several computational problems can be cast in this setting.
+
+2Dynamic k-center clustering with lifetimes 
+
+Dynamic k-center with lifetimes Let X be a set of points with arrival and deletion times, as described above. The dynamic k-center with lifetimes problem on X requires that, at any given time t, a set of k centers Ct ⊆ Xt be determined, whose radius rCt (Xt) is close to the optimal one r∗
+
+> k
+
+(Xt) for Xt. An algorithm for this problem consists of an UPDATE procedure, which deals with insertions and deletions, so to maintain a suitable representation of the active set Xt, and a QUERY procedure, which, at any given time t, returns a solution Ct for Xt. The approximation ratio of the algorithm is the maximum of rCt (Xt)/r ∗
+
+> k
+
+(Xt)
+
+over any set Xt.Let dmin and dmax be the minimum and maximum distances between any two points of X, and define the aspect ratio of 
+
+X as ∆ = dmax /d min . As standard in most previous works, our algorithms will assume that dmin and dmax are known. 
+
+## 3. A (2 + ε)-approximation algorithm 
+
+This section presents a deterministic algorithm for dynamic 
+
+k-center with lifetimes, which attains an almost-tight (2 + ε)
+
+approximation ratio, requiring memory linear in |Xt| and 
+
+O((log ∆ /ε ) · k + max t log |Xt|) amortized update time. The algorithm’s UPDATE and QUERY procedures, described later in this section, crucially exploit a data structure based on several guesses for the optimal radius. Specifically, since the optimal radius clearly falls in [dmin , d max ], we define the following set of guesses:         
+
+> Γ =
+> n
+> (1 + β)i:⌊log 1+ βdmin ⌋ ≤ i≤ ⌈ log 1+ βdmax ⌉
+> o
+> ,(1)
+
+where β = ε/ 2, and ε > 0 is the user-defined approxima-tion tolerance. At a high level, for each guess γ ∈ Γ we dynamically maintain a data structure, akin to the one used in (Chan et al., 2018), consisting of the following sets: • Cγ = (cγ 
+
+> 1
+
+, . . . , c γℓγ ), a list of ℓγ ≤ k centers, such that for each 1 ≤ i̸ = j ≤ ℓγ , we have d(cγi , c γj ) > 2γ;• Dγ = (Dγ 
+
+> 1
+
+, . . . , D γℓγ ), a list of ℓγ ≤ k disjoint sets of points, such that for each 1 ≤ i ≤ ℓγ and x ∈ Dγi , we have d(x, c γi ) ≤ 2γ;• U γ , a set of unclustered points such that, for each 
+
+x ∈ U γ and 1 ≤ i ≤ ℓγ , we have d(x, c γi ) > 2γ.Moreover U γ̸ = ∅ implies ℓγ = k.To keep track of which points need to be deleted from the active set, we maintain a copy of all points in a priority queue Q indexed on their deletion time, with ties broken by the arrival time to guarantee a unique ordering. The Dγi ’s and U γ ’s are implemented as doubly-linked lists, and each entry in Q has a pointer to the entries of the Dγi ’s and U γ ’s corresponding to the same point, so to allow these latter entries to be identified in O(1) time. By construction, if U γ = ∅, then Cγ provides a solution for Xt of radius 
+
+≤ 2γ, while, if U γ̸ = ∅, then Cγ plus any point of U γ
+
+yields a set of k + 1 points of Xt at pairwise distance > 2γ,which is a witness that no solution of radius γ for Xt exists. 
+
+Update procedure Procedure UPDATE 2+ ε(p, t ) (see Al-gorithm 1 for the pseudocode) is called when a new point 
+
+p arrives (in this case t = tarr (p)), or at any time t when expired points, if any, need to be deleted from the data structure (in this case, p = NULL ). First, for each q ∈ Q
+
+with tdel (q) ≤ t, q is removed from Q and procedure DELETE (q, γ ), described later, is invoked for each γ ∈ Γ.Then, if p̸ = NULL , procedure INSERT (p, γ ) is invoked for each γ ∈ Γ, and p is added to the priority queue Q.
+
+Algorithm 1: UPDATE 2+ ε(p, t ) 
+
+> 1
+
+while min q∈Q tdel (q) ≤ t do  
+
+> 2
+
+Remove q from Q 
+
+> 3
+
+for γ ∈ Γ do DELETE (q, γ ); 
+
+> 4
+
+if p̸ = NULL then  
+
+> 5
+
+for γ ∈ Γ do INSERT (p, γ ); 
+
+> 6
+
+Insert p in Q
+
+INSERT (p, γ ) (see Algorithm 2 for the pseudocode) inserts 
+
+p in the cluster of Dγ of lowest index whose center is at distance at most 2γ from p. If no such cluster exists, then if 
+
+Dγ comprises ℓγ < k clusters, then the procedure creates a new cluster by making p its center, otherwise, it inserts p
+
+in U γ . At the end of INSERT (p, γ ) a reclustering procedure, described later, is called. 
+
+Algorithm 2: INSERT (p, γ ) 
+
+> 1
+
+for i = 1 , . . . ℓ γ do  
+
+> 2
+
+if d(p, c γi ) ≤ 2γ then  
+
+> 3
+
+Insert p in Dγi 
+
+> 4
+
+goto line 9  
+
+> 5
+
+if ℓγ < k then  
+
+> 6
+
+Insert p in Cγ and in Dγℓγ +1  
+
+> 7
+
+ℓγ ← ℓγ + 1  
+
+> 8
+
+else Insert p in U γ ; 
+
+> 9
+
+RECLUSTERING (γ)
+
+DELETE (p, γ ), where p is an expired point, works as fol-lows (see Algorithm 3 for the pseudocode). If p is not a center, it is simply removed from its cluster in Dγ . If p is a center cγi , the procedure deletes cγi and tries to recluster all points of Dγi in clusters with index > i . Intuitively, each of these points is inserted in the cluster where it would have been inserted if cγi had not existed. Then, all cluster indexes 3Dynamic k-center clustering with lifetimes 
+
+Algorithm 3: DELETE (p, γ ) 
+
+> 1
+
+if p̸ ∈ Cγ then  
+
+> 2
+
+Remove p from U γ or Dγ 
+
+> 3
+
+goto line 25  
+
+> 4
+
+Let i be such that p = cγi 
+
+> 5
+
+for x ∈ Dγi with x̸ = p do  
+
+> 6
+
+for j = i + 1 , . . . , ℓ γ do  
+
+> 7
+
+if d(x, c γj ) ≤ 2γ then  
+
+> 8
+
+Insert x in Dγj ; 
+
+> 9
+
+break  
+
+> 10
+
+if x was not inserted in the above for loop then  
+
+> 11
+
+if ℓγ < k then  
+
+> 12
+
+Insert x in Cγ and in Dγℓγ +1 ; 
+
+> 13
+
+ℓγ ← ℓγ + 1  
+
+> 14
+
+else Insert x in U γ ; 
+
+> 15
+
+Remove cγi and Dγi ; 
+
+> 16
+
+ℓγ ← ℓγ − 1; 
+
+> 17
+
+Rename center and cluster indexes to be contiguous  
+
+> 18
+
+if U γ̸ = ∅ then  
+
+> 19
+
+ℓγ ← ℓγ + 1 ; 
+
+> 20
+
+Pick u ∈ U γ s.t. tdel (u) is maximal;  
+
+> 21
+
+Remove u from U γ and insert u in Cγ as cγℓγ ; 
+
+> 22
+
+for x ∈ U γ do  
+
+> 23
+
+if d(x, u ) ≤ 2γ then  
+
+> 24
+
+Remove x from U γ and insert x in Dγℓγ 
+
+> 25
+
+RECLUSTERING (γ)
+
+greater than i are decremented by 1, making them contigu-ous again, and, if U γ̸ = ∅, the point of U γ with the latest deletion time becomes the center of a new cluster. Finally, the aforementioned reclustering procedure is called. Note that the expensive part of the deletion procedure, namely, re-assigning points and creating a new cluster, only happens if a cluster center is deleted. In order to limit these costly operations, we aim at selecting centers with largest deletion times. In particular, this is enforced when a new center from U γ must be selected (Lines 18 ÷24 of DELETE (p, γ )), and when the reclustering is performed at the end of I NSERT and D ELETE , which is described next. For a given γ ∈ Γ, we define as persistent those clustered points which expire after their respective clusters’ centers, and vanishing those which either expire earlier than their clusters’ centers or are unclustered. Note that only persistent points can change cluster because of the deletion of their center, as vanishing points expire before the deletion of their center. We partition each cluster Dγi into persistent and vanishing points as P γi := {x ∈ Dγi : tdel (cγi ) < t del (x)}
+
+and V γi := {x ∈ Dγi : tdel (cγi ) ≥ tdel (x)}. In practice, we maintain two counters per cluster for |P γi | and |V γi |, which can be updated in O(1) time for each insertion and deletion. 
+
+Algorithm 4: RECLUSTERING (γ) 
+
+> 1
+
+i ← min index h s.t. Pℓγ 
+
+> j=h
+
+|P γj | > |U γ | + Pℓγ 
+
+> j=h
+
+|V γj |; 
+
+> 2
+
+if no such i exists then return ; 
+
+> 3
+
+U ′ ← U γ ∪ (∪ℓγ
+
+> j=i
+
+Dγj ) 
+
+> 4
+
+Remove centers cγj and clusters Dγj ∀j ≥ i; 
+
+> 5
+
+for j = i, . . . , k do  
+
+> 6
+
+if U ′ = ∅ then  
+
+> 7
+
+ℓγ ← j − 1; 
+
+> 8
+
+break  
+
+> 9
+
+Pick u ∈ U ′ s.t. tdel (u) is maximal;  
+
+> 10
+
+Remove u from U ′ and insert u in Cγ as cγj ; 
+
+> 11
+
+for x ∈ U ′ do  
+
+> 12
+
+if d(x, u ) ≤ 2γ then  
+
+> 13
+
+Remove x from U ′ and insert x in Dγj 
+
+> 14
+
+U γ ← U ′
+
+Procedure RECLUSTERING (γ) (see Algorithm 4 for the pseudocode), first searches for the smallest i such that 
+
+> ℓγ
+
+X
+
+> j=i
+
+|P γj | > |U γ | +
+
+> ℓγ
+
+X
+
+> j=i
+
+|V γj |. (2) If such i exists, then it reclusters the points of U γ ∪
+
+(∪ℓγ
+
+> j=i
+
+Dγj ) into ℓγ − i + 1 clusters, selecting, for each such new cluster, a center with latest deletion time. Note that, af-ter reclustering, some points might remain unclustered, but the newly created clusters comprise only vanishing points. The following remark shows that the reclustering is crucial to obtain sublinear amortized update time. 
+
+Remark 3.1. There exists a sequence of O(n) calls to 
+
+UPDATE 2+ ε which, without the use of RECLUSTERING ,would perform a total of Θ( n2) operations. 
+
+Query procedure At any time t, an approximate solution to k-center for the active set Xt can be computed calling QUERY 2+ ε(t) (see Algorithm 7 for the pseudocode). We as-sume that when QUERY 2+ ε(t) is invoked, the data structure contains no expired points. This can be ensured by checking that the minimum deletion time of a point in Q is > t , and, if this is not the case, invoking UPDATE 2+ ε(NULL , t ) before QUERY 2+ ε(t). The procedure simply returns the set Cγ∗
+
+,with γ∗ := min γ∈Γ{γ : U γ = ∅} , as a set of centers. The following subsections analyze the approximation ra-tio, and the time and memory requirements of the above algorithm. For convenience, we define a time step as one call of I NSERT or D ELETE . Since arrival times are distinct and Q breaks ties for deletion times based on arrival times, we can assume, without loss of generality, that each call corresponds to a unique time step. For any time step t ≥ 0,we use Xt to denote the active set, and Cγ,t , D γ,t , U γ,t , Q t
+
+to denote the various components of the data structure, after 
+
+4Dynamic k-center clustering with lifetimes 
+
+the tth call of I NSERT or D ELETE . Time step t = 0 refers to the initial phase of the algorithm, when nothing is yet inserted. We may drop t when clear from the context. 
+
+3.1. Approximation 
+
+We now analyze the approximation ratio of the algorithm. First, we prove that it maintains the following invariant. 
+
+Lemma 3.2. For any time step t, the following properties hold for each γ ∈ Γ, and x ∈ Xt:1. if d(x, C γ,t ) > 2γ, then x ∈ U γ,t ;2. if d(x, C γ,t ) ≤ 2γ, then x ∈ Dγ,t i with 
+
+i = argmin j=1 ,...ℓ γ,t {cj ∈ Cγ,t : d(x, c j ) ≤ 2γ}.Moreover, if U γ,t ̸ = ∅ then |Cγ,t | = k.
+
+Based on the previous lemma, we can prove the approxima-tion guarantee for Q UERY 2+ ε.
+
+Theorem 3.3. For any time step t, the solution returned by 
+
+QUERY 2+ ε(t) is a (2 + ε)-approximation for the k-center problem on the active set Xt.Proof. Recall that the algorithm returns Cγ∗,t , with γ∗ =min γ∈Γ{γ : U γ,t = ∅} . If γ∗ = dmin , the theorem trivially holds. Suppose γ∗ > d min , and let γ′ = γ∗/(1 + β) ∈ Γ.Clearly, U γ′,t ̸ = ∅, hence |Cγ′,t | = k. Let W = Cγ′,t ∪{x}, for an arbitrary x ∈ U γ′,t . By construction and by Lemma 3.2 we have that ∀p̸ = q ∈ W , d(p, q ) > 2γ′.Moreover, since |W | = k + 1 , we have that r∗
+
+> k
+
+(Xt) ≥
+
+min p̸=q∈W d(p, q )/2 > γ ′ = γ∗/(1 + β), as at least two distinct points of W fall into the same optimal cluster. By Lemma 3.2, max x∈Xt d(x, C γ∗,t ) ≤ 2γ∗ < 2(1 + β) ·
+
+r∗
+
+> k
+
+(Xt) ≤ (2 + ε) · r∗
+
+> k
+
+(Xt), since β = ε/ 2.
+
+3.2. Running time and memory complexity 
+
+Consider a sequence of n consecutive calls to the UPDATE 2+ ε procedure, which must involve Θ( n) insertions and O(n) deletions. In what follows, we analyze the perfor-mance of our algorithm relatively to these calls. Let us focus on an arbitrary guess γ ∈ Γ. We first analyze the overall cost of the reclustering operations. 
+
+Lemma 3.4. If a point x ∈ X is vanishing for γ at time t0,then x remains vanishing ∀t : t0 ≤ t < t del (x).
+
+Proposition 3.5. The total number of operations made by all calls of RECLUSTERING (γ) is O(n · k).Proof sketch. The complexity of a single call is O(k(|U ′| +1)) . Note that the procedure is invoked at most 2n times. Moreover, the size of U ′ is at most twice the number of persistent points involved in the reclustering. By construc-tion, all such persistent points will become vanishing at the end of the reclustering, and, by Lemma 3.4, they will remain vanishing until they are deleted. The total number of persistent points in all reclusterings is then bounded by 
+
+n, and thus the total number of operations made by all calls of R ECLUSTERING (γ) is O(n · k).We now estimate the overall costs of insertions and dele-tions. For insertions, the following proposition holds be-cause of Proposition 3.5 and because, besides the call to RECLUSTERING (γ), I NSERT (p, γ ) takes O(k) time. 
+
+Proposition 3.6. The total number of operations made by all calls of INSERT (p, γ ) is O(n · k).
+
+Consider now the deletions. In what follows, for time t and 
+
+x ∈ Xt, and for each γ ∈ Γ, let cγ,t ID (x) be the index of the cluster in Dγ that x is in at time t, and let cγ,t ID (x) = k + 1 
+
+if x ∈ U γ .
+
+Lemma 3.7. Let x ∈ X and γ ∈ Γ. Call Qγx the set of centers c such that at time t = tdel (c) − 1 it holds that x is vanishing for γ and cγ,t ID (c) ≤ cγ,t ID (x). Then, |Q γx| ≤ k + 1 .
+
+Proposition 3.8. The total number of operations made by all calls of DELETE (p, γ ) is O(n · k).Proof. First, we bound the number of operations done by the re-assignment of cluster points in the loop at Line 5. We begin by noticing that when ci is deleted, only persistent points contribute to the loop at Line 5. For a single such point x ∈ Di, x ̸ = ci, Lines 6-13 perform O cγ,t ID (x) −
+
+cγ,t −1 
+
+> ID
+
+(x) operations, i.e., proportional to the difference between the current index i and the index of the cluster that it will end up in. If cγ,t ID (x) was non-decreasing over time, then the maximum number of operations for x across all timesteps would be O(k). However this is not the case because of re-indexing due to center deletions. Given that x must be a persistent point, we are only in-terested in events in which cγ,t ID (x) decreases and x re-mains a persistent point. The only such case occurs dur-ing the relabeling process in a deletion that involves a center (Line 17) with index < c γ,t −1 
+
+> ID
+
+(x). In this case 
+
+cγ,t ID (x) = cγ,t −1 
+
+> ID
+
+(x) − 1, so each center deletion adds 1 to the maximum number of re-assignment operations for each persistent point with index greater or equal to its own. Let D := {c : c ∈ Cγ,t del (c)−1} be the set of all deleted centers at any time. We remark that, for x ∈ X, superscripts 
+
+tdel (x) − 1 denote states right before the deletion of x. We get that the total number of re-assignment operations is: 
+
+O
+
+
+
+n · k + X
+
+> c∈D
+
+X 
+
+> i≥cγ,t del (c)−1
+> ID (c)
+
+|P γ,t del (c)−1 
+
+> i
+
+|
+
+
+
+== O
+
+
+
+nk +X
+
+> c∈D
+
+
+
+|U γ,t del (c)−1|+ X 
+
+> i≥cγ,t del (c)−1
+> ID (c)
+
+|V γ,t del (c)−1 
+
+> i
+
+|
+
+
+
+,
+
+5Dynamic k-center clustering with lifetimes 
+
+where we used the Property (2). If we fix c ∈ D in the last summation and call j := cγ,t del (c)−1 
+
+> ID
+
+(c) we get that, for each x ∈ U γ,t del (c)−1 ∪ S V γ,t del (c)−1 
+
+> i≥j
+
+, x is by definition vanishing and cγ,t del (c)−1 
+
+> ID
+
+(c) ≤ cγ,t del (c)−1 
+
+> ID
+
+(x). Therefore we have: 
+
+X
+
+> c∈D
+
+
+
+|U γ,t del (c)−1| + X 
+
+> i≥cγ,t del (c)−1
+> ID (c)
+
+|V γ,t del (c)−1 
+
+> i
+
+|
+
+
+
+≤ X
+
+> x∈X
+
+n
+
+c ∈ D : x is vanishing at time tdel (c)−1   
+
+> and cγ,t del (c)−1
+> ID (c)≤cγ,t del (c)−1
+> ID (x)
+
+o
+
+= X
+
+> x∈X
+
+|Q γx| ≤ n · (k + 1) ,
+
+where we used a double counting argument by rearranging the summation order, and then applied Lemma 3.7. Hence the total number of operations made by the re-assignment of cluster points in the deleting function over all calls of DELETE (p, γ ) is O(n · k). Second, we bound the number of operations made by the creation of a new cluster in the deleting function (Line 18). When creating a new cluster we scan each element in U for finding the one with greater tdel 
+
+and then we do the same for finding which points are within distance 2γ. Therefore, the total number of operations is 
+
+O(P 
+
+> c∈D
+
+|U γ,t del (c)−1|), which, as above, is O(n · k).Finally, all other operations in the deletion procedure take 
+
+O(k) time, which concludes the proof. We can now state the time bounds for both update and query calls, as well as the memory requirements of our algorithm. 
+
+Theorem 3.9. The total number of operations made by a sequence of n consecutive calls to UPDATE 2+ ε is 
+
+O(n(max t log |Xt| + (log ∆ /ε )k)) .Proof. By implementing the priority queue Q as a heap, each of the Θ( n) insertions and O(n) remove-min op-erations in Q costs O(log |Xt|), so their overall cost is 
+
+O(n · max t log |Xt|). By Propositions 3.6 and 3.8, for each γ ∈ Γ, we have that the overall costs of all calls INSERT (p, γ ) and DELETE (p, γ ) is O(nk ). Since |Γ| ∈ 
+
+O log 1+ ε ∆ = O(log ∆ /ε ), the theorem follows. 
+
+Theorem 3.10. The number of operations made by each 
+
+QUERY 2+ ε call is O((log ∆ /ε ) + k).
+
+Theorem 3.11. The maximum number of points main-tained in memory when processing the pointset X is 
+
+O((log ∆ /ε ) max t |Xt|).
+
+3.3. Comparison with related work 
+
+Our algorithm mimics the one from Chan et al. (2018), yet by exploiting the known deletion times it low-ers the amortized update times from O  log ∆  
+
+> ε
+
+k2 to 
+
+O  log ∆  
+
+> ε
+
+k, while having the same approximation ratio. In fact, this allows us to have faster updates even com-pared to the more complex (2 + ε)-approximation al-gorithm by Bateni et al. (2023), which has amortized 
+
+O (log ∆ /ε ) max t log |Xt|(k + max t log |Xt|) update time. Importantly, since our algorithm is deterministic, it works even against metric-adaptive adversaries, while the aforementioned two can only deal with oblivious ones. In-deed, making use of lifetimes, the algorithm can circumvent the metric-adaptive lower bound by Bateni et al. (2023, Theorem 3), for which no dynamic algorithm with o(|Xt|)
+
+update time can have O(1) approximation. In fact, our up-date times are tight, up to a factor O(log ∆ /ε ), due to the lower bound of Ω( |X|k) distance queries given by Bateni et al. (2023, Theorem 54), holding even in the offline setting. 
+
+## 4. A space-efficient algorithm with constrained lifetimes 
+
+The algorithm developed in the previous section achieves an almost-tight approximation ratio, but requires memory which is linear in the size of the active set. In this section, we devise an algorithm which requires much smaller memory, constant with respect to the size of the active set, at the cost of a slightly worse approximation guarantee. Let ε > 0 be a user-defined approximation tolerance, and let 
+
+Γ be the set of guesses defined by Equation 1, instantiated now with β = ε/ 6. At any time t, the algorithm maintains, for each γ ∈ Γ, a data structure, akin to the one from (Cohen-Addad et al., 2016), which is able to provide a solution of radius 6γ or a certificate that no solution of radius γ exists. The data structure consists of the following sets: • Aγ = (aγ 
+
+> 1
+
+, . . . , a γℓγ ) ⊆ Xt a set of ℓγ ≤ k + 1 
+
+attractors such that d(aγi , a γj ) > 2γ, ∀i̸ = j. For 
+
+x ∈ Xt and a ∈ Aγ , we say that x is attracted by a if 
+
+tarr (x) ≥ tarr (a) and d(x, a ) ≤ 2γ.• Rγ 
+
+> act
+
+= ( rγ 
+
+> 1
+
+, . . . , r γℓγ ) ⊆ Xt a set of representatives ,where, for 1 ≤ i ≤ ℓγ , ri is the point with latest deletion time among the ones attracted by ai ∈ Aγ , and it is denoted with rep γ (ai) = ri. We use Rγ 
+
+> orph
+
+⊆ Xt
+
+to denote the set of representatives whose attractors are no longer in Aγ , and define Rγ = Rγ 
+
+> act
+
+∪ Rγ
+
+> orph
+
+.Observe that if |Aγ | ≥ k + 1 , there are k + 1 points at distance > 2γ, which implies that γ < r ∗
+
+> k
+
+(Xt). Conversely, if |Aγ | ≤ k, we will show that any point of Xt is at distance at most 6γ from Rγ .
+
+Update procedure When a new point p arrives, proce-dure UPDATE 6+ ε(p) is called (see Algorithm 5 for the pseu-docode) to handle the insertion of p, as well as possible dele-tions of expired points. For every γ ∈ Γ, the data structures 6Dynamic k-center clustering with lifetimes 
+
+Algorithm 5: UPDATE 6+ ε(p) 
+
+> 1
+
+foreach γ ∈ Γ do  
+
+> 2
+
+Remove points x of Aγ and Rγ with tdel (x) ≤ tarr (p) 
+
+> 3
+
+E ← { a ∈ Aγ : d(a, p ) ≤ 2γ} 
+
+> 4
+
+if E = ∅ then  
+
+> 5
+
+Aγ ← Aγ ∪ { p} 
+
+> 6
+
+rep γ (p) ← p 
+
+> 7
+
+Rγ ← Rγ ∪ { p} 
+
+> 8
+
+CLEANUP (p, γ ) 
+
+> 9
+
+else  
+
+> 10
+
+E′ ← { a ∈ E : tdel (rep γ (a)) < t del (p)} 
+
+> 11
+
+if E′̸ = ∅ then  
+
+> 12
+
+a ← arbitrary attractor in E′ 
+
+> 13
+
+Rγ ← Rγ \ { rep γ (a)} 
+
+> 14
+
+rep γ (a) ← p 
+
+> 15
+
+Rγ ← Rγ ∪ { p}
+
+are updated as follows. First, all points expired before time 
+
+tarr (p) are removed from Aγ and Rγ . Then, if p is at dis-tance > 2γ from every attractor a ∈ Aγ , then p is added to 
+
+Aγ , and to Rγ as representative of itself (i.e., p = rep γ (p)), and procedure C LEANUP (p, γ ) is invoked to possibly evict unnecessary points from Aγ and Rγ . Otherwise, an attractor 
+
+a ∈ Aγ with d(a, p ) ≤ 2γ and tdel (rep γ (a)) < t del (p), if any, is arbitrarily chosen and p becomes the new representa-tive rep γ (a). If no such attractor is found, p is discarded. Procedure C LEANUP (p, γ ) (see Algorithm 6 for the pseu-docode), works as follows. If |Aγ | = k+2 , then the attractor with minimum deletion time is removed from the set. After this removal, or if the size of Aγ is k + 1 at the start of the procedure, all representatives q such that tdel (q) < t min ,where tmin = min a∈Aγ tdel (a) is the minimum deletion time of an attractor, are removed from Rγ . These removals are justified by the following argument. If |Aγ | = k + 1 ,then these k + 1 points, which are at distance greater than 
+
+2γ from one another, provide a certificate that no solution of radius ≤ γ exists for any Xt′ with t ≤ t′ < t min , hence 
+
+γ will not be a useful guess until tmin , and there is no need to keep points that expire in this time interval. 
+
+Algorithm 6: CLEANUP (p, γ ) 
+
+> 1
+
+if |Aγ | = k + 2 then  
+
+> 2
+
+amin ← argmin a∈Aγ tdel (a); 
+
+> 3
+
+Remove amin from Aγ ; 
+
+> 4
+
+if |Aγ | = k + 1 then  
+
+> 5
+
+tmin ← min a∈Aγ tdel (a); 
+
+> 6
+
+Remove all points q with tdel (q) < t min from Rγ
+
+Query procedure At any time t, to obtain a solution to 
+
+k-center for the active set Xt, procedure QUERY 6+ ε(t) is in-voked (see Algorithm 8 in the appendix for the pseudocode). First, for each γ ∈ Γ, all points p with tdel (p) ≤ t are removed from Aγ and Rγ . Then, the procedure searches the minimum guess γ ∈ Γ such that |Aγ | ≤ k and a 2γ-covering Cγ of Rγ of size at most k can be found using the simple greedy strategy by Hochbaum & Shmoys (1986), and this set Cγ is returned as the solution. 
+
+4.1. Approximation 
+
+In what follows, we denote with superscript t the states of data structures either after the call of UPDATE 6+ ε(p), with 
+
+tarr (p) = t, or after the execution of the first for loop in QUERY 6+ ε(t). To prove the approximation ratio, we first prove that the algorithm maintains the following invariant. 
+
+Lemma 4.1. After any execution of UPDATE 6+ ε(p), the following properties hold for each γ ∈ Γ, and t = tarr (p) : 
+
+1. If |Aγ,t | ≤ k, then ∀x ∈ Xt we have d(x, R γ,t ) ≤ 4γ. 
+
+2. If |Aγ,t | = k + 1 , then ∀x ∈ Xt such that tdel (x) ≥
+
+min a∈Aγ,t tdel (a), we have d(x, R γ,t ) ≤ 4γ. 
+
+Based on the invariants, we can prove the approximation guarantee for the solutions returned by Q UERY 6+ ε.
+
+Theorem 4.2. For any time t, the solution returned by 
+
+QUERY 6+ ε(t) is a (6 + ε)-approximation for the k-center problem on the active set Xt.
+
+4.2. Running time and memory complexity 
+
+We now analyze the number of points maintained by the data structure employed by our algorithm, which directly influences the time and memory requirements. The analysis is made parametric with respect to a specific notion of or-dering of the input dataset X, which is defined below and it is a crucial novel ingredient introduced by our paper. 
+
+Definition 4.3. For an integer parameter H ≥ 0, we say that the set X is H-ordered if for every pair of points p, q ∈ X such that tarr (p) < tarr (q) and 
+
+|{ x ∈ X : tarr (p) < t arr (x) < t arr (q)}| ≥ H, i.e., at least 
+
+H points arrive between p and q, we have that tdel (p) <tdel (q).
+
+Intuitively, the above notion provides a quantitative charac-terization of how arbitrary the points’ arrival and departure times are. For example, in the sliding-window setting, or in general when points are deleted in the order they arrive, the pointsets are 0-ordered. Under H-ordered sets, we have the following result. 
+
+Lemma 4.4. Suppose that X is H-ordered, for some H ≥ 0.Then, for any guess γ ∈ Γ and time t, we have that 
+
+|Aγ,t | + |Rγ,t | = O(min {(k + H), |Xt|} ) .
+
+7Dynamic k-center clustering with lifetimes 
+
+Proof. Let us fix arbitrary γ and t, and observe that, straight-forwardly, |Aγ,t | + |Rγ,t | ≤ 2|Xt|. We will now show that |Aγ,t | + |Rγ,t | = O(k + H). By construction, we know |Aγ,t | ≤ k + 1 , so we only have to show that 
+
+|Rγ,t | = O(k + H). Let Aγ
+
+> all
+
+(t) denote the set of all at-tractors ever arrived up to time t, and let q be the one with largest arrival time, among those not in Aγ,t , namely, 
+
+q = argmax 
+
+> a∈Aγ
+> all (t)\Aγ,t
+
+tarr (a).
+
+Hence, q arrived at some time tarr (q) < t and was removed from Aγ at some time t′, with tarr (q) ≤ t′ < t , either by Line 2 of the UPDATE procedure, because it expired, or by Line 3 of the C LEANUP procedure. In the time interval 
+
+(tarr (q), t ] no more than k + 1 new attractors arrived since, otherwise, one of the attractors arrived in (tarr (q), t ] would not belong to Aγ,t , because Aγ can never contain more than 
+
+k + 1 points, and this would contradict the choice of q. For a point p ∈ Rγ,t , let ψγ (p) denote the attractor for which p
+
+is representative. We partition Rγ,t into 3 subsets: • Rγ,t (1) = {p ∈ Rγ,t : tarr (ψγ (p)) ∈ (tarr (q), t ] }
+
+• Rγ,t (2) = {p ∈ Rγ,t : ψγ (p) ∈ Aγ,t arr (q) }
+
+• Rγ,t (3) = {p ∈ Rγ,t : ψγ (p)̸ ∈ Aγ,t arr (q)
+
+and tarr (ψγ (p)) < t arr (q) }
+
+It is immediate to see that Rγ,t = Rγ,t (1) ∪ Rγ,t (2) ∪
+
+Rγ,t (3) . Moreover, |Rγ,t (1) | ≤ k + 1 from what we ob-served before, and |Rγ,t (2) | ≤ k + 1 since |Aγ,t arr (q)| ≤ 
+
+k+1 by construction. We now argue that |Rγ,t (3) | = O(H).First note that all points of Rγ,t (3) must have arrived prior to tarr (q), since, by definition of Rγ,t (3) , the attractors for which they are representatives, entered and left Aγ before 
+
+tarr (q). Let p be the point of Rγ,t (3) with earliest arrival time. So, all other points of Rγ,t (3) must have arrived in the open interval (tarr (p), t arr (q)) . Thus, to show that 
+
+|Rγ,t (3) | = O(H) it is sufficient to argue that less than H
+
+points arrived in (tarr (p), t arr (q)) . By contradiction, sup-pose that this is not the case. Then, the assumption that X
+
+is H-ordered implies that tdel (p) < t del (q). Since q was removed from Aγ at time t′ < t , we have two cases: • q expired at t′ and was removed at Line 2 of the UPDATE procedure. Hence, tdel (p) < t del (q) = t′ <t, and p cannot be in Rγ,t .• q was removed from Aγ at time t′ at Line 3 of the CLEANUP procedure, since q had minimum deletion time among k + 2 attractors. Then, right after the removal of q from Aγ , tmin was set to a value ≥ tdel (q)
+
+and all representatives r with tdel (r) < t del (q) ≤ tmin 
+
+were removed. Therefore, since tdel (p) < t del (q), then 
+
+p would have been removed as well. In either case, p could not be in Rγ,t , which contradicts the choice of p.The following theorems state upper bounds for the update and query running times, and for the memory complexity. 
+
+Theorem 4.5. The number of operations made by 
+
+UPDATE 6+ ε(p) is O (log ∆ /ε ) min {(k+H), |Xtarr (p)|} .
+
+Theorem 4.6. The number of operations made by 
+
+QUERY 6+ ε(t) is O((log ∆ /ε ) · k · min {(k + H), |Xt|} ).
+
+Theorem 4.7. The maximum number of points main-tained in memory when processing the pointset X is 
+
+O((log ∆ /ε ) min {(k + H), max t |Xt|} ).
+
+Note that, for H ∈ O(k), we have that update time and memory complexity are bounded by O((log ∆ /ε )k).
+
+4.3. Comparison with related work 
+
+The memory and time complexities of algorithm presented in this section depend on the tameness of the update se-quences. Importantly, the memory usage never exceeds the one of the algorithm presented in Section 3, and, for small H (e.g., H ∈ O(k)), it features significantly smaller memory requirements and comparable time complexity for updates, with the benefit that the bound on the operations is worst-case rather than amortized. These gains, however, come at the cost of a (slightly) worse approximation. When focusing on sublinear memory, our setting generalizes the sliding window model. Indeed, our algorithm extends the sliding window one of Cohen-Addad et al. (2016) by allowing arbitrary deletions. Despite the increase in general-ity, we match the same memory and time complexities when 
+
+H = 0 . The recent preprint by Blank et al. (2025) also ad-dresses a similar generalized setting while focusing primar-ily on the memory requirements, as common in the stream-ing setting. The paper presents a (6 k +2+ ε)-approximation algorithm for k-center that stores O (log ∆ /ε ) · k2 points regardless of H-ordering, thus being more memory-efficient than our algorithm for pointsets with large H. However, it comes with a great cost in terms of the approximation factor, which grows linearly with k instead of being constant. 
+
+## 5. Conclusions 
+
+In this paper, we explored the dynamic setting with lifetimes ,offering a trade-off between the fully dynamic and the slid-ing window model, and devised constant-approximation algorithms for k-center clustering in this setting. The new setting offers several opportunities for future work. It is interesting to study variants of k-center problem dealing with outliers (Biabani et al., 2024) or minimizing recourse (Lacki et al., 2024). Also, the dynamic setting with life-times can be applied to other problems, including clustering with different objectives (Bhattacharya et al., 2024), graph problems (Cruciani et al., 2024), and machine unlearning problems (Bourtoule et al., 2021; Bressan et al., 2023). 8Dynamic k-center clustering with lifetimes 
+
+## Impact Statement 
+
+This paper presents work whose goal is to advance the field of Machine Learning. There are many potential societal consequences of our work, none which we feel must be specifically highlighted here. 
+
+## References 
+
+Bateni, M., Esfandiari, H., Fichtenberger, H., Henzinger, M., Jayaram, R., Mirrokni, V., and Wiese, A. Optimal fully dynamic k-center clustering for adaptive and oblivi-ous adversaries. In Symposium on Discrete Algorithms (SODA) , 2023. Bhattacharya, S., Costa, M., Lattanzi, S., and Parotsidis, N. Fully dynamic k-clustering in O(k) update time. In Advances in Neural Information Processing Systems (NeurIPS) , 2024. Bhattacharya, S., Costa, M., Farokhnejad, E., Lattanzi, S., and Parotsidis, N. Almost optimal fully dynamic k-center clustering with recourse. In International Conference on Machine Learning (ICML) , 2025. Biabani, L., Hennes, A., La Gordt Dillie, D., Monemizadeh, M., and Schmidt, M. Improved guarantees for fully dy-namic k-center clustering with outliers in general metric spaces. In Advances in Neural Information Processing Systems (NeurIPS) , 2024. Blank, L., Cabello, S., Hajiaghayi, M., Krauthgamer, R., Mahabadi, S., Nusser, A., Phillips, J. M., and Sauer, J. The general expiration streaming model: Diameter, k-center, counting, sampling, and friends. arXiv preprint arXiv:2509.07587 , 2025. Borassi, M., Epasto, A., Lattanzi, S., Vassilvitskii, S., and Zadimoghaddam, M. Sliding window algorithms for k-clustering problems. In Advances in Neural Information Processing Systems (NeurIPS) , 2020. Bourtoule, L., Chandrasekaran, V., Choquette-Choo, C. A., Jia, H., Travers, A., Zhang, B., Lie, D., and Papernot, N. Machine unlearning. In 2021 IEEE symposium on security and privacy (SP) , 2021. Brand, J. v. d., Forster, S., Nazari, Y., and Polak, A. On dy-namic graph algorithms with predictions. In Symposium on Discrete Algorithms (SODA) , 2024. Bressan, M., Damay, G., and Sozio, M. Fully-dynamic decision trees. In Proceedings of the AAAI Conference on Artificial Intelligence , 2023. Ceccarello, M., Pietracaprina, A., Pucci, G., and Vison `a, F. Fair center clustering in sliding windows. ArXiv ,abs/2503.05260, 2025. Chan, T.-H., Guerqin, A., and Sozio, M. Fully dynamic k-center clustering. In WWW , 2018. Chan, T.-H. H., Lattanzi, S., Sozio, M., and Wang, B. Fully dynamic k-center clustering with outliers. Algorithmica ,86(1):171–193, 2024. Cohen-Addad, V., Schwiegelshohn, C., and Sohler, C. Di-ameter and k-center in sliding windows. In ICALP , 2016. Cruciani, E., Forster, S., Goranci, G., Nazari, Y., and Skar-latos, A. Dynamic algorithms for k-center on graphs. In 
+
+Symposium on Discrete Algorithms (SODA) , 2024. Forster, S. and Skarlatos, A. Dynamic consistent k-center clustering with optimal recourse. In Symposium on Dis-crete Algorithms (SODA) , 2025. Gajer, P., Brotman, R. M., Bai, G., Sakamoto, J., Sch ¨utte, U. M., Zhong, X., Koenig, S. S., Fu, L., Ma, Z., Zhou, X., et al. Temporal dynamics of the human vaginal micro-biota. Science translational medicine , 4(132):132ra52– 132ra52, 2012. Gan, J. and Golin, M. J. Fully dynamic k-center in low dimensions via approximate furthest neighbors. In Sym-posium on Simplicity in Algorithms (SOSA) , 2024. Gonzalez, T. Clustering to minimize the maximum interclus-ter distance. Theoretical Computer Science , 38:293–306, 1985. Goranci, G., Henzinger, M., Leniowski, D., Schulz, C., and Svozil, A. Fully dynamic k-center clustering in low dimensional metrics. In Workshop on Algorithm Engi-neering and Experiments (ALENEX) , 2021. Hennig, C., Meila, M., Murtagh, F., and Rocci, R. Hand-book of cluster analysis . CRC Press, United States, 2015. Henzinger, M., Saha, B., Seybold, M. P., and Ye, C. On the complexity of algorithms with predictions for dynamic graph problems. In ITCS , 2024. Hochbaum, D. and Shmoys, D. A unified approach to ap-proximation algorithms for bottleneck problems. JACM ,33(3):533–550, 1986. Kalkha, H., Khiat, A., Bahnasse, A., and Ouajji, H. Enhanc-ing warehouse efficiency with time series clustering: A hybrid storage location assignment strategy. IEEE Access ,12:52110–52126, 2024. Lacki, J., Haeupler, B., Grunau, C., Jayaram, R., and Rozho ˇn, V. Fully dynamic consistent k-center clustering. In Symposium on Discrete Algorithms (SODA) , 2024. Lattanzi, S. and Vassilvitskii, S. Consistent k-clustering. In 
+
+International Conference on Machine Learning (ICML) ,2017. 9Dynamic k-center clustering with lifetimes 
+
+Liu, Q. C. and Srinivas, V. The predicted-updates dynamic model: Offline, incremental, and decremental to fully dynamic transformations. In Conference on Learning Theory (COLT) , 2024. Mitzenmacher, M. and Vassilvitskii, S. Algorithms with predictions. Communications of the ACM , 65(7):33–35, 2022. Morrison, D., McLoughlin, I., Hogan, A., and Hayes, C. Evolutionary clustering and analysis of user behaviour in online forums. In Proceedings of the International AAAI Conference on Web and Social Media , volume 6, pp. 519–522, 2012. Pellizzoni, P., Pietracaprina, A., and Pucci, G. Adaptive k-center and diameter estimation in sliding windows. Int. J. Data Sci. Anal. , 14(2):155–173, 2022a. Pellizzoni, P., Pietracaprina, A., and Pucci, G. k-center clustering with outliers in sliding windows. Algorithms ,15(2):52, 2022b. Pellizzoni, P., Pietracaprina, A., and Pucci, G. Fully dy-namic clustering and diversity maximization in doubling metrics. In Algorithms and Data Structures Symposium ,2023. Peng, B. and Rubinstein, A. Fully-dynamic-to-incremental reductions with known deletion order (e.g. sliding win-dow). In Symposium on Simplicity in Algorithms (SOSA) ,2023. Srinivasan, M. and Moon, Y. B. A comprehensive clus-tering algorithm for strategic analysis of supply chain networks. Computers & industrial engineering , 36(3): 615–633, 1999. Wang, Y., Fabbri, F., Mathioudakis, M., and Li, J. Fair max–min diversity maximization in streaming and sliding-window models. Entropy , 25(7), 2023. 10 Dynamic k-center clustering with lifetimes 
+
+# Appendix 
+
+## A. Comparison with settings akin to the one with lifetimes 
+
+Dynamic settings akin to the one with lifetimes introduced here have recently been proposed in the literature. Peng & Rubinstein (2023) address the deletions-look-ahead dynamic model, where the order of deletions of elements of the active set is known to the algorithm, like in the dynamic setting with lifetimes. They show that any incremental algorithm with worst-case update time Tu and query time Tq can be turned into an algorithm that can support both insertions and deletions in the deletions-look-ahead model with O(Tu log |X|) amortized update time, O(Tq ) query time, and Θ(log |X|)
+
+memory. Crucially, the total number of elements that are inserted or deleted from the active set, i.e., |X|, can be exponentially bigger than the number of active elements at any point in time, i.e., max t |Xt|. Because of this, the proposed technique would fail the requirement of the dynamic setting with lifetimes asking update times sublinear in |Xt|.The recent preprint of (Blank et al., 2025) introduces the general expiration streaming model , which generalizes the sliding window model by allowing for arbitrary deletion orders, yet elements are endowed with their deletion time, like in the dynamic setting with lifetimes. Since this model stems from the streaming one, the focus seems to be primarily on sublinear memory usage. For a comparison with their algorithm, see Section 4.3. Finally, several settings have been introduced to inform dynamic algorithms with predicted or uncertain (rather than exact) deletion times of elements, inserting these works in the broader algorithms with predictions framework (Mitzenmacher & Vassilvitskii, 2022). Among these, Liu & Srinivas (2024) utilizes the predicted-update dynamic model , extending the setting of Peng & Rubinstein (2023) to allow for predicted deletion times, and show that also under this setting some incremental or offline algorithms can be turned into fully-dynamic ones, with O(polylog |X|) overhead. Moreover, both Brand et al. (2024) and Henzinger et al. (2024) endow fully dynamic algorithms with predicted deletion times of points, in a setting akin to the predicted-update dynamic model of Liu & Srinivas (2024), but focus on graph problems. 
+
+## B. Limitations and future work 
+
+In this paper, we developed two algorithms for k-center in the newly introduced dynamic setting with lifetimes . While the introduction of this setting and the new algorithms offer several advantages over algorithms for the fully dynamic or the sliding window setting (in terms of efficiency and generality, respectively), we envision that future work can address several limitations of the present work. First, developing lower bounds on the trade-offs between approximation guarantees and time complexities for k-center in the dynamic setting with lifetimes, and understanding how they differ from the ones in the fully dynamic setting (e.g., the ones presented in Bateni et al. (2023)), would be a major step forward for the field. Additionally, it would be interesting to understand how these lower bounds change under the requirement of sublinear working memory (i.e., making the dynamic setting with lifetimes analogous to the general expiration streaming model (Blank et al., 2025)), and how they relate to the ones in the sliding window model (Cohen-Addad et al., 2016). Moreover, as for the fully dynamic setting, the dynamic setting with lifetimes allows for a definition of recourse , defined as the number of changes (i.e., C1△C2) made to the cluster centers after each point insertion or deletion (Lattanzi & Vassilvitskii, 2017). Both the algorithms we present here have trivial O(k) recourse, and developing algorithms with o(k)
+
+recourse is an interesting research direction. In the fully dynamic setting, Forster & Skarlatos (2025) developed an algorithm that yields a 50 -approximation with optimal recourse of 2 and eO(poly( |X|)) update time, while Bhattacharya et al. (2025) developed an algorithm that yields a 20 -approximation with O(1) recourse and eO(k) update time. Understanding how these trade-offs can be improved in the dynamic setting with lifetimes would be a major development. Finally, several extensions to the k-center problem can be tackled in the dynamic setting with lifetimes. For example, the algorithms could be extended to deal with variants of the problem, including dealing with outliers (Biabani et al., 2024), diversity maximization (Wang et al., 2023), and fairness constraints (Ceccarello et al., 2025). Moreover, techniques for low-dimensional metric spaces could be used to improve the approximation guarantees under memory constraints (Pellizzoni et al., 2022a) or to obtain O(1) update times (Gan & Golin, 2024; Pellizzoni et al., 2023). 11 Dynamic k-center clustering with lifetimes 
+
+## C. Additional pseudocodes 
+
+We provide here, for the sake of completeness, the pseudocodes for the query procedures. In particular, Algorithm 7 reports the query procedure for the algorithm presented in Section 3. 
+
+Algorithm 7: QUERY 2+ ε(t) 
+
+> 1
+
+γ∗ ← min {γ ∈ Γ : U γ = ∅} ; 
+
+> 2
+
+return Cγ∗
+
+Moreover, Algorithm 8 reports the query procedure for the algorithm presented in Section 4. 
+
+Algorithm 8: QUERY 6+ ε(t) 
+
+> 1
+
+foreach γ ∈ Γ do  
+
+> 2
+
+Remove points x of Aγ and Rγ with tdel (x) ≤ t 
+
+> 3
+
+for increasing values of γ ∈ Γ such that |Aγ | ≤ k do  
+
+> 4
+
+C ← ∅ ; 
+
+> 5
+
+foreach q ∈ Rγ do  
+
+> 6
+
+if C = ∅ or d(q, C ) > 2γ then C ← C ∪ { q} ; 
+
+> 7
+
+if |C| > k then go to next γ; 
+
+> 8
+
+return C
+
+## D. Omitted Proofs 
+
+D.1. Proofs for Section 3 
+
+Proof of Remark 3.1. We describe an adversarial point set for a given guess γ ∈ Γ. At time t = 1 , we insert a point p1 with lifetime such that tdel (p1) = tarr (p1) + n + 1 .At time t = 2 , . . . , n , we insert n − 1 points p2, . . . , p n, each with lifetime such that tdel (p) = tarr (p) + 2 n − 1, and such that each pi with i > 1 is at distance 3/2γ from p1 (and, e.g., at distances γ/10 between each other). Clearly, all these points are assigned to cluster D1, with the first point p1 being the center. Then, at time t = n + 1 , . . . , 2n, we insert n additional points pn+1 , . . . , p 2n, each with lifetime such that tdel (pi) = tarr (pi) + 2 and such that each such pi is at distance 5/2γ
+
+from p1, at distance 5/2γ from the other points pj with n < j ≤ 2n, and at distance 3/2γ from points p2, . . . , p n.The first n calls of UPDATE 2+ ε involve no deletions, so they take O(k) time each. The call at time n + 1 inserts pn+1 as a new center, since it is at distance > 2γ from p1, in O(k) time. However, the call at time n + 2 first involves the deletion of 
+
+p1 and moving p2, . . . , p n to the cluster with center pn+1 , and then inserts pn+2 as a new center. This takes Θ( n) time. Each call at time t = n + 3 , . . . , 2n involves the deletion of point pt−2, moving p2, . . . , p n to the cluster with center pt−1 and the insertion of pt as a new center, which takes Θ( n). Therefore, the algorithm performs a total of Θ( n2) operations. 
+
+Proof of Lemma 3.2. At step t = 0 , the property holds by vacuity. Suppose inductively that at step t ≥ 0, the invariant holds for all points in Xt. We recall that the superscript (e.g. U γ,t ) denotes the state of a set after the t-th insert or delete operation. When the superscript is missing, it denotes a state during the execution of the operations. At time step t + 1 :• If INSERT (p, γ ) is called, then all points in Xt are left untouched. Moreover, the invariant for p holds by construction. • If DELETE (p, γ ) is called and p is not a center, then all points in Xt \ { p} are left untouched. Let instead p be a center cγ,t i . Then, for each x̸ ∈ Dγ,t i ∪ U γ,t , note that the center and cluster index renaming does not affect the invariant. For each x ∈ Dγ,t i , either x is inserted in Dh with h = argmin j=i+1 ,...ℓ {cj ∈ C : d(x, c j ) ≤ 2γ} (possibly by creating new clusters), or it is inserted in U if no center at distance ≤ 2γ is found. In the first case, note that 
+
+min j=1 ,...,i d(x, c j ) > 2γ, otherwise by the inductive hypothesis x would not belong to Di. Therefore, we have that 
+
+h = argmin j=1 ,...ℓ {cj ∈ C : d(x, c j ) ≤ 2γ}, thus fulfilling the invariant. 12 Dynamic k-center clustering with lifetimes 
+
+Finally, let U̸ = ∅ and consider a x ∈ U , either because it belonged in U γ,t or because it was inserted in U on line 14. In this case, one point u will be selected as a new center, and thus |C| = k. We have that if d(x, C γ,t +1 ) > 2γ, then we have d(x, u ) > 2γ and therefore x remains in U , satisfying the first case of the invariant. Otherwise, since x ∈ U
+
+implies that d(x, c i) > 2γ ∀i = 1 , . . . , ℓ − 1, we have that d(x, u ) ≤ 2γ, and thus x is inserted in Dl, thus satisfying the second case of the invariant. Finally, after a call to I NSERT or D ELETE , the RECLUSTERING (i, γ ) procedure might be called. In that case, we note that each x ∈ Si−1 
+
+> j=1
+
+Dγ,t j is left untouched, and the invariant is still valid. On the other hand, if x ∈ U ′ after line 3, then it could not be inserted in any of the clusters Dj for j = 1 , . . . , i − 1, by the inductive hypothesis. Moreover, by construction it will be inserted in the cluster Dh with h = argmin j=i,...ℓ {cj ∈ C : d(x, c j ) ≤ 2γ}, as a point can be inserted in a cluster only if it is not inserted in a cluster with a lower index. At the end of the loop (i.e., |C| = k), any point x such that d(x, C ) > 2γ
+
+is left in U .We therefore have the claim by induction. 
+
+Lemma D.1. After a call of RECLUSTERING (γ) every point that was reclustered, i.e., every point belonging to the set U ′
+
+in Slj=i Dγj ∪ U γ before the reclustering, becomes vanishing for γ.Proof of Lemma D.1. Since at each step j the new center cj gets chosen from all remaining points as the one with maximal deletion time, any point x that gets inserted into Dj must have deletion time tdel (x) < t del (cj ), and is therefore vanishing. If a point is left in U , then it is vanishing by definition. 
+
+Proof of Lemma 3.4. We will show that the vanishing property (for a fixed guess γ) is invariant under the call of INSERT ,DELETE or RECLUSTERING algorithms, unless t = tdel (x) and the point is thus removed. The property holds at t = 0 by vacuity and the proof follows by induction. Fix some x ∈ X which is vanishing at time t.• Insertion : If x is vanishing then it is already inserted, so any insertion operation will regard a new point and cannot modify either x or its center. Then, x will remain vanishing after any insertion operation. • Deletion : Suppose that we call DELETE (p, γ ). If p = x the current time is tdel (x) and the proposition holds. Furthermore, if p / ∈ Cγ (i.e. p is not a center) its deletion will only alter p itself and no other point. Therefore, we can assume p̸ = x and ∃i s.t. p = ci. We then have 3 cases: 1. x ∈ Di. This would mean that the center of x has a deletion time smaller than that of x, which is in contradiction to the fact that x is vanishing. 2. x ∈ Dj , for some j̸ = i. In the case that p = ci the deletion algorithm affects clusters with index different from i
+
+by possibly adding more points to them (Line 9) and by relabeling their indexes (Line 17). Therefore, no changes are made to x or to its center cj , and thus x remains vanishing. 3. x ∈ U . In this case, x remains in U or is inserted in Dl (Line 24). Either way, it remains vanishing, since we picked cl = u s.t. tdel (u) is maximal among all points in U .• Reclustering : Suppose that we call RECLUSTERING (i, γ ). If ∃j < i such that x ∈ Dj , then the reclustering operation does not affect Dj in any way, meaning that x remains vanishing. The other case is covered by Lemma D.1, and thus x
+
+remains vanishing. 
+
+Proof of Proposition 3.5. The main for loop of Algorithm 4 is repeated O(k) times. In each iteration we need to scan U ′
+
+linearly to first find the element with maximal tdel and then to check whether some other point in U ′ is close to it. So the main loop is executed in O(k · | U ′|). The other parts of the algorithm can be executed in O(|U ′|), for a total running time of 
+
+O(k · | U ′|). Then: 13 Dynamic k-center clustering with lifetimes 
+
+k|U ′| = k U ∪
+
+> k
+
+[
+
+> j=i
+
+Dj ≤ k
+
+|U | +
+
+> k
+
+X
+
+> j=i
+
+(|Pj | + |Vj |)
+
+ ≤ 2k
+
+> k
+
+X
+
+> j=i
+
+|Pj |,
+
+where the last inequality is guaranteed by the fact that Property (2) holds for i when calling the reclustering. This means that the number of operations is O
+
+
+
+k · Plj=i |Pj |
+
+
+
+and thus bounded by the number of persistent points involved in the reclustering. Given that by Lemma D.1 all persistent points in Pj≥i will become vanishing and that by Lemma 3.4 every vanishing point remains vanishing, the number of persistent points in all reclusterings is bounded by n and thus the total number of operations made by all calls of R ECLUSTERING (i, γ ) is O(n · k)
+
+Proof of Lemma 3.7. We will show that for c̸ = x to satisfy the two properties implies the fact that when c was last picked as a center x was either not inserted or persistent. Suppose by contradiction that, when c was last picked as a center, x was vanishing. We have 3 possibilities: 1. c became a center for the last time at time t′ during an insertion operation (Line 6) or during a re-assignment of persistent points after a deletion (Line 13). In both of these cases cγ,t ′ 
+
+> ID
+
+(c) > c γ,t ′ 
+
+> ID
+
+(x) as c becomes the center of the cluster with the highest index. Given that we are assuming that t′ is the last time that c was chosen as a center, there cannot be any reclustering involving c after time t′. Furthermore, if no reclustering is made, clusters stay in their relative order and point x will remain inside its cluster until its deletion. So the fact that cγ,t ′ 
+
+> ID
+
+(c) ≥ cγ,t ′ 
+
+> ID
+
+(x) is in contradiction with cγ,t ID (c) ≤ cγ,t ID (x).2. c became a center for the last time after a deletion. If x / ∈ U the analysis is akin to the one in the first case. If x ∈ U
+
+we know that tdel (x) < t del (c), thus at time t x will already be deleted and therefore cannot be vanishing. 3. c became a center for the last time during the execution of RECLUSTERING (i, γ ). If x ∈ Dj s.t. j < i the analysis is akin to the one in the first case. Let instead x ∈ U ′ (same U ′ as in Algorithm 4). If x ends up in a cluster with smaller index than the one of c, then we break the assumption that cγ,t ID (c) ≤ cγ,t ID (x). If instead it ends up in a cluster with index greater or equal to the one of c, then we must have tdel (x) < t del (c), and thus x cannot be vanishing at 
+
+t = tdel (c) − 1 because it has been already deleted. Given that by Lemma 3.4 a vanishing point remains vanishing, calling t′ the time at which x becomes vanishing, every center c which satisfies the two properties of the Lemma must be picked at time < t ′ and carried on up to a time ≥ t′. Given that at most k centers can coexist simultaneously, the maximum number of centers c̸ = x satisfying the properties is k.Accounting for the possibility that c = x, we obtain at most k + 1 centers. 
+
+Proof of Theorem 3.10. Note that we iterate through the guesses γ ∈ Γ, and for each guess we check in constant time the size of Cγ . This takes O(|Γ|) = O(log ∆ /ε ) time. Finally, returning the solution takes O(|Cγ∗
+
+|) = O(k) time. 
+
+Proof of Theorem 3.11. Note that, by construction, after the call of UPDATE (p, t ), only points of Xt are maintained in memory. Moreover, for a fixed guess γ, any such point p ∈ Xt can belong, by construction, to only one of the sets 
+
+Dγi , i = 1 , . . . , ℓ γ or U γ . We therefore have that Pℓγ 
+
+> i=1
+
+|Dγi | + |U γ | ≤ | Xt|. Moreover, clearly |Cγ | ≤ | Xt| as the centers are all distinct. Since we have |Γ| ∈ O(log ∆ /ε ), the data structure maintains at most O((log ∆ /ε )|Xt|) points. Moreover, the priority queue Q contains each point of the active set exactly once, for a total of |Xt| points. Finally, until the following call of UPDATE , the number of points stored in the data structures can only decrease (i.e., if QUERY calls DELETE ), thus concluding the proof. 
+
+D.2. Proofs for Section 4 
+
+Proof of Lemma 4.1. Let us focus on an arbitrary guess γ. We say that a point q ∈ Xt is relevant for γ and t if |Aγ,t | ≤ k or 
+
+|Aγ,t | > k and tdel (q) ≥ min a∈Aγ,t tdel (a). Clearly, the proof concerns only relevant points. Also, for every point q ∈ Xt,we let ψγ (q) denote the attractor that q is attracted to. If q is selected as a representative by UPDATE 6+ ε(q), we let ψγ (q)
+
+be such that rep γ (ψγ (q)) = q. Otherwise, we let ψγ (q) be any attractor belonging to the set E during the execution of 14 Dynamic k-center clustering with lifetimes 
+
+UPDATE 6+ ε(q). Clearly, d(q, ψ γ (q)) ≤ 2γ. We will argue that for every point q ∈ Xt which is relevant for γ and t, there exists a point r ∈ Rγ,t such that ψγ (r) = ψγ (q).If q is the point arrived at time t (i.e., q = p and tarr (q) = t) then we set r = rep γ,t (ψγ (q)) , which is possibly q itself. If q
+
+arrived at an earlier time, it is immediate to argue that since q is relevant at time t, it has also been relevant at all times t′, with 
+
+tarr (q) ≤ t′ < t , when a point arrived or a query was invoked. Set r0 = rep γ,t arr (q)(ψγ (q)) . We have that ψγ (r0) = ψγ (q).Also, it holds that tdel (r0) ≥ tdel (q), therefore r0 is also relevant at all times t′, with tarr (q) ≤ t′ < t . Being relevant, r0 has never been removed from Rγ,t ′
+
+during some invocation of C LEANUP , which only removes non-relevant points. Consequently, since r0 is in Rγ,t arr (q), either r0 is still in Rγ,t (and we set r = r0), or it has been expunged from some set Rγ,t arr (r1),due to the arrival of some longer-lived representative r1 at time tarr (r1) > t arr (q). Observe that ψγ (r1) = ψγ (r0), and that r1 is also relevant at time t. If r1 ∈ Rγ,t , we set r = r1, otherwise, we apply the same reasoning to r1. Iterating the argument, we determine a sequence of relevant points r0, r 1, . . . , r h, with tarr (q) ≤ tarr (r0) < t arr (r1) . . . < t arr (rh)
+
+and ψγ (q) = ψγ (r0) = . . . = ψγ (rh), with rh ∈ Rγ,t . We then set r = rh. The lemma follows immediately since 
+
+ψγ (r) = ψγ (q) implies d(q, r ) ≤ 4γ.
+
+Proof of Theorem 4.2. Let γ = (1 + β)i ∈ Γ be the guess such that the returned solution C is computed from Rγ,t , for some ⌊log 1+ β dmin ⌋ ≤ i ≤ ⌈ log 1+ β dmax ⌉. By construction, |Aγ,t | ≤ k, and, for each p ∈ Rγ,t , d(p, C ) ≤ 2γ. Using Lemma 4.1 and the triangle inequality, we have that for each p ∈ Xt, d(p, C ) ≤ 6γ. Now, if i = ⌊log 1+ β dmin ⌋ then 
+
+γ ≤ r∗
+
+> k
+
+(Xt) and the theorem holds. Instead, if i > ⌊log 1+ β dmin ⌋, we have, by construction, that for γ′ = (1 + β)i−1 =
+
+γ/ (1 + β) either |Aγ′,t | = k + 1 or k + 1 points of Rγ′,t have been found at distance > 2γ′ from one another. From what we observed earlier, in either case we have γ′ < r ∗
+
+> k
+
+(Xt), hence γ < (1 + β)r∗
+
+> k
+
+(Xt). Thus, for each p ∈ Xt,
+
+d(p, C ) ≤ 6γ < 6(1 + β)r∗
+
+> k
+
+(Xt) ≤ (6 + ε)r∗
+
+> k
+
+(Xt), and the theorem follows. 
+
+Proof of Theorem 4.5. Consider a γ ∈ Γ. Removing expired points from Aγ and Rγ can be done with a linear scan in 
+
+O(|Aγ | + |Rγ |), as well as creating the set E, and potentially the set E′. Adding points to Aγ and Rγ , setting rep γ (p)
+
+to p, and selecting an arbitrary point of E′ can be done in constant time. Finally, procedure CLEANUP can be executed in O(|Aγ | + |Rγ |) time. Recall that, from Lemma 4.4, we have that |Aγ | + |Rγ | ∈ O(min {(k + H), |Xt|} ). Since, 
+
+|Γ| ∈ O(log ∆ /ε ), we have the claim. 
+
+Proof of Theorem 4.6. The removal of expired points takes at most O(|Aγ | + |Rγ |) time for each of the |Γ| ∈ O(log ∆ /ε )
+
+guesses. Then, for each γ, running the procedure of Hochbaum & Shmoys (1986) on Rγ takes O(k · | Rγ |) time. Recalling that |Aγ | + |Rγ | ∈ O(min {(k + H), |Xt|} ) by Lemma 4.4 and that |Γ| ∈ O(log ∆ /ε ), we have the claim. 
+
+Proof of Theorem 4.7. The claim follows by bounding the number of points maintained for each guess γ via Lemma 4.4, and by recalling that |Γ| ∈ O(log ∆ /ε ).15

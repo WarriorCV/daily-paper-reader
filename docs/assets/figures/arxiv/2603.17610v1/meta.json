@@ -1,0 +1,94 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.17610v1/fig-001.webp",
+      "caption": "TABLE III: Classification comparison across benchmarks (Mean ± Std). Bold and underlined values denote the highest and second-highest scores, respectively.",
+      "page": 11,
+      "index": 1,
+      "width": 748,
+      "height": 338
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17610v1/fig-002.webp",
+      "caption": "TABLE II: Clustering performance comparison on different datasets (mean result ± standard deviation). AdaMuS is our proposed method. The best and the second best results are highlighted by boldface and underlined, respectively.",
+      "page": 11,
+      "index": 2,
+      "width": 1169,
+      "height": 410
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17610v1/fig-003.webp",
+      "caption": "Fig. 1: Ubiquitous Dimensional Imbalance in Real-world Multi-view Applications. We illustrate four representative scenarios—(a) Medical Diagnosis, (b) Financial Analysis, (c) Emotion Recognition, and (d) Monitoring—where extreme dimensionality disparities (e.g., ≈ 106 vs. ≈ 101) between views are prevalent. This fundamental imbalance challenges conventional fusion methods, which often bias towards high-dimensional features.",
+      "page": 2,
+      "index": 3,
+      "width": 1060,
+      "height": 481
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17610v1/fig-004.webp",
+      "caption": "Fig. 9: Verification of sparse alignment. (Left) Groundtruth mapping matrix WT 2 , where red dashed boxes indicate irrelevant dimensions. (Right) The learned scaling factor γ effectively suppresses these dimensions while activating the informative ones.",
+      "page": 10,
+      "index": 4,
+      "width": 509,
+      "height": 294
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17610v1/fig-005.webp",
+      "caption": "Fig. 13: Hyper-parameter analysis on the MSRCV1 dataset.",
+      "page": 14,
+      "index": 5,
+      "width": 1113,
+      "height": 296
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17610v1/fig-006.webp",
+      "caption": "Fig. 2: Illustration of the proposed AdaMuS framework. AdaMuS establishes view-specific encoders f (v)(·) to process unbalanced multi-view data. These encoders are structurally optimized by the Principal Neuron Analysis (PNA) module to learn aligned representations {zvn}Vv=1 with a unified dimension. Specifically, a Multi-view Sparse Batch Normalization (MSBN) layer is proposed to explicitly integrate these features via a sparse fusion paradigm. Finally, we train AdaMuS in a self-supervised manner to guide the representation learning.",
+      "page": 3,
+      "index": 6,
+      "width": 1066,
+      "height": 530
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17610v1/fig-007.webp",
+      "caption": "Fig. 12: Segmentation results of our AdaMuS-SEG and baseline UNET on the NYUv2 dataset.",
+      "page": 13,
+      "index": 7,
+      "width": 660,
+      "height": 517
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17610v1/fig-008.webp",
+      "caption": "Fig. 5: Construction process of the multi-view toy example.",
+      "page": 8,
+      "index": 8,
+      "width": 1007,
+      "height": 473
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17610v1/fig-009.webp",
+      "caption": "TABLE IV: Ablation study. LG is the foundational graphbased contrastive learning module. LS denotes the sparsity fusion constraint, and LP represents the PNA pruning module. Best results are in bold.",
+      "page": 12,
+      "index": 9,
+      "width": 554,
+      "height": 319
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17610v1/fig-010.webp",
+      "caption": "Fig. 11: t-SNE visualization of original data and comprehensive representations on CUB dataset. (a) and (b) are original features, respectively. (c) is the result of AdaMuSRS, which removes the MSBN layer. (d) is the result of AdaMuS.",
+      "page": 12,
+      "index": 10,
+      "width": 471,
+      "height": 529
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17610v1/fig-011.webp",
+      "caption": "Fig. 4: PNA workflow: (1) Compute covariance matrix from layer outputs; (2) Extract eigenvalue distribution; (3) Measure dissimilarity to Uniform/Dirac baselines; (4) Adjust pruning rate with view imbalance.",
+      "page": 5,
+      "index": 11,
+      "width": 510,
+      "height": 336
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.24106v2/fig-001.webp",
+      "caption": "Figure 3: Hierarchical division and merging of a weighted granular ball set (WGBS) for pseudo-domain discovery. Starting from the initial ball set 𝑆 (0), parent balls are iteratively split by weighted 2-means and accepted only when the child compactness",
+      "page": 6,
+      "index": 1,
+      "width": 1008,
+      "height": 612
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24106v2/fig-002.webp",
+      "caption": "Table 3",
+      "page": 11,
+      "index": 2,
+      "width": 1029,
+      "height": 273
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24106v2/fig-003.webp",
+      "caption": "Figure 1: Illustration of three settings under domain shift:",
+      "page": 2,
+      "index": 3,
+      "width": 483,
+      "height": 496
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24106v2/fig-004.webp",
+      "caption": "Figure 4: Qualitative comparison on UCF_QNRF under the no-adaptation setting. From left to right: input image, GT density",
+      "page": 10,
+      "index": 4,
+      "width": 1029,
+      "height": 767
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24106v2/fig-005.webp",
+      "caption": "Figure 2: Overall framework of the proposed method, consisting of semantic codebook re-encoding, style-branch regularization,",
+      "page": 4,
+      "index": 5,
+      "width": 1012,
+      "height": 552
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24106v2/fig-006.webp",
+      "caption": "Table 1",
+      "page": 9,
+      "index": 6,
+      "width": 1029,
+      "height": 538
+    }
+  ]
+}

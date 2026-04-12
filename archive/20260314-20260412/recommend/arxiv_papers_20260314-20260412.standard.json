@@ -1,0 +1,394 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-04-12T07:47:22.862817+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 3,
+    "deep_cap": 6,
+    "deep_selected": 3,
+    "quick_candidates": 7,
+    "quick_skim_target": 11,
+    "quick_selected": 7
+  },
+  "deep_dive": [
+    {
+      "id": "2603.19711v1",
+      "source": "arxiv",
+      "title": "EvoTaxo: Building and Evolving Taxonomy from Social Media Streams",
+      "abstract": "Constructing taxonomies from social media corpora is challenging because posts are short, noisy, semantically entangled, and temporally dynamic. Existing taxonomy induction methods are largely designed for static corpora and often struggle to balance robustness, scalability, and sensitivity to evolving discourse. We propose EvoTaxo, a LLM-based framework for building and evolving taxonomies from temporally ordered social media streams. Rather than clustering raw posts directly, EvoTaxo converts each post into a structured draft action over the current taxonomy, accumulates structural evidence over time windows, and consolidates candidate edits through dual-view clustering that combines semantic similarity with temporal locality. A refinement-and-arbitration procedure then selects reliable edits before execution, while each node maintains a concept memory bank to preserve semantic boundaries over time. Experiments on two Reddit corpora show that EvoTaxo produces more balanced taxonomies than baselines, with clearer post-to-leaf assignment, better corpus coverage at comparable taxonomy size, and stronger structural quality. A case study on the Reddit community /r/ICE_Raids further shows that EvoTaxo captures meaningful temporal shifts in discourse. Our codebase is available here.",
+      "authors": [
+        "Yiyang Li",
+        "Tianyi Ma",
+        "Yanfang Ye"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-03-20T07:33:29+00:00",
+      "link": "https://arxiv.org/pdf/2603.19711v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "LLM-based dual-view clustering for social media streams",
+      "llm_evidence_cn": "基于大模型的社交媒体流双视图聚类",
+      "llm_evidence": "基于大模型的社交媒体流双视图聚类",
+      "canonical_evidence": "基于大模型的社交媒体流双视图聚类",
+      "llm_tldr_en": "EvoTaxo uses LLMs and dual-view clustering to evolve taxonomies from noisy social media streams.",
+      "llm_tldr_cn": "EvoTaxo结合大模型与双视图聚类，从噪声社交媒体流中构建并演化分类体系。",
+      "llm_tldr": "EvoTaxo结合大模型与双视图聚类，从噪声社交媒体流中构建并演化分类体系。",
+      "llm_tags": [
+        "query:mvc:composite"
+      ],
+      "matched_query_tag": "query:mvc:composite",
+      "matched_query_text": "Papers central to 多视图聚类（Multi-view Clustering）在流式/在线场景下的不完整视图与噪声鲁棒性研究，结合大模型与对比学习。, especially work that connects or combines: Safe Multi-view Clustering; Contrastive Multi-view Clustering; Online Multi-view Clustering; Streaming Multi-view Clustering; streaming clustering; multi-view clustering; How to handle noise, missing views, and outliers in streaming multi view clustering?.",
+      "matched_requirement_id": "req-composite-mvc",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02610v1",
+      "source": "arxiv",
+      "title": "Structure-Preserving Multi-View Embedding Using Gromov-Wasserstein Optimal Transport",
+      "abstract": "Multi-view data analysis seeks to integrate multiple representations of the same samples in order to recover a coherent low-dimensional structure. Classical approaches often rely on feature concatenation or explicit alignment assumptions, which become restrictive under heterogeneous geometries or nonlinear distortions. In this work, we propose two geometry-aware multi-view embedding strategies grounded in Gromov-Wasserstein (GW) optimal transport. The first, termed Mean-GWMDS, aggregates view-specific relational information by averaging distance matrices and applying GW-based multidimensional scaling to obtain a representative embedding. The second strategy, referred to as Multi-GWMDS, adopts a selection-based paradigm in which multiple geometry-consistent candidate embeddings are generated via GW-based alignment and a representative embedding is selected. Experiments on synthetic manifolds and real-world datasets show that the proposed methods effectively preserve intrinsic relational structure across views. These results highlight GW-based approaches as a flexible and principled framework for multi-view representation learning.",
+      "authors": [
+        "Rafael Pereira Eufrazio",
+        "Eduardo Fernandes Montesuma",
+        "Charles Casimiro Cavalcante"
+      ],
+      "primary_category": "stat.ML",
+      "categories": [
+        "stat.ML",
+        "cs.LG"
+      ],
+      "published": "2026-04-03T00:58:19+00:00",
+      "link": "https://arxiv.org/pdf/2604.02610v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Multi-view embedding strategies to integrate multiple representations of samples",
+      "llm_evidence_cn": "整合样本多种表示的多视图嵌入策略",
+      "llm_evidence": "整合样本多种表示的多视图嵌入策略",
+      "canonical_evidence": "整合样本多种表示的多视图嵌入策略",
+      "llm_tldr_en": "Proposes geometry-aware multi-view embedding using Gromov-Wasserstein transport to integrate heterogeneous views.",
+      "llm_tldr_cn": "提出利用Gromov-Wasserstein传输进行几何感知的多视图嵌入，以整合异构视图。",
+      "llm_tldr": "提出利用Gromov-Wasserstein传输进行几何感知的多视图嵌入，以整合异构视图。",
+      "llm_tags": [
+        "query:mvc"
+      ],
+      "matched_query_tag": "query:mvc",
+      "matched_query_text": "multi-view clustering",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.21590v1",
+      "source": "arxiv",
+      "title": "Feature Incremental Clustering with Generalization Bounds",
+      "abstract": "In many learning systems, such as activity recognition systems, as new data collection methods continue to emerge in various dynamic environmental applications, the attributes of instances accumulate incrementally, with data being stored in gradually expanding feature spaces. How to design theoretically guaranteed algorithms to effectively cluster this special type of data stream, commonly referred to as activity recognition, remains unexplored. Compared to traditional scenarios, we will face at least two fundamental questions in this feature incremental scenario. (i) How to design preliminary and effective algorithms to address the feature incremental clustering problem? (ii) How to analyze the generalization bounds for the proposed algorithms and under what conditions do these algorithms provide a strong generalization guarantee? To address these problems, by tailoring the most common clustering algorithm, i.e., $k$-means, as an example, we propose four types of Feature Incremental Clustering (FIC) algorithms corresponding to different situations of data access: Feature Tailoring (FT), Data Reconstruction (DR), Data Adaptation (DA), and Model Reuse (MR), abbreviated as FIC-FT, FIC-DR, FIC-DA, and FIC-MR. Subsequently, we offer a detailed analysis of the generalization error bounds for these four algorithms and highlight the critical factors influencing these bounds, such as the amounts of training data, the complexity of the hypothesis space, the quality of pre-trained models, and the discrepancy of the reconstruction feature distribution. The numerical experiments show the effectiveness of the proposed algorithms, particularly in their application to activity recognition clustering tasks.",
+      "authors": [
+        "Jing Zhang",
+        "Chenping Hou"
+      ],
+      "primary_category": "math.ST",
+      "categories": [
+        "math.ST",
+        "cs.LG"
+      ],
+      "published": "2026-03-23T05:35:31+00:00",
+      "link": "https://arxiv.org/pdf/2603.21590v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "clustering for data streams with incremental feature spaces",
+      "llm_evidence_cn": "特征空间增量的数据流聚类",
+      "llm_evidence": "特征空间增量的数据流聚类",
+      "canonical_evidence": "特征空间增量的数据流聚类",
+      "llm_tldr_en": "Investigates feature incremental clustering for data streams with theoretical generalization bounds.",
+      "llm_tldr_cn": "研究具有理论泛化界限的特征增量数据流聚类算法。",
+      "llm_tldr": "研究具有理论泛化界限的特征增量数据流聚类算法。",
+      "llm_tags": [
+        "query:mvc"
+      ],
+      "matched_query_tag": "query:mvc",
+      "matched_query_text": "Streaming Multi-view Clustering",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2603.17610v1",
+      "source": "arxiv",
+      "title": "AdaMuS: Adaptive Multi-view Sparsity Learning for Dimensionally Unbalanced Data",
+      "abstract": "Multi-view learning primarily aims to fuse multiple features to describe data comprehensively. Most prior studies implicitly assume that different views share similar dimensions. In practice, however, severe dimensional disparities often exist among different views, leading to the unbalanced multi-view learning issue. For example, in emotion recognition tasks, video frames often reach dimensions of $10^6$, while physiological signals comprise only $10^1$ dimensions. Existing methods typically face two main challenges for this problem: (1) They often bias towards high-dimensional data, overlooking the low-dimensional views. (2) They struggle to effectively align representations under extreme dimensional imbalance, which introduces severe redundancy into the low-dimensional ones. To address these issues, we propose the Adaptive Multi-view Sparsity Learning (AdaMuS) framework. First, to prevent ignoring the information of low-dimensional views, we construct view-specific encoders to map them into a unified dimensional space. Given that mapping low-dimensional data to a high-dimensional space often causes severe overfitting, we design a parameter-free pruning method to adaptively remove redundant parameters in the encoders. Furthermore, we propose a sparse fusion paradigm that flexibly suppresses redundant dimensions and effectively aligns each view. Additionally, to learn representations with stronger generalization, we propose a self-supervised learning paradigm that obtains supervision information by constructing similarity graphs. Extensive evaluations on a synthetic toy dataset and seven real-world benchmarks demonstrate that AdaMuS consistently achieves superior performance and exhibits strong generalization across both classification and semantic segmentation tasks.",
+      "authors": [
+        "Cai Xu",
+        "Changhao Sun",
+        "Ziyu Guan",
+        "Wei Zhao"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-03-18T11:22:47+00:00",
+      "link": "https://arxiv.org/pdf/2603.17610v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "multi-view learning and representation alignment for unbalanced data",
+      "llm_evidence_cn": "针对维度不平衡数据的多视图学习与表示对齐",
+      "llm_evidence": "针对维度不平衡数据的多视图学习与表示对齐",
+      "canonical_evidence": "针对维度不平衡数据的多视图学习与表示对齐",
+      "llm_tldr_en": "Addresses dimensional imbalance in multi-view learning through adaptive sparsity to align diverse feature views.",
+      "llm_tldr_cn": "通过自适应稀疏学习解决多视图学习中的维度不平衡问题，实现不同特征视图的有效对齐。",
+      "llm_tldr": "通过自适应稀疏学习解决多视图学习中的维度不平衡问题，实现不同特征视图的有效对齐。",
+      "llm_tags": [
+        "query:mvc"
+      ],
+      "matched_query_tag": "query:mvc",
+      "matched_query_text": "multi-view clustering",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2603.21135v1",
+      "source": "arxiv",
+      "title": "One Pool Is Not Enough: Multi-Cluster Memory for Practical Test-Time Adaptation",
+      "abstract": "Test-time adaptation (TTA) adapts pre-trained models to distribution shifts at inference using only unlabeled test data. Under the Practical TTA (PTTA) setting, where test streams are temporally correlated and non-i.i.d., memory has become an indispensable component for stable adaptation, yet existing methods universally store amples in a single unstructured pool. We show that this single-cluster design is fundamentally mismatched to PTTA: a stream clusterability analysis reveals that test streams are inherently multi-modal, with the optimal number of mixture components consistently far exceeding one. To close this structural gap, we propose Multi-Cluster Memory (MCM), a plug-and-play framework that organizes stored samples into multiple clusters using lightweight pixel-level statistical descriptors. MCM introduces three complementary mechanisms: descriptor-based cluster assignment to capture distinct distributional modes, Adjacent Cluster Consolidation (ACC) to bound memory usage by merging the most similar temporally adjacent clusters, and Uniform Cluster Retrieval (UCR) to ensure balanced supervision across all modes during adaptation. Integrated with three contemporary TTA methods on CIFAR-10-C, CIFAR-100-C, ImageNet-C, and DomainNet, MCM achieves consistent improvements across all 12 configurations, with gains up to 5.00% on ImageNet-C and 12.13% on DomainNet. Notably, these gains scale with distributional complexity: larger label spaces with greater multi-modality benefit most from multi-cluster organization. GMM-based memory diagnostics further confirm that MCM maintains near-optimal distributional balance, entropy, and mode coverage, whereas single-cluster memory exhibits persistent imbalance and progressive mode loss. These results establish memory organization as a key design axis for practical test-time adaptation.",
+      "authors": [
+        "Yu-Wen Tseng",
+        "Xingyi Zheng",
+        "Ya-Chen Wu",
+        "I-Bin Liao",
+        "Yung-Hui Li",
+        "Hong-Han Shuai",
+        "Wen-Huang Cheng"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-03-22T09:14:58+00:00",
+      "link": "https://arxiv.org/pdf/2603.21135v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Multi-cluster memory for practical test-time adaptation in non-i.i.d. test streams",
+      "llm_evidence_cn": "非独立同分布测试流中实际测试时自适应的多簇存储器",
+      "llm_evidence": "非独立同分布测试流中实际测试时自适应的多簇存储器",
+      "canonical_evidence": "非独立同分布测试流中实际测试时自适应的多簇存储器",
+      "llm_tldr_en": "Introduces a multi-cluster memory framework to handle multi-modal data streams during online test-time adaptation.",
+      "llm_tldr_cn": "引入多簇存储框架，以处理在线测试时自适应过程中的多模态数据流。",
+      "llm_tldr": "引入多簇存储框架，以处理在线测试时自适应过程中的多模态数据流。",
+      "llm_tags": [
+        "query:mvc"
+      ],
+      "matched_query_tag": "query:mvc",
+      "matched_query_text": "Online Multi-view Clustering",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2603.23348v1",
+      "source": "arxiv",
+      "title": "Dynamic k-center clustering with lifetimes",
+      "abstract": "The $k$-center problem is a fundamental clustering variant with applications in learning systems and data summarization. In several real-world scenarios, the dataset to be clustered is not static, but evolves over time, as new data points arrive and old ones become stale. To account for dynamicity, the $k$-center problem has been mainly studied under the sliding window setting, where only the $N$ most recent points are considered non-stale, or the fully dynamic setting, where arbitrary sequences of point arrivals and deletions without prior notice may occur. In this paper, we introduce the dynamic setting with lifetimes, which bridges the two aforementioned classical settings by still allowing arbitrary arrivals and deletions, but making the deletion time of each point known upon its arrival. Under this new setting, we devise a deterministic $(2+\\varepsilon)$-approximation algorithm with $\\tilde{O}(k/\\varepsilon)$ amortized update time and memory usage linear in the number of currently active points. Moreover, we develop a deterministic $(6+\\varepsilon)$-approximation algorithm that, under tame update sequences, has $\\tilde{O}(k/\\varepsilon)$ worst-case update time and heavily sublinear working memory.",
+      "authors": [
+        "Simone Moretti",
+        "Paolo Pellizzoni",
+        "Andrea Pietracaprina",
+        "Geppino Pucci"
+      ],
+      "primary_category": "cs.DS",
+      "categories": [
+        "cs.DS"
+      ],
+      "published": "2026-03-24T15:44:32+00:00",
+      "link": "https://arxiv.org/pdf/2603.23348v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Dynamic k-center clustering in evolving datasets with arrivals and deletions",
+      "llm_evidence_cn": "在具有到达和删除的演化数据集中的动态k-center聚类",
+      "llm_evidence": "在具有到达和删除的演化数据集中的动态k-center聚类",
+      "canonical_evidence": "在具有到达和删除的演化数据集中的动态k-center聚类",
+      "llm_tldr_en": "Introduces a dynamic k-center clustering setting with lifetimes, bridging sliding window and fully dynamic models.",
+      "llm_tldr_cn": "引入了具有生命周期的动态k-center聚类设置，连接了滑动窗口和全动态模型。",
+      "llm_tldr": "引入了具有生命周期的动态k-center聚类设置，连接了滑动窗口和全动态模型。",
+      "llm_tags": [
+        "query:mvc"
+      ],
+      "matched_query_tag": "query:mvc",
+      "matched_query_text": "streaming clustering",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2603.24106v2",
+      "source": "arxiv",
+      "title": "Granular Ball Guided Stable Latent Domain Discovery for Domain-General Crowd Counting",
+      "abstract": "Single-source domain generalization for crowd counting is highly challenging because a single labeled source domain may contain heterogeneous latent domains, while unseen target domains often exhibit severe distribution shifts. A central issue is stable latent domain discovery: directly performing flat clustering on evolving sample-level latent features is easily disturbed by feature noise, outliers, and representation drift, leading to unreliable pseudo-domain assignments and weakened domain-structured learning. To address this problem, we propose a granular ball guided stable latent domain discovery framework for domain-general crowd counting. The proposed method first groups samples into compact local granular balls and then clusters granular ball centers as representatives to infer pseudo-domains, thereby converting direct sample-level clustering into a hierarchical representative-based clustering process. This design produces more stable and semantically consistent pseudo-domain assignments. On top of the discovered latent domains, we develop a two-branch learning framework that improves transferable semantic representations via semantic codebook re-encoding and captures domain-specific appearance variations through a style branch, thereby alleviating semantic--style entanglement under domain shifts. Extensive experiments on ShanghaiTech A/B, UCF\\_QNRF, and NWPU-Crowd under a strict no-adaptation protocol verify the effectiveness of the proposed method and show strong generalization ability, especially in transfer settings with large domain gaps.",
+      "authors": [
+        "Fan Chen",
+        "Shuyin Xia",
+        "Yi Wang"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-03-25T09:12:35+00:00",
+      "link": "https://arxiv.org/pdf/2603.24106v2",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Stable latent domain discovery handling feature noise, outliers, and representation drift",
+      "llm_evidence_cn": "处理特征噪声、离群点和表示漂移的稳定潜在域发现",
+      "llm_evidence": "处理特征噪声、离群点和表示漂移的稳定潜在域发现",
+      "canonical_evidence": "处理特征噪声、离群点和表示漂移的稳定潜在域发现",
+      "llm_tldr_en": "Uses granular balls to guide stable clustering in the presence of noise and outliers for domain generalization.",
+      "llm_tldr_cn": "利用颗粒球引导在存在噪声和离群点的情况下进行稳定聚类，用于领域泛化。",
+      "llm_tldr": "利用颗粒球引导在存在噪声和离群点的情况下进行稳定聚类，用于领域泛化。",
+      "llm_tags": [
+        "query:mvc"
+      ],
+      "matched_query_tag": "query:mvc",
+      "matched_query_text": "How to handle noise, missing views, and outliers in streaming multi view clustering?",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2604.01726v1",
+      "source": "arxiv",
+      "title": "Adaptive Fully Dynamic $k$-Center Clustering with (Near-)Optimal Worst-Case Guarantees",
+      "abstract": "Given a sequence of adversarial point insertions and point deletions, is it possible to simultaneously optimize the approximation ratio, update time, and recourse for a $k$-clustering problem? If so, can this be achieved with worst-case guarantees against an adaptive adversary? These questions have garnered significant attention in recent years.   Prior works by Bhattacharya, Costa, Garg, Lattanzi, and Parotsidis [FOCS '24] and by Bhattacharya, Costa, and Farokhnejad [STOC '25] have taken significant steps toward this direction for the $k$-median clustering problem and its generalization, the $(k, z)$-clustering problem. In this paper, we study the $k$-center clustering problem, which is one of the most classical and well-studied $k$-clustering problems. Recently, Bhattacharya, Costa, Farokhnejad, Lattanzi, and Parotsidis [ICML '25] provided an affirmative answer to the first question for the $k$-center clustering problem. However, their work did not resolve the second question, as their result provides only expected amortized guarantees against an oblivious adversary.   In this work, we make significant progress and close the gap by answering both questions in the affirmative. Specifically, we show that the fully dynamic $k$-center clustering problem admits a constant-factor approximation, near-optimal worst-case update time, and constant worst-case recourse, even against an adaptive adversary. This is achieved by first developing a fully dynamic bicriteria approximation algorithm with (near-)optimal worst-case bounds, and then designing a suitable fully dynamic $k$-center algorithm with near-linear update time. For the fully dynamic bicriteria approximation algorithm, we establish the worst-case recourse and worst-case update time guarantees separately, and then merge them into a single algorithm through a simple yet elegant process.",
+      "authors": [
+        "Mara Grilnberger",
+        "Antonis Skarlatos"
+      ],
+      "primary_category": "cs.DS",
+      "categories": [
+        "cs.DS"
+      ],
+      "published": "2026-04-02T07:45:33+00:00",
+      "link": "https://arxiv.org/pdf/2604.01726v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Adaptive fully dynamic k-center clustering with adversarial insertions and deletions",
+      "llm_evidence_cn": "具有对抗性插入和删除的自适应全动态k-center聚类",
+      "llm_evidence": "具有对抗性插入和删除的自适应全动态k-center聚类",
+      "canonical_evidence": "具有对抗性插入和删除的自适应全动态k-center聚类",
+      "llm_tldr_en": "Provides worst-case guarantees for k-center clustering in fully dynamic data streams with adversarial updates.",
+      "llm_tldr_cn": "为具有对抗性更新的全动态数据流中的k-center聚类提供最坏情况下的保证。",
+      "llm_tldr": "为具有对抗性更新的全动态数据流中的k-center聚类提供最坏情况下的保证。",
+      "llm_tags": [
+        "query:mvc"
+      ],
+      "matched_query_tag": "query:mvc",
+      "matched_query_text": "streaming clustering",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.06864v1",
+      "source": "arxiv",
+      "title": "A Data-Informed Variational Clustering Framework for Noisy High-Dimensional Data",
+      "abstract": "Clustering in high-dimensional settings with severe feature noise remains challenging, especially when only a small subset of dimensions is informative and the final number of clusters is not specified in advance. In such regimes, partition recovery, feature relevance learning, and structural adaptation are tightly coupled, and standard likelihood-based methods can become unstable or overly sensitive to noisy dimensions. We propose DIVI, a data-informed variational clustering framework that combines global feature gating with split-based adaptive structure growth. DIVI uses informative prior initialization to stabilize optimization, learns feature relevance in a differentiable manner, and expands model complexity only when local diagnostics indicate underfit. Beyond clustering performance, we also examine runtime scalability and parameter sensitivity in order to clarify the computational and practical behavior of the framework. Empirically, we find that DIVI performs competitively under severe feature noise, remains computationally feasible, and yields interpretable feature-gating behavior, while also exhibiting conservative growth and identifiable failure regimes in challenging settings. Overall, DIVI is best viewed as a practical variational clustering framework for noisy high-dimensional data rather than as a fully Bayesian generative solution.",
+      "authors": [
+        "Wan Ping Chen"
+      ],
+      "primary_category": "stat.ML",
+      "categories": [
+        "stat.ML",
+        "cs.LG"
+      ],
+      "published": "2026-04-08T09:25:44+00:00",
+      "link": "https://arxiv.org/pdf/2604.06864v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "variational clustering for noisy high-dimensional data",
+      "llm_evidence_cn": "针对高维噪声数据的变分聚类",
+      "llm_evidence": "针对高维噪声数据的变分聚类",
+      "canonical_evidence": "针对高维噪声数据的变分聚类",
+      "llm_tldr_en": "Proposes DIVI, a framework for handling severe feature noise and structural adaptation in clustering.",
+      "llm_tldr_cn": "提出DIVI框架，用于处理聚类中的严重特征噪声和结构自适应问题。",
+      "llm_tldr": "提出DIVI框架，用于处理聚类中的严重特征噪声和结构自适应问题。",
+      "llm_tags": [
+        "query:mvc"
+      ],
+      "matched_query_tag": "query:mvc",
+      "matched_query_text": "How to handle noise, missing views, and outliers in streaming multi view clustering?",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2604.05857v1",
+      "source": "arxiv",
+      "title": "Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data",
+      "abstract": "Clustering mixed-type tabular data is fundamental for exploratory analysis, yet remains challenging due to misaligned numerical-categorical representations, uneven and context-dependent feature relevance, and disconnected and post-hoc explanation from the clustering process. We propose WISE, a Weight-Informed Self-Explaining framework that unifies representation, feature weighting, clustering, and interpretation in a fully unsupervised and transparent pipeline. WISE introduces Binary Encoding with Padding (BEP) to align heterogeneous features in a unified sparse space, a Leave-One-Feature-Out (LOFO) strategy to sense multiple high-quality and diverse feature-weighting views, and a two-stage weight-aware clustering procedure to aggregate alternative semantic partitions. To ensure intrinsic interpretability, we further develop Discriminative FreqItems (DFI), which yields feature-level explanations that are consistent from instances to clusters with an additive decomposition guarantee. Extensive experiments on six real-world datasets demonstrate that WISE consistently outperforms classical and neural baselines in clustering quality while remaining efficient, and produces faithful, human-interpretable explanations grounded in the same primitives that drive clustering.",
+      "authors": [
+        "Lehao Li",
+        "Qiang Huang",
+        "Yihao Ang",
+        "Bryan Kian Hsiang Low",
+        "Anthony K. H. Tung",
+        "Xiaokui Xiao"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-04-07T13:18:31+00:00",
+      "link": "https://arxiv.org/pdf/2604.05857v1",
+      "tags": [
+        "keyword:MVC",
+        "query:MVC"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "aggregates multiple feature-weighting views for clustering",
+      "llm_evidence_cn": "聚合多个特征权重视图进行聚类",
+      "llm_evidence": "聚合多个特征权重视图进行聚类",
+      "canonical_evidence": "聚合多个特征权重视图进行聚类",
+      "llm_tldr_en": "Proposes WISE, a framework for mixed-type data clustering using multiple feature-weighting views.",
+      "llm_tldr_cn": "提出WISE框架，利用多个特征权重视图对混合类型数据进行聚类和解释。",
+      "llm_tldr": "提出WISE框架，利用多个特征权重视图对混合类型数据进行聚类和解释。",
+      "llm_tags": [
+        "query:mvc"
+      ],
+      "matched_query_tag": "query:mvc",
+      "matched_query_text": "multi-view clustering",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}

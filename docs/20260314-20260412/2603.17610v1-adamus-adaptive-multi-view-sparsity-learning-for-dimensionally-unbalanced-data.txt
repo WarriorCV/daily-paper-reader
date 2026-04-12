@@ -1,0 +1,799 @@
+Title: AdaMuS: Adaptive Multi-view Sparsity Learning for Dimensionally Unbalanced Data
+
+URL Source: https://arxiv.org/pdf/2603.17610v1
+
+Published Time: Thu, 19 Mar 2026 01:10:31 GMT
+
+Number of Pages: 16
+
+Markdown Content:
+> IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 1
+
+# AdaMuS: Adaptive Multi-view Sparsity Learning for Dimensionally Unbalanced Data 
+
+Cai Xu, Changhao Sun, Ziyu Guan, and Wei Zhao 
+
+Abstract—Multi-view learning primarily aims to fuse mul-tiple features to describe data comprehensively. Most prior studies implicitly assume that different views share similar dimensions. In practice, however, severe dimensional disparities often exist among different views, leading to the unbalanced multi-view learning issue. For example, in emotion recognition tasks, video frames often reach dimensions of 10 6, while physiological signals comprise only 10 1 dimensions. Existing methods typically face two main challenges for this problem: (1) They often bias towards high-dimensional data, overlooking the low-dimensional views. (2) They struggle to effectively align representations under extreme dimensional imbalance, which introduces severe redundancy into the low-dimensional ones. To address these issues, we propose the Adaptive Multi-view Sparsity Learning (AdaMuS) framework. First, to prevent ignoring the information of low-dimensional views, we construct view-specific encoders to map them into a unified dimensional space. Given that mapping low-dimensional data to a high-dimensional space often causes severe overfitting, we design a parameter-free pruning method to adaptively remove redun-dant parameters in the encoders. Furthermore, we propose a sparse fusion paradigm that flexibly suppresses redundant dimensions and effectively aligns each view. Additionally, to learn representations with stronger generalization, we propose a self-supervised learning paradigm that obtains supervision information by constructing similarity graphs. Extensive eval-uations on a synthetic toy dataset and seven real-world bench-marks demonstrate that AdaMuS consistently achieves superior performance and exhibits strong generalization across both classification and semantic segmentation tasks. Index Terms—multi-view deep learning, unbalanced multi-view learning, network pruning, self-supervised learning 
+
+I. Introduction 
+
+# MULTI-VIEW data is prevalent in real-world scenar-ios. For example, emotion recognition comprehen-sively integrates subjects’ video frames and physiological signals. These different modals provide consistent and complementary properties for the same data instance. Fusing multi-modal data allows for a more comprehensive description, thereby boosting the performance of various downstream tasks, such as classification [1], clustering [2], [3], retrieval [4], recognition [5], and segmentation [6]. With the rapid advancements in deep learning, deep multi-view learning has recently seen massive progress [7]. This paper focuses on its fundamental problem: Multi-view 
+
+C. Xu, C. Sun, Z. Guan, and W. Zhao are with Xidian University, Xi’an 710071, China. Specifically, C. Sun is with the School of Cyber Engineering. C. Xu, Z. Guan, and W. Zhao are with the School of Computer Science and Technol-ogy (e-mail: cxu@xidian.edu.cn; changhaosun@stu.xidian.edu.cn; zyguan@xidian.edu.cn; ywzhao@xidian.edu.cn). (Corresponding author:Wei Zhao .) 
+
+Representation Learning (MRL), which aims to extract a comprehensive representation containing the consistent and complementary information across all views. Existing MRL frameworks [8], [9], [10] implicitly assume that different views have similar dimensions. However, real-world data often violates this assumption. For ex-ample, in emotion recognition tasks, both video frames and physiological signals (such as EEG and ECG) are important. Video data often has dimensions exceeding 10 6,while physiological signals typically have dimensions on the order of 10 1 [11]. Furthermore, in medical diagnosis, CT images and blood test metrics (such as white blood cell count and hemoglobin levels), which reflect patients’ phys-iological health indicators are also highly unbalanced [12], giving rise to the Unbalanced Multi-view Representation Learning problem [13]. Existing methods typically suffer from the following drawbacks for this problem: (1) They often overlook the information of low-dimensional views. For example, directly concatenating high-dimensional and low-dimensional data [14], [15] often results in the low-dimensional information being overwhelmed by the high-dimensional information. This causes the model to de-generate into single-view learning dominated by high-dimensional features [16], [17], failing to truly leverage the complementary multi-view information. (2) They struggle to effectively align features under extreme dimensional imbalance, which introduces severe redundancy into the low-dimensional ones. Specifically, existing methods first using DNNs to construct balanced view-specific represen-tations and then perform fusion [18], [19], [20]. However, this blind alignment leads to two consequences: First, for low-dimensional views, directly introducing DNNs to expand dimensions brings a large number of redundant parameters. The mismatch between complex networks and limited information can easily lead to overfitting [15]. Second, the forcibly expanded dimensions often lack practical meaning. Once these redundant dimensions are fused into the final comprehensive representation, they severely compromise its reliability [13]. To address the above limitations, we propose a new framework called Adaptive Multi-view Sparsity Learning for Dimensionally Unbalanced Data (AdaMus). As illus-trated in Figure 2, we first construct view-specific encoders to learn aligned representations. To avoid the overfitting problem caused by expanding low-dimensional views, we design a parameter-free pruning method called Principal Neuron Analysis (PNA). PNA computes a unique pruning rate for each view by jointly analyzing neuron correlations   
+
+> arXiv:2603.17610v1 [cs.LG] 18 Mar 2026 IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 2（a）Medical Diagnosis
+> High-Dim. View : Medical Image
+> Low-Dim. View : Clinical Indicators Age: BP: Cholesterol: 65 140/90 220
+> （b）Financial Analysis High-Dim. View : Financial Text
+> Low-Dim. View : Stock Prices
+> （c）Emotion Recognition High-Dim. View : Video Frames
+> Low-Dim. View : Medical Signals
+> （d）Autonomous Driving High-Dim. View : LiDAR
+> Low-Dim. View : CAN Bus Sensors
+> Image vs. vs. (Pixels)
+
+૚૙ ૞ ૚૙ ଵ  
+
+> (Attributes) Indicators Text vs. vs. (Token Matrix)
+
+૚૙ ହ ૚૙ ଵ  
+
+> (Time-steps) Time-series Video vs. vs. (Voxels)
+
+૚૙ ଺ ૚૙ ଵ  
+
+> (Channels) Signals Point Cloud vs. vs. (Points)
+
+૚૙ ହ ૚૙ ଵ      
+
+> (Sensors) Sensors
+> Dim ≈ Dim ≈ Dim ≈ Dim ≈ Dim ≈ Dim ≈ Dim ≈ Dim ≈
+
+Fig. 1: Ubiquitous Dimensional Imbalance in Real-world Multi-view Applications. We illustrate four representative scenarios—(a) Medical Diagnosis, (b) Financial Analysis, (c) Emotion Recognition, and (d) Monitoring—where extreme dimensionality disparities (e.g., ≈ 10 6 vs. ≈ 10 1) between views are prevalent. This fundamental imbalance challenges conventional fusion methods, which often bias towards high-dimensional features. and the imbalance degree of the specific view. Based on the pruning rate, redundant neurons are removed from each view-specific encoder, so as to mitigate the severe overfitting risk caused by forced dimensional expansion. Second, considering that some dimensions in the view-specific representations are irrelevant to the final fused representation, we design a Multi-view Sparse Batch Normalization (MSBN) layer. By adding an l1-norm con-straint to the loss function, this layer penalizes the scaling factors of redundant dimensions. Finally, we propose a self-supervised contrastive learning paradigm guided by balanced view-specific similarity graphs, thereby extract-ing generalizable representations for diverse downstream tasks. The key contributions of our paper are listed below: (1) We propose a novel deep learning framework named AdaMuS, specifically designed for problem of Unbal-anced Multi-view Representation Learning. It effectively prevents overlooking low-dimensional information and eliminates the severe redundancy introduced by forced dimensional alignment. (2) We design a parameter-free Principal Neuron Anal-ysis (PNA) method to adaptively prune redundant param-eters, effectively mitigating the severe overfitting caused by expanding low-dimensional views. (3) We develop a Multi-view Sparse Batch Normal-ization (MSBN) layer to achieve high-quality cross-view alignment and suppress redundant dimensions generated by forced alignment. Furthermore, we propose a self-supervised contrastive learning paradigm that derives supervision signals from balanced similarity graphs, yield-ing generalizable representations for diverse downstream tasks. (4) Extensive experiments on a toy example and seven real-world benchmarks demonstrate that AdaMuS consis-tently achieves superior performance and exhibits strong generalization capabilities in both classification and se-mantic segmentation tasks. II. Related Work A. Deep MCRL Deep Multi-view Comprehensive Representation Learn-ing (MCRL) employs Deep Neural Networks (DNNs) to extract shared and complementary semantics from mul-tiple views. These approaches generally fall into two cat-egories: Multi-view Synergistic Representation Learning (MSRL) and Multi-view Aligned Representation Learning (MARL). MSRL utilizes distinct encoders {f vs }Vv=1 to map inputs 
+
+{xv }Vv=1 into view-specific embeddings {zvs }Vv=1 . These embeddings are combined into a synergistic representation 
+
+zs via an aggregation function fs(·) defined as: 
+
+zs = fs(z1 
+
+> s
+
+, . . . , zVs ), zvs = f vs (xv ), (1) where fs(·) typically involves concatenation or logical operations [7], [21]. MSRL optimization often targets reconstruction accuracy [22], [23] or correlation maximiza-tion [18]. However, applying standard MSRL to unbal-anced data is problematic. Enforcing balanced embedding dimensions causes information loss in high-dimensional views and creates redundancy in low-dimensional ones. Alternatively, MARL approaches [24], [25], [26], [27] enforce strict alignment between view-specific features IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 3…
+
+> 1-st view: Low-dimensional Physiological Signals
+> V-th view: High-dimensional Raw Video Frames
+
+Sparse Fusion Self-supervised training Guide 
+
+☉
+
+PNA Prunning 
+
+☉
+
+> Scaling Factor
+
+ݖ௡ଶ  
+
+> Emotional Arousal Neural Engagement Visual Attribute
+> 2-nd view: Mid-dimensional EEG Time-series
+> Initial Encoder Pruned Encoder Initial Encoder Pruned Encoder Initial Encoder Pruned Encoder
+
+Prunning rate 
+
+γ=0.74 
+
+Prunning rate 
+
+γ=0.21 
+
+Prunning rate 
+
+γ=0.07   
+
+> …
+> … … …
+> Scaling Factor Scaling Factor
+> 1.00 0.00 0.03 ……0.98 1.00 0.03 ……0.96 0.00 1.00 ……………
+
+ݖ௡ଵݖ௡௏
+
+Sparse Fusion PNA Prunning PNA Prunning 
+
+☉
+
+Downstream Tasks 
+
+Fig. 2: Illustration of the proposed AdaMuS framework. AdaMuS establishes view-specific encoders f (v)(·) to process unbalanced multi-view data. These encoders are structurally optimized by the Principal Neuron Analysis (PNA) module to learn aligned representations {zvn}Vv=1 with a unified dimension. Specifically, a Multi-view Sparse Batch Normalization (MSBN) layer is proposed to explicitly integrate these features via a sparse fusion paradigm. Finally, we train AdaMuS in a self-supervised manner to guide the representation learning. 
+
+{zva }Vv=1 . The unified representation is derived through a weighted average: 
+
+za =
+
+> V
+
+∑
+
+> v=1
+
+ωv zva , zva = f va (xv ), (2) where ωv represents the scalar weight for the v-th view and f va (·) is the specific encoder. A critical limitation of MARL lies in its fusion mecha-nism. It assigns a global weight ωv to all dimensions of a view. This strategy fails when dimensional discrepancies are severe. High-dimensional views contain semantic de-tails absent in low-dimensional ones. Feedback from the fused representation forces the low-dimensional encoders to generate “pseudo-dimensions” for alignment. These artificial features obscure genuine intrinsic information. Consequently, the model treats alignment noise as valid signals. This process erodes the uniqueness of the smaller view, resulting in a model dominated by the high-dimensional input. To rectify this, our AdaMuS framework introduces the Multi-view Sparse Batch Normalization (MSBN) layer. MSBN models the individual contribution of each latent dimension. It enables the model to selec-tively suppress redundant dimensions, ensuring balanced and effective fusion. B. Unbalanced Multiview Learning In real-world multiview data, the dimensionalities of different views often vary considerably, leading to the problem of unbalanced multiview learning. Existing so-lutions can be broadly divided into three categories. A straightforward solution employs deep neural net-works (DNNs) to project heterogeneous views into a uni-fied representation space, directly mitigating dimensional imbalance [28], [29]. However, Xu et al. [13] noted that such mappings can severely overfit low-dimensional views due to excessive network parameters. Another approach adopts decision-level fusion, where each view is processed by an independently trained net-work and the resulting predictions are fused. For instance, Liu et al. [30] cluster each view separately before aggre-gating the results, whereas Han et al. [31] train a “trust decision” network for each view to estimate class-wise ev-idence, assigning greater weights to more reliable views in the final fusion stage. A third category constructs balanced similarity graphs for each view, regardless of their original feature dimensionalities. The constructed graphs are then fused to obtain the final feature representation [32]. Al-though decision-level fusion and similarity-graph methods avoid direct feature-level fusion, they keep the views separate until predictions or latent representations are produced. This limits their ability to capture correlations between views. Moreover, decision-level fusion is tailored to category-oriented objectives such as classification and clustering, which limits its transfer to downstream tasks like segmentation. To mitigate the overfitting caused by DNNs in low-IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 4
+
+dimensional views, UMDL [13] builds an overcomplete dictionary where the number of atoms is larger than the original dimension. It then maps low-dimensional samples into a higher-dimensional space, producing repre-sentations that amplify structural differences and enable DNNs to learn more discriminative features. However, this approach requires manually specifying which views are “low-dimensional.” In practice, the boundary between high and low dimensionality is often ambiguous, and such subjective partitioning can be inaccurate, which in turn constrains the method’s applicability. Our AdaMuS is a representation-level fusion framework and can be applied to a wide range of downstream tasks, including segmentation. It avoids manual partitioning of high- and low-dimensional views, while integrating a parameter-free pruning strategy to mitigate overfitting in DNNs. C. Network Pruning Network pruning is a powerful method to prevent over-fitting by eliminating unnecessary parameters in neural networks [33], [34]. Generally, this technique includes two types: unstructured pruning [35], which deletes specific weights, and structured pruning [36], [37], [38], which discards whole neurons or filters. Structured pruning has become a research hotspot due to its amenability to hardware acceleration, and our work focuses on this area. Mainstream structured pruning strategies assess neuron importance using various criteria, such as examining the magnitude of a neuron’s activations on a dataset [38], using gradient information to estimate the impact on model loss upon its removal [39], or introducing sparsity constraints during training to automatically drive the weights of irrelevant neurons toward zero [37]. A limitation of existing pruning methods is their re-liance on a manually-set global pruning rate [36], [37], [40], a drawback particularly pronounced in unbalanced multi-view learning. Given that the dimensionality and in-formation redundancy can vary dramatically across views, a fixed pruning rate may result in ”under-pruning” high-dimensional views while ”over-pruning” low-dimensional ones, thereby impairing final performance [41], [42]. To overcome this, we propose a parameter-free, adaptive pruning strategy that automatically computes an optimal pruning rate for each view-specific encoder based on its intrinsic data characteristics. III. Method A. Problem Definition We consider a multi-view dataset X = {Xn}Nn=1 com-prising N instances. Each instance Xn contains a set of feature vectors {xvn}Vv=1 , where xvn ∈ RDv corresponds to the v-th view. A critical characteristic of real-world scenarios is that the feature dimensionality Dv varies dras-tically across views. To formally quantify this dimensional disparity, we introduce a metric termed the Unbalanced Degree, denoted as Λ:
+
+Λ = 1
+
+C2
+
+> VV
+
+∑
+
+> vi=1
+> V
+
+∑  
+
+> vj=1
+> vj̸=vi
+
+2|Dvi − Dvj |
+
+Dvi + Dvj
+
+︸ ︷︷ ︸
+
+> Pairwise Component
+
++ 1¯D
+
+√√√√ 1
+
+V
+
+> V
+
+∑
+
+> v=1
+
+(Dv − ¯D)2
+
+︸ ︷︷ ︸
+
+> Global Component
+
+,
+
+(3) where ¯D = 1
+
+> V
+
+∑Vv=1 Dv represents the mean dimensional-ity, and C2 
+
+> V
+
+= V (V −1) 2 counts the total view pairs. The metric consists of two normalized parts to allow fair comparisons across different datasets. The pairwise term evaluates local disparities by averaging the dimensional differences between view pairs. Meanwhile, the global term assesses the overall dataset imbalance through the variance of all view dimensions. A larger Λ represents a higher degree of imbalance, and Λ = 0 indicates that all views are perfectly balanced with identical dimensions. The primary aim is to construct a multi-view compre-hensive representation zn ∈ RH that combines the con-sistent and complementary information derived from the multi-view data {xvn}Vv=1 , despite their diverse unbalance degrees Λ.B. The AdaMuS Framework As shown in Fig. 2, the AdaMuS architecture consists of two core parts: adaptive multi-view sparse network learn-ing and adaptive cross-view sparse alignment learning. First, the adaptive multi-view sparse network learning module constructs view-specific encoders to learn aligned representations {zvn}Vv=1 . To avoid the overfitting problem caused by expanding the dimensions of low-dimensional views, we design a parameter-free pruning method called Principal Neuron Analysis (PNA). This method automat-ically removes redundant neurons from each view-specific encoder. Inspired by the Principal Component Analysis (PCA) algorithm, PNA computes a unique pruning rate for each view by jointly analyzing the correlations of the neurons and the unbalanced degree of the specific view. Second, the adaptive cross-view sparse alignment learning module handles the feature fusion. Considering that some dimensions in the view-specific representations 
+
+{zvn}Vv=1 are irrelevant to the final fused representation 
+
+zn, we design a Multi-view Sparse Batch Normalization (MSBN) layer. This layer eliminates the negative impact of redundant dimensions. Finally, we design a loss function to drive the forward learning process. We train the model using a self-supervised contrastive learning method. The supervision information is constructed from balanced view-specific similarity graphs. 1) Adaptive Multi-view Sparse Network Learning : In this module, we first use view-specific encoders (DNNs) to project the original features into an aligned space to avoid ignoring the low-dimensional views. However, expanding low-dimensional data to a high-dimensional space may cause severe overfitting. To mitigate this issue, we propose an adaptive pruning method called Principal Neuron IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 51 6 11 16 21 26 31 36 41 46 
+
+> Epoch
+> 24
+> Objective Function Value
+> 0.5 1
+> Classification Accuracy
+> Acc. of train dataset
+> Acc. of validation dataset
+> Obj. of validation daraset
+> Obj. of train dataset
+
+Fig. 3: Learning curves of a DNN classifier on the low-dimensional view of the CUB dataset. The model projects the 30-dimensional input into a high-dimensional space (structure: 30–1024–512–10). The increasing gap between training and validation performance demonstrates that expanding low-dimensional data with deep networks leads to overfitting. Analysis (PNA). This method automatically removes redundant parameters, transforming the dense encoders into sparse networks that match the actual information density of each view. Specifically, to avoid ignoring the information of low-dimensional views, AdaMuS first establishes view-specific encoders {f v (·; Θvf )}Vv=1 to map the original features of the 
+
+n-th sample xvn to an aligned view-specific representation 
+
+zvn ∈ RH in a unified dimension space as follows: 
+
+zvn = f v (xvn; Θvf ), (4) where xvn is the input feature vector for the v-th view, and Θvf represents the set of trainable parameters for the corresponding encoder. In unbalanced multi-view learning, applying Deep Neu-ral Networks (DNNs) to low-dimensional views often results in a severe mismatch between model complexity and data information. The excessive parameters relative to the low input dimensions typically lead to overfitting [43], [44]. We demonstrate this phenomenon using the CUB dataset, which contains two views with significantly dif-ferent dimensions (30 vs. 1024). We trained a single-view DNN to project the 30-dimensional view into the 1024-dimensional space. The results in Fig. 3 show that while the training error decreases steadily, the validation error rises. This suggests that directly applying dense DNNs for dimensional expansion significantly increases the risk of overfitting. To address this, we introduce network pruning into the multi-view learning framework to reduce parameter redundancy in the encoders Θvf . Specifically, we employ structured pruning to remove redundant neurons and their associated connections layer by layer. This process results in a compressed parameter set Θv′ 
+
+> f
+
+, which is then used to compute the aligned representation zvn.
+
+zvn = f v′
+
+(∗; Θv′ 
+
+> f
+
+). (5) … …                   
+
+> PNA Prunning
+> ܥଵ,௟ ܥଵ,ଵ ܥଵ,ଵ ܥଶ,௟ ܥଶ,ଶ ܥଶ,ଵ ܥ௟,௟ ܥ௟,ଶ ܥ௟,ଵ
+> Neuron 1 Neuron ࢒Neuron 2 Neuron 1 Neuron 2 Neuron ܼ࢒ ௟௏
+> ………………
+> Covarianve Matrix Extract eigenvalues
+> λ௟୚ݑ௟݀௏ ௟௏
+> Measure dissimilarity ܹ(ࣅ ࢜࢒ ，࢛࢜࢒ ܹ) ࢊ( ࢜࢒ ，࢛࢜࢒ )࣎ࢂ=૛࢖࢞ࢋ + ૚ （ࢫ-ࢂ）
+> Pruning rate
+> ߛ௟௏
+
+Pruned Encoder Encoder  
+
+> ………
+> …
+> λ௟୚
+> ……
+
+Fig. 4: PNA workflow: (1) Compute covariance matrix from layer outputs; (2) Extract eigenvalue distribution; (3) Measure dissimilarity to Uniform/Dirac baselines; (4) Adjust pruning rate with view imbalance. Traditional pruning methods [38], [39], [37] rely on a global pruning rate, a manually preset hyper-parameter based on model performance. In the unbalanced multi-view learning, this approach becomes inconvenient as the number of encoders increases. Furthermore, due to the great differences in dimensionality and information redundancy among views, a fixed rate can lead to the “under-pruning” of high-dimensional views and the “over-pruning” of low-dimensional ones. In this work, we propose a new parameter-free pruning method, PNA, to remove neurons in each layer, that have high correlations with the others, and retrain the rest. Unlike those manual methods, PNA can automatically calculates the specific pruning rate for every layer based on the intrinsic redundancy of the view’s encoder. Inspired by PCA algorithm, PNA determines the prun-ing rate for the l-th layer based on the correlation within its neurons’ output, Zvl = [zv
+
+> 1,l
+
+, · · · , zvN,l ]T ∈ RN ×Dvl .Our premise is that a higher correlation between neurons should correspond to a higher pruning rate. Pruning neurons in each layer is essentially equivalent to dimen-sionality reduction, which reduces the processed data dimension, k, to be less than Dvl .PCA operates by computing eigenvalues and eigenvec-tors from the covariance matrix. It then reconstructs the data using only the eigenvectors associated with the top-k largest eigenvalues. In special cases, if the eigenvalues follow a uniform distribution, it implies that the features of the original data are uncorrelated, making dimensionality reduction unnecessary. Conversely, if the eigenvalues follow the Dirac δ-distribution, it indicates that the features are highly correlated. Based on the above analysis, we compute the covariance matrix of Zvl and extract its eigenvalues, denoted as λvl ∈
+
+RDvl , which are then normalized to sum to one. We deem that λvl can provide insight into the correlation of neurons’ output. The discrepancy between λvl and two theoretical distributions quantifies the level of redundancy: the closer IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 6
+
+λvl is to a uniform distribution uvl ∈ RDvl ∼ U [1 , D vl ], the less correlated the neurons’ outputs are, suggesting that most neurons should be preserved. In contrast, if λvl closely resembles the Dirac δ-distribution dvl , it indicates that the neuron outputs are highly correlated. Consequently, mass neurons should be pruned to remove this redundancy. Next, to quantify this relationship, we measure the dissimilarity between the empirical eigenvalue distribution 
+
+λvl and the ideal uncorrelated case uvl using the Wasser-stein metric W (λvl , uvl ). This metric is bounded within the range [0 , W (dvl , uvl )] . We then define the pruning rate γvl
+
+as the normalized dissimilarity: 
+
+γvl = W (λvl , uvl )
+
+W (dvl , uvl ) τ v . (6) To prevent reducing the expressive power of DNNs caused by the high pruning rate, we introduce a moderat-ing factor τ v ∈ [0 , 1] to control the final pruning rate γl.We hypothesize that the unbalanced degree of each view, denoted as Λv , is inversely proportional to the capacity it should retain. This relationship is formulated as follows: 
+
+τ v = 21 + exp( −Λv ) , (7) 
+
+Λv = |Dv − ¯D|
+
+2σD
+
++ |pv − ¯p|
+
+2σp
+
+, (8) where pv represents the proportional relationship between the dimensions of zvn and Dv . The terms ¯D (¯p) and σD
+
+(σp) are the mean and variance of D (p), respectively. Once the final pruning rate is determined, we proceed to remove the most correlated neurons in each layer. For each neuron, we first compute the L1-norm of its Pearson’s correlation coefficients with all other neurons in the same layer. Subsequently, we remove the top γl × Dvl neurons that exhibit the maximum norm. It is important to note two key aspects of our pruning stage: (1) The initial model is first pre-trained according to Eq. (13) before the encoders of all views are pruned. (2) We employ a one-shot pruning strategy, which removes all targeted neurons from all layers simultaneously. Consequently, the pruning rates γl for all layers need to be calculated only once. 2) Adaptive Cross-view Sparse Alignment Learning: This module fuses the aligned view-specific representations into a comprehensive representation. Traditional dense fusion forces low-dimensional views to generate meaning-less “pseudo-dimensions” to match high-dimensional ones. To prevent this, we introduce a Multi-view Sparse Batch Normalization (MSBN) layer. By learning sparse cross-view correlations, MSBN adaptively suppresses redundant dimensions before fusion, ensuring each view contributes only its genuine information. Before the fusion stage, each encoder consists of multiple fully connected layers, with Batch Normalization (BN) applied after each layer to mitigate covariate shift and enforce statistical alignment across heterogeneous views. For the c-th neuron in the l-th layer of the v-th encoder, the BN layer is defined as: 
+
+zvn,l +1 ,c = γvl,c 
+
+zvn,l,c − μvl
+
+√(σvl )2 + ϵ + βvl,c , (9) where γvl,c and βvl,c are learnable scaling and shifting parameters,and ϵ represents a small scalar added to prevent numerical instability. The batch mean μvl and variance σvl 
+
+> 2
+
+are computed as: 
+
+μvl =
+
+∑N b
+
+> n=1
+
+∑Dvl 
+
+> c=1
+
+zvn,l,c 
+
+N b · Dvl
+
+, (10a) 
+
+(σvl )2 =
+
+∑N b
+
+> n=1
+
+∑Dvl
+
+> c=1
+
+(zvn,l,c − μvl )2
+
+N b · Dvl
+
+. (10b) When the view-specific representations {zvn} are obtained, the next step is to fuse them into a comprehensive representation. A common strategy in Multi-view Aligned Representation Learning (MARL) assigns a unified weight 
+
+wv to all dimensions within each view and leverages the fused comprehensive representation to guide the learning of individual views. However, in real-world scenarios, the dimensional discrepancies across views can be substantial, with high-dimensional views often containing informa-tion that low-dimensional views cannot capture. When the fused representation feeds back into the encoders, low-dimensional views are forced to generate ”pseudo-dimensions” that they do not intrinsically possess in order to align with this high-dimensional information. Under the uniform weighting scheme, these pseudo-dimensions are treated as equivalent to genuine features. This forces the low-dimensional views to sacrifice the effective modeling of their original information and gradually lose their uniqueness, ultimately causing the multi-view learning to degenerate into a system dominated by the high-dimensional views. To address the issue of redundant dimensions, we intro-duce a Multi-view Sparse Batch Normalization (MSBN) layer on the aligned representations zvn. We impose an 
+
+ℓ1-norm penalty on the scaling factors {γvc } to enforce sparsity: 
+
+Rsparse =
+
+> V
+
+∑
+
+> v=1
+> H
+
+∑
+
+> c=1
+
+|γvc |, (11) where a value of γvc → 0 means the c-th dimension of zvn
+
+is effectively removed from the final representation. This mechanism allows the model to automatically identify and suppress redundant dimensions that are generated merely for alignment. The final comprehensive representation is computed by averaging the view-specific features: 
+
+zn = 1
+
+V
+
+> V
+
+∑
+
+> v=1
+
+zvn. (12) In the fused representation zn, a feature is activated if it appears in at least one view. Its final value simply depends on how many views share it. This means shared features will have higher values than features unique to a single view. IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 7
+
+C. Loss Function In this module, we design a self-supervised loss function to train the network. We first use the K-nearest neighbor (KNN) method to build a balanced similarity graph Sv
+
+for each view. We use this graph to construct pseudo-labels, which provide the supervisory signal for contrastive learning. Finally, we combine this contrastive loss with the sparsity penalty from the MSBN layer to end-to-end optimize the entire network. In particular, for each view, we construct a similarity graph Sv where the nodes represent the data points. For any pair of nodes, an edge exists if they have the same class label or if one is among the K closest neighbors of the other. The similarity score svij between two nodes is defined as: 
+
+svij =
+
+
+
+exp 
+
+(
+
+− ∥xvi −xvj ∥22
+
+> 2σ2
+
+)
+
+, if xvi ∈ N K (xvj ) or 
+
+xvj ∈ N K (xvi ),
+
+0, otherwise ,
+
+(13) where svij is the (i, j )-th entry representing the similarity between xvi and xvj . NK (xvj ) denotes the K-nearest neigh-bor set of xvj . The scaling factor σ = 1
+
+> n
+
+∑ 
+
+> i
+
+∥xvi − xvi,k ∥22 is determined by the average distance to the k-th neighbor 
+
+xvi,k .To capture the global structure across all views, we compute a unified consensus matrix S. This is achieved by learning an optimal weighted combination of the individual matrices {Sv }:
+
+min 
+
+> S,α⊤1=1 ,α≥0
+
+∥∥∥∥∥S −
+
+> V
+
+∑
+
+> v=1
+
+αv Sv
+
+∥∥∥∥∥
+
+> 2
+> F
+
+, (14) where αv represents the weight of the v-th view. The consensus matrix S reflects the unified neighborhood structure. A common approach is to employ a Graph Embedding (GE) loss based on {Sv } to guide the un-supervised learning process: 
+
+LGE = 12N
+
+> N
+
+∑
+
+> i,j =1
+
+∥zi − zj ∥22Sij + λ2
+
+∑
+
+> v,c
+
+|γvc |. (15) This loss encourages representations of similar instances to be close. However, this paradigm exhibits high sensi-tivity to the batch size (i.e., graph scale) during training. To improve stability, we adopt a contrastive learning loss instead. We generate binary pseudo-labels from the consensus matrix S: if the similarity si,j is greater than a threshold ϵ, the pair is positive ( lij = 1 ); otherwise, it is negative ( lij = 0 ). 
+
+lij =
+
+{
+
+1, Sij > ϵ, 
+
+0, otherwise , (16) To optimize the view-specific encoders and sparse con-nections, we employ a self-supervised contrastive learning approach. This strategy encourages the model to minimize Algorithm 1 Pseudocode for AdaMuS.  
+
+> 1:
+
+Input: Multi-view dataset X = {xvn}, pre-training epochs Epre , fine-tuning epochs Ef ine . 
+
+> 2:
+
+Output: Pruned network parameters {Θv′ 
+
+> f
+
+}Vv=1 and representations {zn}Nn=1 . 
+
+> 3:
+
+———Pre-training———  
+
+> 4:
+
+/Stage-1 Graph construction and encoder pre-training/  
+
+> 5:
+
+Construct unified consensus matrix S and pseudo-labels {lij } by Eq. 14 and Eq. 16;  
+
+> 6:
+
+for epoch = 1 : Epre do  
+
+> 7:
+
+Compute aligned representations zvn and MSBN scaling factors {γvc }; 
+
+> 8:
+
+Update initial encoders {Θvf }Vv=1 via self-supervised contrastive loss by Eq. 17;  
+
+> 9:
+
+end for  
+
+> 10:
+
+———Adaptive Pruning———  
+
+> 11:
+
+/Stage-2 Parameter pruning via PNA/  
+
+> 12:
+
+for each view v and layer l do  
+
+> 13:
+
+Calculate the specific pruning rate γvl via Wasser-stein distance by Eq. 6;  
+
+> 14:
+
+Adjust γvl with the view’s unbalanced degree Λv by Eq. 7 and Eq. 8;  
+
+> 15:
+
+Prune the top γvl × Dvl redundant neurons based on their correlations;  
+
+> 16:
+
+end for  
+
+> 17:
+
+Obtain the pruned encoders with parameters 
+
+{Θv′ 
+
+> f
+
+}Vv=1 ; 
+
+> 18:
+
+———Fine-tuning———  
+
+> 19:
+
+/* Stage-3 Sparse fusion & fine-tuning/  
+
+> 20:
+
+for epoch = 1 : Ef ine do  
+
+> 21:
+
+Extract pruned features zvn using {Θv′ 
+
+> f
+
+}Vv=1 by Eq. 5;  
+
+> 22:
+
+Suppress redundant dimensions via MSBN sparsity penalty by Eq. 11;  
+
+> 23:
+
+Fuse into comprehensive representation zn by Eq. 12;  
+
+> 24:
+
+Fine-tune parameters {Θv′ 
+
+> f
+
+}Vv=1 by gradient descent with the loss by Eq. 17;  
+
+> 25:
+
+end for  
+
+> 26:
+
+return {Θv′ 
+
+> f
+
+}Vv=1 and {zn}Nn=1 ;the distance between positive pairs while pushing negative pairs apart. The overall loss is expressed as: 
+
+min  
+
+> {Θvf}
+
+12N bN b
+
+∑
+
+> i,j =1
+
+[
+
+(1 − lij ) max( m − ∥ zi − zj ∥2, 0) 2
+
++ lij ∥zi − zj ∥22
+
+]
+
++ λ2
+
+∑
+
+> v,c
+
+|γvc |,
+
+(17) where λ2 denotes a hyper-parameter. The margin m
+
+acts as a distance threshold. Specifically, the model only penalizes negative pairs whose Euclidean distance is less than m. Under this self-supervised framework, AdaMus learns unified multi-view representations from unlabeled data, which can be applied in downstream tasks such as classification and segmentation. IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 8Observed Multi-view Data (X)      
+
+> ܆૛܅ ܈ = ଶT + ۳ ଶ
+> (Dominated by C3 Features)
+
+# +      
+
+> ܧ௜௝ ଵ∼ࣨ 0,0.2
+> View 1: High-dim C1 Discriminative, C2/C3 Confused View 2: Low-dim C3 Discriminative, C1/C2 Confused
+> ܧ௜௝ ଶ∼ࣨ 0,0.75 ܦଵ= 3000
+
+# +     
+
+> ܆ଵ܅ ܈ = ଵT + ۳ ଵ
+
+Latent Space Representation    
+
+> ܈∈ ℝ ே×ଽ ݖ௡ୢ ∼ Γ 1,0.8 +ࣨ 0,0.1
+> Class-Specific Features (C3)
+
+Complementary Projection Matrix ܹ௜௝ ଵ ∼࣯ 0.2,1.2 ܅ ଵ ∈ ℝ ଷ଴଴଴×ଽ ܹ ௜௝ ଶ ∼࣯ 0.2,0.8 ܅ ૛ ∈ ℝ ଵ଴×ଽ     
+
+> Dims 1-3 Dims 4-6 Dims 7-9 C1 C2 C3 Shared Features (C2 & C3) Samples in C1 Samples in C2 Samples in C3
+> ⋮
+> Masked Columns (Set to 0) Masked Columns (Set to 0)
+> ⋮⋮⋮⋮
+> (Dominated by C1 Features)
+> ܦଶ= 10
+
+Fig. 5: Construction process of the multi-view toy example. IV. Experiments A. Toy Example: We assess the performance of AdaMuS through clus-tering, classification, and segmentation tasks. The experi-ments use one toy example and seven real-world datasets, covering both balanced and unbalanced scenarios. To investigate multi-view learning under extreme di-mensional disparity, we categorize existing fusion strate-gies into three paradigms: (1)Direct Concatenation, (2)High-to-Low Compression, and (3) Shared Projection. While effective in balanced scenarios, they struggle under extreme disparity. Thus, we construct a Toy Example to empirically demonstrate their limitations and our ap-proach’s effectiveness, guided by two Research Questions (RQs):  
+
+> •
+
+RQ1: What are the limitations of existing paradigms in unbalanced multi-view learning? (1) Dominance Issue: In direct concatenation, does the high-dimensional view overwhelm the low-dimensional view? (2) Information Loss: In high-to-low compression, does the drastic dimensionality reduction result in the loss of critical information? (3) Overfitting Risk: When projecting the low-dimensional view to a higher space, does it suffer from overfitting due to redundant parameters?  
+
+> •
+
+RQ2: Can AdaMus effectively handle the dimensional imbalance? (1) Discriminative Capability: Can AdaMus success-fully capture the essential features of each class? (2) Overfitting Prevention: Can AdaMus avoid the overfitting problem when projecting the low-dimensional view into a higher-dimensional space? (3) Sparse Alignment: Can AdaMus capture the sparse correlations? Data Construction Details. Specifically, the constructed dataset consists of N = 1500 samples evenly distributed across 3 categories ( C1, C 2, C 3). The underlying latent space Z ∈ RN ×9 represents the ground truth semantic information. Each latent code is sampled from a Gamma distribution Γ(1 , 0.8) superimposed with Gaussian noise 
+
+N (0 , 0.1) . The semantic structure is defined as follows: dimensions 1-3 are active for C1, dimensions 4-6 for C2,and dimensions 7-9 for C3. Consequently, C2 and C3 share features in dimensions 4-6, making them distinguishable only via dimensions 7-9. To simulate extreme dimensional disparity, we generate two views via linear projection X(v) = Z(W(v))T + E(v).View 1 is high-dimensional ( X(1) ∈ RN ×3000 ) with a pro-jection matrix W(1) initialized from a uniform distribution 
+
+U(0 .2, 1.2) . View 2 is extremely low-dimensional ( X(2) ∈
+
+RN ×10 ) with W(2) ∼ U (0 .2, 0.8) . Crucially, we implement structural masking to enforce complementarity: we set the last 3 columns of W(1) to zero, rendering View 1 blind to the unique features of C3, thereby causing confusion between C2 and C3. Next, we set the first 6 columns of W(2) to zero, meaning View 2 can only recognize class C3. Finally, independent Gaussian noise is injected into both views, parameterized as E(1) ∼ N (0 , 0.2) and 
+
+E(2) ∼ N (0 , 0.75) .T-SNE Visualization Analysis. The visualization results in Fig. 6 provide empirical evidence for our assumptions. First, as shown in Fig. 6(a) and (b), each single view successfully identifies specific categories while confus-ing others, confirming that both views contain unique and complementary information. However, simple fusion IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 9C1
+
+> C2
+> C3
+
+(a) View 1: High-Dim (Acc: 65.73% ± 2.40%) C1
+
+> C2
+> C3
+
+(b) View 2: Low-Dim (Acc: 63.33% ± 2.28%) C1
+
+> C2
+> C3
+
+(c) Naive Concat (Acc: 67.20% ± 2.35%) C1
+
+> C2
+> C3
+
+(d) High-to-low compression (Acc: 67.67% ± 2.05%) C1
+
+> C2
+> C3
+
+(e) Inter. Dim Map (Acc: 87.20% ± 2.04%) C1
+
+> C2
+> C3
+
+(f) AdaMus (Ours) (Acc: 97.27% ± 0.33%) Fig. 6: t-SNE visualization of the learned representations on the toy example. 0 10 20 30 40 50 60 
+
+> Training Epochs
+> 0.60
+> 0.62
+> 0.64
+> 0.66
+> 0.68
+> Validation Accuracy
+> High-Dim View: Impact of Dimensional Compression
+> Appropriate Compression
+> Aggressive Compression
+> Information Loss Gap
+
+Fig. 7: Impact of Dimensional Compression. Comparison between appropriate compression ( 3000 → 1024 ) and over-compression ( 3000 → 128 ). The gray gap highlights the significant information loss caused by aggressive compres-sion, verifying the need for a high-dimensional subspace. strategies fail to preserve this complementarity: the naive concatenation (Fig. 6c) fails to capture the unique patterns of the low-dimensional view, indicating that the infor-mative low-dimensional signals are overwhelmed by the high-dimension. Similarly, the high-to-low compression (Fig. 6d) exhibits blurred class boundaries, demonstrating that forcibly reducing dimensions leads to a significant loss of effective information. In contrast, our AdaMus method (Fig. 6f) generates the most distinct clusters, proving its ability to effectively integrate these complementary semantics despite the dimensional disparity. 0 10 20 30 40 50 60 
+
+> Epoch
+> 0
+> 5
+> 10
+> 15
+> 20
+> Loss
+> (a) DNN with PNA Pruning
+> Loss Train
+> Loss Val
+> Acc. Train
+> Acc. Val
+> PNA Pruning
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Accuracy
+
+(a) PNA Pruning 0 10 20 30 40 50 60  
+
+> Epoch
+> 0
+> 5
+> 10
+> 15
+> 20
+> Loss
+> (b) Standard DNN (Overfitting)
+> Loss Train
+> Loss Val
+> Acc. Train
+> Acc. Val
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Accuracy
+
+(b) Standard DNN 
+
+Fig. 8: Validation of the PNA pruning module. We compare the learning dynamics of (a) PNA-enhanced DNN vs. (b) Standard DNN during dimensional expansion (10 → 512 → 1024 ). The Standard DNN suffers from overfitting, whereas PNA ensures stable convergence by pruning redundant connections. Impact of Dimensional Compression. We investigate whether compressing the high-dimensional view into a constrained space induces information loss. We compare two projection strategies for View 1: an appropriate compression architecture ( 3000 → 1024 → 512 ) and an aggressive compression architecture ( 3000 → 128 → 64 ). Figure 7 demonstrates that the appropriate compression strategy significantly outperforms the aggressive one. The result indicates that excessive dimensionality reduction leads to the loss of high-dimensional information. Overfitting in Expansion and PNA Mitigation. We investi-gate overfitting during low-dimensional expansion and the IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 10 0 1 2 3 4 5 6 7 8 9  
+
+> Input Feature Index
+> 012345678
+> Latent Dimension Index
+> Ground-Truth WT
+> 2
+> 0.00
+> 0.02
+> 0.01
+> 0.00
+> 0.02
+> 0.02
+> 0.96
+> 1.00
+> 0.93
+> Learned γ
+
+Fig. 9: Verification of sparse alignment. (Left) Ground-truth mapping matrix W T 
+
+> 2
+
+, where red dashed boxes indicate irrelevant dimensions. (Right) The learned scaling factor γ effectively suppresses these dimensions while activating the informative ones. TABLE I: DATASET STATISTICS. Λ INDICATES THE UNBALANCED DEGREE. NYUV2 IS EMPLOYED FOR SEGMENTATION.                                             
+
+> Dataset Size Category Dimensions Λ
+> UCI 1600 10 6/47 /240 2.88 CUB 480 10 30 /1024 3.22 ORL 400 40 30 /3304 /6750 2.54 MSRCV1 210 720 /100 /210 /256 /512 /1302 2.41 Mfeat 2000 10 240 /216 /76 /64 /47 /62.22 100leaves 1600 100 5/64 /64 2.14 DEAP 1280 21.5×10 5/32 /84.07 NYUv2 1449 \3×640 ×480 /640 ×480 1.71
+
+PNA module’s effectiveness. We compare a Standard DNN (10 → 1024 → 512 ) against a PNA-enhanced DNN, which applies pruning after 5 epochs of pre-training followed by fine-tuning. As shown in Fig. 8(b), the Standard DNN exhibits typical overfitting: while the training accuracy is high, the validation accuracy fluctuates violently, and the validation loss shows a distinct upward trend. In contrast, Fig. 8(a) demonstrates that PNA achieves stable accuracy and consistently decreasing loss. This confirms that PNA effectively mitigates the overfitting caused by expanding the low-dimensional view. Verification of Sparse Alignment. To verify the sparse alignment capability, we compare the ground-truth matrix regarding View 2 with the learned scaling factor γ in Fig. 9. The red dashed box in the left panel highlights the dimensions that are irrelevant to this view. As observed in the right panel, the learned weights effectively suppress these irrelevant dimensions while activating the informa-tive ones. This high consistency confirms that AdaMus successfully identifies the correct feature correspondence without supervision. B. Experiments on Real-World Datasets 1) Datasets: We first outline the datasets utilized for the primary tasks. Summary statistics are provided in Table I. For Clustering and Classification, we employ six bench-mark datasets. UCI Multiple Features (UCI) 1 is a stan-dard benchmark for digit recognition (0-9). It represents samples using three descriptors: 6D morphological fea-tures, 47D Zernike moments, and 240D pixel averages. Caltech-USD Birds (CUB) contains 480 images spanning 10 fine-grained bird species. The original data includes a 1024-dimensional visual view and a 300-dimensional textual view. To simulate severe dimensional disparity, we apply Principal Component Analysis (PCA) to compress the textual view to 30 dimensions. ORL consists of 400 face images from 40 subjects. It comprises three feature sets: 4096D intensity, 3304D Local Binary Patterns (LBP), and 6750D Gabor features. We specifically reduce the Gabor view to 30 dimensions to test performance under extreme imbalance. MSRCV1 includes 210 images across 7 object categories. It provides six distinct views (GIST, HOG, LBP, SIFT, CENT, and CMT). We manually reduce one 48-dimensional view to 20 dimensions to introduce structural imbalance. Additionally, we evaluate on two complex datasets: 100Leaves and Multiple Features (Mfeat). The 100Leaves dataset comprises 1,600 samples from 100 plant species, initially defined by three 64-dimensional views (shape, texture, margin). We induce imbalance by compressing the first view to 5 dimensions, yielding a configuration of [5, 64, 64]. The Mfeat dataset provides 2,000 samples for digits 0-9. It features six diverse views: 76D Fourier coefficients, 216D profile correlations, 64D Karhunen-Loeve coefficients, 240D pixel averages, 47D Zernike moments, and 6D morphological features. DEAP comprises 1,280 samples recording 32 participants’ emotional responses. Unlike previous datasets, it presents a natural extreme imbalance: the raw Video view operates in a high-dimensional pixel space ( ≈ 1.5 × 10 5D), while the EEG and Peripheral views contain only 32D and 8D sensor readings, respectively. For Segmentation, we utilize the NYU-Depth V2 (NYUv2) 4 dataset. This dataset captures various indoor scenes using RGB and Depth sensors from a Microsoft Kinect. The volumetric data is annotated with 13 semantic classes, such as ‘bed’, ‘books’, and ‘window’. 2) Compared Methods: We evaluate AdaMuS against a comprehensive set of 13 baseline methods. We organize these competitors into five distinct categories according to their core integration strategies: (1) Decision-level fusion: ECML [16] resolves conflicts in multi-view data via an opinion aggregation mecha-nism. STCMC-UR [45] utilizes evidence theory to synthe-size high-confidence pseudo-labels for feature refinement. UIMC [46] achieves a unified partition by aggregating the clustering outcomes derived from each view in isolation. (2) Direct concatenation: Concat merges raw features from all views into a single vector for input. (3) Joint representation learning: DCCAE [47] learns a canonical representation shared across the views via 
+
+> 1https://archive.ics.uci.edu/ml/datasets/Multiple+Features
+
+IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 11 
+
+TABLE II: Clustering performance comparison on different datasets (mean result ± standard deviation). AdaMuS is our proposed method. The best and the second best results are highlighted by boldface and underlined, respectively. 
+
+Datasets Metric Methods Concat DCCAE CGCN BMGC ICMVC CANDY GUMRL PDMF UIMC SURER STCMC-UR UMDL Ad UCI ACC 71.56±3.98 74.62±1.19 70.00±1.96 73.45±1.68 85.70±1.18 69.18±2.05 86.09±0.08 85.20±1.09 76.88±2.01 77.90±1.12 72.24±1.39 87.51±0.32 91.4 NMI 72.39±2.11 79.77±1.11 78.01±0.87 73.33±1.57 83.13±1.05 67.23±2.14 78.66±0.91 75.84±1.44 67.15±2.33 75.57±1.76 73.27±0.60 79.08±1.02 86.9 ARI 62.28±3.15 71.97±0.78 57.71±2.96 63.64±2.83 75.14±1.31 57.61±1.75 69.63±0.26 71.51±1.06 60.44±3.11 67.06±2.17 62.46±1.10 74.23±0.14 82.8 CUB ACC 64.23±2.91 69.71±1.83 57.08±2.42 68.96±1.95 62.53±2.40 51.48±2.90 61.73±2.16 70.47±3.71 70.11±1.17 69.60±1.02 55.22±2.55 80.12±1.64 81.6 NMI 60.85±1.69 67.34±2.54 69.29±1.34 57.46±2.85 54.07±1.76 64.75±2.31 53.05±1.93 66.83±1.71 65.82±1.07 72.29±0.99 63.55±2.63 73.43±2.74 77.2 ARI 57.45±2.05 64.01±1.47 53.31±2.01 58.20±2.55 44.46±1.92 43.89±1.55 43.94±0.74 59.29±1.91 75.44±1.58 64.85±0.95 45.39±3.12 68.84±0.50 73.7 ORL ACC 61.50±1.81 68.07±1.31 59.57±2.05 49.60±2.95 72.25±1.73 76.50±1.85 76.15±1.06 64.70±2.76 66.17±2.93 70.50±1.55 52.00±1.34 69.65±1.53 80.9 NMI 76.22±0.84 82.47±1.25 67.52±0.67 63.52±2.12 83.42±1.21 86.65±1.02 89.72±0.22 71.62±2.08 80.15±1.00 84.25±0.85 64.41±1.16 83.64±1.04 87.3 ARI 64.96±1.23 62.14±1.32 53.24±2.64 41.69±1.68 61.69±1.55 65.70±1.04 70.05±0.10 56.25±2.85 51.30±2.57 72.38±1.20 43.32±1.61 65.95±0.69 74.9 MSRCV1 ACC 69.38±3.93 78.24±1.45 81.87±1.31 55.57±2.53 66.19±2.15 85.52±1.52 88.05±2.68 90.47±1.71 80.76±3.16 93.81±0.24 91.69±1.31 94.68±0.38 95.0 NMI 59.34±3.35 71.67±1.85 74.24±1.48 51.28±1.83 64.56±1.91 81.50±0.02 88.67±0.60 78.86±1.43 70.64±4.42 91.86±1.43 87.74±1.45 88.93±1.13 93.0 ARI 62.15±1.07 62.78±1.52 67.29±2.05 53.23±2.33 52.91±2.04 75.10±0.03 79.00±0.14 73.86±1.03 64.13±4.31 89.40±0.45 84.69±1.86 84.98±0.39 91.7 Mfeat ACC 60.95±2.81 77.25±1.62 93.50±0.73 63.55±2.31 87.74±1.02 72.30±0.63 91.27±0.03 93.85±0.05 84.27±3.62 93.80±0.35 81.56±1.92 93.58±0.05 95.0 NMI 57.69±2.79 79.67±1.48 90.67±1.08 55.93±2.94 86.91±0.58 69.12±2.35 92.21±0.08 93.62±0.07 83.24±1.26 88.32±0.28 84.11±2.26 95.60±0.61 96.0 ARI 50.59±3.15 68.34±3.72 89.50±0.92 42.48±2.87 81.05±1.15 57.61±2.10 91.89±0.07 90.21±0.07 79.18±3.47 86.00±0.22 75.14±2.89 89.12±0.67 93.9 100Leaves ACC 64.44±2.17 73.70±5.86 59.62±3.37 65.00±1.37 60.70±3.77 48.76±3.09 88.30±1.42 62.76±4.77 57.70±0.44 90.88±1.15 59.25±0.05 75.50±1.23 93.6 NMI 77.11±0.89 77.67±2.26 76.30±2.12 64.02±1.94 74.22±1.34 62.37±2.15 96.13±0.35 83.83±2.16 75.84±0.48 96.97±0.26 67.01±0.39 89.17±0.36 97.8 ARI 52.87±1.44 65.28±5.06 42.16±3.06 51.35±2.31 48.37±1.96 37.56±2.84 85.37±1.62 47.02±6.55 42.26±1.00 88.34±1.62 50.11±0.72 67.25±0.65 92.9 
+
+TABLE III: Classification comparison across benchmarks (Mean ± Std). Bold and underlined values denote the highest and second-highest scores, respectively. 
+
+Datasets Metric Methods PDMF GUMRL SURER RCML UMDL AdaMuS (Ours) UCI ACC 94.43 ±0.15 96.88 ±0.09 96.00 ±0.25 96.67 ±0.72 97.25 ±0.17 98.50 ±0.03 F1 96.03 ±0.19 96.78 ±0.10 95.87 ±0.32 96.63 ±0.74 97.00 ±0.17 98.50 ±0.03 CUB ACC 87.29 ±0.69 85.42 ±1.16 89.17 ±0.24 88.75 ±2.64 87.99 ±0.40 90.00 ±0.31 F1 87.17 ±0.58 85.50 ±0.84 89.09 ±0.33 88.20 ±2.26 87.56 ±0.50 89.57 ±0.17 ORL ACC 69.50 ±4.03 92.12 ±0.27 94.00 ±0.21 96.62 ±0.72 92.25 ±0.43 97.25 ±0.02 F1 67.58 ±2.97 91.79 ±0.15 94.26 ±0.18 95.84 ±1.19 92.03 ±0.59 97.20 ±0.01 MSRCV1 ACC 88.00 ±2.10 92.86 ±0.14 97.62 ±0.08 92.62 ±1.44 98.00 ±0.31 99.52 ±0.01 F1 86.51 ±1.77 92.55 ±0.12 97.68 ±0.12 90.60 ±1.17 98.04 ±0.35 99.52 ±0.02 Mfeat ACC 98.05 ±0.22 97.50 ±0.10 95.50 ±0.15 96.65 ±1.14 97.00 ±0.12 98.74 ±0.03 F1 97.89 ±0.38 97.50 ±0.12 95.50 ±0.10 96.59 ±1.16 97.25 ±0.24 98.99 ±0.02 100leaves ACC 83.34 ±2.48 90.34 ±0.39 98.38 ±0.03 80.91 ±1.95 97.69 ±0.08 98.88 ±0.09 F1 79.68 ±2.01 89.75 ±0.67 98.31 ±0.02 77.72 ±2.55 97.66 ±0.14 98.60 ±0.04 DEAP ACC 92.95 ±1.31 88.25 ±1.87 96.12 ±0.23 84.03 ±0.38 94.71 ±1.37 98.46 ±0.01 F1 92.74 ±1.35 87.94 ±1.90 96.02 ±0.28 83.66 ±0.25 94.57 ±1.41 98.42 ±0.01 
+
+deep autoencoder optimization. PDMF [19] leverages a pretraining stage to refine inter-view alignment. (4) Graph-based learning: SURER [48] captures sample topology through a graph learning module. GUMRL [49] exploits low-level geometric information to enhance clus-tering. CGCN [50] focuses on aligning graph structures for scenarios with partial views. (5) Methods for view imbalance and imperfect data: BMGC [51] handles structural imbalance by identifying and leveraging dominant views. ICMVC [52] manages missing data using a high-confidence guidance strategy. CANDY [48] mitigates the impact of noisy views via context mining and spectral decomposition. UMDL [13], a state-of-the-art approach for dimensional imbalance, aligns views by constructing over-complete dictionaries for low-dimensional inputs. 3) Evaluation Metrics: To assess the clustering per-formance, we employ three standard metrics: Accuracy (ACC), Normalized Mutual Information (NMI), and Ad-justed Rand Index (ARI). In terms of the classification task, we utilize Accuracy (ACC) and F1-Score for evalu-85.71% 45.37% 39.39% 44.73% 46.15% 34.31%   
+
+> MSRCV1 CUB ORL
+> 020 40 60 80 100
+> Ration %
+> Parameter Ratio
+> FLOPs Ratio
+
+Fig. 10: Efficiency comparison between UMDL and AdaMuS. The chart displays the ratios of parameters and FLOPs required by AdaMuS relative to UMDL (blue and orange bars, respectively). ation. 4) Implementation Details: We execute the AdaMuS framework via a four-step procedure. The proposed model is developed using PyTorch 2.2.2 within a Windows 11 environment. Step 1: Learning the Comprehensive Repre-IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 12 
+
+sentation. The multi-view comprehensive representation 
+
+zn is learned via the view-specific encoders and fusion mechanism detailed in Eq. (9) and Eq. (12). Step 2: Constructing Pseudo-Labels. The consensus similarity matrix S is established by solving Eq. (13) using the Adam optimizer with a learning rate of 0.001. The pseudo-labels {lij } are constructed from the similarity matrix S.Step 3: Training the AdaMuS Model. The AdaMuS model is trained by optimizing the main objective function from Eq. (17). This training stage also utilizes the Adam optimizer with a 0.001 learning rate. Step 4: Pruning and Fine-tuning. The pruning rate for each encoder layer is calculated according to Eq. (6). Then we adopt One-shot pruning strategy to remove neurons and fine-tune the AdaMuS model C. Main Results We start by reporting the quantitative performance of AdaMuS on the fundamental tasks of clustering and classification. 1) Clustering Performance: Table II presents the clus-tering performance of AdaMuS against twelve baseline methods across six distinct multi-view datasets. The experimental results reveal several key observations: (1) The Concat strategy yields sub-optimal results on the CUB benchmark, which is characterized by significant imbalance between its two views. This indicates that the naive concatenation of dimensionally disparate features often leads to the suppression of critical information embedded in the lower-dimensional view. (2) We further observe that methods based on graph structure learning (e.g., GUMRL [49], SURER [53]) generally outperform foundational joint representation learning models (e.g., DCCAE [47]) and decision-level fusion methods (e.g., STCMC-UR [45]). This is likely because, compared to simple correlation-based fusion or late-stage fusion, proactive view alignment strategies can more effectively integrate cross-view information. How-ever, the performance of these methods degrades markedly on datasets with high dimensional imbalance between views, like CUB. This may suggest that their existing alignment strategies are still insufficient under unbalanced multi-view settings. (3) As shown in Table II, AdaMuS achieves state-of-the-art performance across all tested datasets, demonstrating the effectiveness of our proposed method. In particular, when compared to UMDL [13], which is a SOTA model designed to tackle view imbalance, AdaMuS shows significant advantages. UMDL primarily addresses the overfitting issue in low-dimensional views through dictionary learning but fails to manage potential parameter redundancy in high-dimensional views. In contrast, the adaptive pruning method proposed in AdaMuS operates on the encoders of all views, dynamically removing redundant parameters based on data characteristics. This allows for a more refined treatment of each view within an end-to-end learning framework. 
+
+(a) 1024D image feature view 
+
+(b) 30D text feature view 
+
+(c) AdaMuS-RS (d) AdaMuS Fig. 11: t-SNE visualization of original data and compre-hensive representations on CUB dataset. (a) and (b) are original features, respectively. (c) is the result of AdaMuS-RS, which removes the MSBN layer. (d) is the result of AdaMuS. TABLE IV: Ablation study. LG is the foundational graph-based contrastive learning module. LS denotes the sparsity fusion constraint, and LP represents the PNA pruning module. Best results are in bold.                                                                    
+
+> Datasets Method Metrics
+> LGLSLPACC (%) NMI (%) ARI (%) MSRCV1
+> 3--87.67 ±1.59 80.72 ±1.84 76.24 ±1.80
+> 33-88.71 ±1.47 81.19 ±1.33 76.66 ±1.72
+> 3-392.86 ±0.92 88.28 ±1.05 83.21 ±1.13
+> 33395.05 ±0.77 93.07 ±0.76 91.75 ±0.60 ORL
+> 3--70.27 ±2.34 84.21 ±1.18 66.04 ±1.83
+> 33-72.23 ±1.80 85.68 ±0.76 66.39 ±1.71
+> 3-376.89 ±1.73 87.47 ±0.55 70.20 ±1.43
+> 33380.98 ±1.55 87.65 ±0.82 74.95 ±0.40 CUB
+> 3--71.13 ±1.93 70.55 ±1.48 69.00 ±1.44
+> 33-73.02 ±1.66 72.38 ±1.68 71.89 ±1.87
+> 3-376.44 ±2.18 74.07 ±1.33 71.67 ±1.41
+> 33381.65 ±1.74 77.21 ±0.95 73.75 ±0.65
+
+2) Classification Results: We additionally report clas-sification results of the proposed framework in Table III. On datasets with relatively low view imbalance, such as 100Leaves ( Λ = 2 .14 ) and Mfeat ( Λ = 2 .22 ), AdaMuS surpasses other strong baseline methods. However, when evaluated on highly unbalanced datasets like UCI ( Λ = 2.88 ) and CUB ( Λ = 3 .22 ), the performance of many com-peting methods drops significantly. In contrast, AdaMuS maintains its superior performance. This highlights the effectiveness of AdaMuS in learning from both balanced IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 13     
+
+> Ground truth AdaMuS-SEG (mIoU 22 .1)UNET (mIoU 20 .0)
+
+Fig. 12: Segmentation results of our AdaMuS-SEG and baseline UNET on the NYUv2 dataset. and unbalanced multi-view data. D. Quantitative Analysis of Pruning Efficacy Figure 10 quantitatively demonstrates the efficacy of our proposed pruning strategy by comparing AdaMuS and UMDL [13] in terms of model complexity (number of parameters and FLOPs). To ensure a fair evaluation of the pruning effect, the encoder architectures for both models were identical before the training process began. As indicated by the ratios of parameters and FLOPs for AdaMuS relative to UMDL, the results reveal significant redundancy in the UMDL architecture. In sharp contrast, AdaMuS significantly reduces model size while lowering computational demands. For instance, when running on the CUB dataset, AdaMuS utilizes only 39.39% of the parameters and 44.73% of the FLOPs of UMDL. Crucially, this significant optimization does not come at the cost of representational capability. As confirmed by the superior clustering and classification results in Table II and Table III, the pruned AdaMuS architecture consistently outperforms UMDL. E. Efficacy of PNA in Mitigating Overfitting In multi-view tasks with severe dimensional imbal-ance between views, Multi-view Aligned Representation Learning (MARL) is an effective strategy for capturing deep inter-view interactions. This strategy employs DNN encoders to project multi-view features onto a shared representation with a unified dimensionality. Such an alignment process prevents the valuable information in low-dimensional views from being overwhelmed by high-dimensional features. However, this process introduces a large number of additional parameters (e.g. mapping a 47-dimensional feature to 200 dimensions requires 9,600 parameters), a significant portion of which may be re-dundant. This not only increases computational overhead but also makes the model prone to overfitting. To verify whether our proposed PNA adaptive pruning strategy can effectively mitigate this issue, we designed a dedicated single-view classification experiment. We selected a low-dimensional view (47-dim) from the UCI dataset for a single-view classification experiment. Considering the highest dimension in the dataset is 240, we expanded the 47-dimensional features to 200 to re-duce the disparity between low- and high-dimensional views. We constructed two identical classification networks (structure: 47 →200 →64 →10) for comparison: one was a standard DNN model trained with cross-entropy loss; the other model, based on the exact same network archi-tecture and loss function, additionally applied our PNA adaptive pruning strategy exclusively to the up-sampling layer (47 →200) to specifically eliminate the redundant parameters introduced during dimensionality expansion. The learning curves, shown in Figure 8, reveal that while the training error for both models steadily decreased, the standard DNN exhibited clear signs of overfitting as its validation error first decreased and then rebounded. In contrast, the validation error of the model equipped with the PNA adaptive pruning strategy remained stable and consistently decreased, indicating a more stable training process. This result demonstrates that AdaMuS’s adaptive pruning module can effectively reduce redundant parame-ters, thereby decreasing model complexity and mitigating the risk of overfitting. IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 14 
+
+(a) Sparsity controller λ1 (b) Number of neighbors K (c) Contrastive loss margin Fig. 13: Hyper-parameter analysis on the MSRCV1 dataset. F. Ablation Study We analyze the role of individual components in AdaMuS using MSRCV1, ORL, and CUB, with results reported in Table IV. The analysis starts from a base model equipped only with the graph-guided contrastive learning loss ( LG), and we progressively introduced the sparse fusion constraint (LS ) and the PNA pruning module ( LP ). The results show that: (1) LG: The baseline model already achieves competitive results, validating the effectiveness of graph-guided con-trastive learning in capturing cross-view consistency. (2) LG+LS : After introducing the sparse fusion constraint, performance improves across all datasets, which indicates that optimizing the combination of view information at the feature level has a positive effect. (3) LG + LP : The addition of the PNA pruning module leads to a significant performance boost, demonstrating that reducing redundancy helps to enhance generalization ability. (4) LG + LS + LP (Full Model): The combination of both components achieves the highest performance, illustrating that pruning and sparse fusion are complementary in opti-mizing representation quality and information integration. G. Qualitative Visualization of Learned Representations We use t-SNE to visualize representations learned from the original features, AdaMuS-RS, and AdaMuS on the CUB dataset (Figure 11). Here, AdaMuS-RS denotes a variant without the sparse fusion module. From the visualization, we observe that: (1) The original low-dimensional text view exhibits adegree of separability, demonstrating that it provides complementary class information to the high-dimensional image view. (2) The comprehensive representation learned by AdaMuS forms clearer and more well-separated clusters than its ablation variant, AdaMuS-RS. This visually validates that our sparse fusion mechanism effectively captures the complementarity of multi-view data. 
+
+Fig. 14: Convergence analysis on the MSRCV1 dataset. H. Segmentation Task Performance AdaMuS-SEG is first pre-trained by optimizing Eq. 17 on the encoders for the RGB and depth views to learn a comprehensive multi-modal representation. Subsequently, the high-level semantic features extracted by a UNET are fused with this pre-trained representation. Finally, the entire network is fine-tuned using cross-entropy loss. The evaluation metric is the mean Intersection over Union (mIoU) of occupied voxels. We also compare it against a standard UNET that performs segmentation directly on the RGB view. The results, visualized in Figure 9, show that AdaMuS-SEG achieves an mIoU of 22.1, while the UNET baseline reaches an mIoU of 20.0. Experimental evidence demonstrates the applicability and effectiveness of AdaMuS for dense prediction tasks like semantic segmentation. I. Hyperparameter and Convergence Analysis We analyze the impact of hyperparameters λ1, λ2,and K on model performance on the MSRCV1 dataset, reporting the changes in ACC, NMI, and ARI metrics (see Figure 14). As observed in Figure 10(b), performance first rises and then falls as λ2 increases. This suggests that a moderate sparsity constraint is beneficial for model IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 15 
+
+performance, whereas an overly strong constraint leads to performance degradation. Figure 13 displays the curves for the loss value and the ACC, NMI, and ARI scores of AdaMuS over the training epochs on the MSRCV1 dataset. The results demonstrate that the loss value drops sharply in the initial training phase while the performance metrics rapidly improve, with the model converging within approximately 5-10 epochs. V. Conclusion In this work, we proposed AdaMuS, a new self-supervised framework designed to tackle the unbalanced multi-view representation learning problem. To avoid the overfitting problem, we incorporated a PNA pruning technique that effectively removed redundant encoder parameters. Furthermore, by deploying view-specific en-coders with an adaptive sparse fusion paradigm, the model successfully aligned representations while filtering out cross-view redundancy to maximize complementarity. The training process was guided by self-supervision from balanced view-specific similarity graphs. The experimental results demonstrate the effectiveness of our method in handling view imbalance and supporting downstream applications. References 
+
+[1] H. Li, Y. Lin, P. Hu, M. Yang, and X. Peng, “Community-aware multi-view representation learning with incomplete infor-mation,” IEEE Transactions on Pattern Analysis and Machine Intelligence, 2025. [2] X. Liu, K. Liang, J. Wang, S. Liu, X. Wang, and H. Wang, “Two decades of multi-view clustering: Taxonomy, application, and challenge,” IEEE Transactions on Pattern Analysis and Machine Intelligence, 2025. [3] Z. Long, Q. Wang, Y. Ren, Y. Liu, and C. Zhu, “Tlrlf4mvc: tensor low-rank and low-frequency for scalable multi-view clus-tering,” IEEE Transactions on Pattern Analysis and Machine Intelligence, 2025. [4] L. Ventura, A. Yang, C. Schmid, and G. Varol, “Covr-2: Auto-matic data construction for composed video retrieval,” IEEE Transactions on Pattern Analysis and Machine Intelligence, vol. 46, no. 12, pp. 11 409–11 421, 2024. [5] X. Yang, B. Xiong, Y. Huang, and C. Xu, “Cross-modal federated human activity recognition,” IEEE Transactions on Pattern Analysis and Machine Intelligence, vol. 46, no. 8, pp. 5345–5361, 2024. [6] T. Sun, Z. Zhang, X. Tan, Y. Peng, Y. Qu, and Y. Xie, “Uni-to-multi modal knowledge distillation for bidirectional lidar-camera semantic segmentation,” IEEE Transactions on Pattern Analysis and Machine Intelligence, vol. 46, no. 12, pp. 11 059– 11 072, 2024. [7] J. Ngiam, A. Khosla, M. Kim, J. Nam, H. Lee, A. Y. Ng et al., “Multimodal deep learning.” in ICML, vol. 11, 2011, pp. 689– 696. [8] Z. Huang, J. T. Zhou, H. Zhu, C. Zhang, J. Lv, and X. Peng, “Deep spectral representation learning from multi-view data,” IEEE Transactions on Image Processing, vol. 30, pp. 5352–5362, 2021. [9] J. Wen, J. Long, X. Lu, C. Liu, X. Fang, and Y. Xu, “Partial multiview incomplete multilabel learning via uncertainty-driven reliable dynamic fusion,” IEEE Transactions on Pattern Anal-ysis and Machine Intelligence, 2025. [10] G. Ke, B. Wang, X. Wang, and S. He, “Rethinking multi-view representation learning via distilled disentangling,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, 2024, pp. 26 774–26 783. [11] S. Koelstra, C. Muhl, M. Soleymani, J.-S. Lee, A. Yazdani, T. Ebrahimi, T. Pun, A. Nijholt, and I. Patras, “Deap: A database for emotion analysis; using physiological signals,” IEEE transactions on affective computing, vol. 3, no. 1, pp. 18–31, 2011. [12] A. Kline, H. Wang, Y. Li, S. Dennis, M. Hutch, Z. Xu, F. Wang, F. Cheng, and Y. Luo, “Multimodal machine learning in precision health: A scoping review,” NPJ digital medicine, vol. 5, no. 1, p. 171, 2022. [13] C. Xu, Z. Li, Z. Guan, W. Zhao, X. Song, Y. Wu, and J. Li, “Unbalanced multi-view deep learning,” in Proceedings of the 31st ACM International Conference on Multimedia, 2023, pp. 3051–3059. [14] T. Baltrušaitis, C. Ahuja, and L.-P. Morency, “Multimodal machine learning: A survey and taxonomy,” IEEE transactions on pattern analysis and machine intelligence, vol. 41, no. 2, pp. 423–443, 2018. [15] F. Zhao, C. Zhang, and B. Geng, “Deep multimodal data fusion,” ACM computing surveys, vol. 56, no. 9, pp. 1–36, 2024. [16] W. Wang, D. Tran, and M. Feiszli, “What makes training multi-modal classification networks hard?” in Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, 2020, pp. 12 695–12 705. [17] X. Peng, Y. Wei, A. Deng, D. Wang, and D. Hu, “Balanced multimodal learning via on-the-fly gradient modulation,” in Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, 2022, pp. 8238–8247. [18] G. Andrew, R. Arora, J. Bilmes, and K. Livescu, “Deep canonical correlation analysis,” in International Conference on Machine Learning, 2013, pp. 1247–1255. [19] C. Xu, w. Zhao, J. Zhao, Z. Guan, Y. Yang, L. Chen, and X. Song, “Progressive deep multi-view comprehensive repre-sentation learning,” in Thirty-Seventh AAAI Conference on Artificial Intelligence, 2023. [20] C. Zhang, Y. Cui, Z. Han, J. T. Zhou, H. Fu, and Q. Hu, “Deep partial multi-view learning,” IEEE transactions on pattern analysis and machine intelligence, vol. 44, no. 5, pp. 2402–2415, 2020. [21] J. Arevalo, T. Solorio, M. Montes-y Gómez, and F. A. González, “Gated multimodal units for information fusion,” arXiv preprint arXiv:1702.01992, 2017. [22] Z. Wan, C. Zhang, Y. Geng, H. Fu, X. Peng, P. Zhu, and Q. Hu, “Cross-view equivariant auto-encoder,” in 2021 IEEE International Conference on Multimedia and Expo (ICME), 2021, pp. 1–6. [23] K. He, X. Chen, S. Xie, Y. Li, P. Dollár, and R. Girshick, “Masked autoencoders are scalable vision learners,” in Pro-ceedings of the IEEE/CVF conference on computer vision and pattern recognition, 2022, pp. 16 000–16 009. [24] F. Nie, J. Li, X. Li et al., “Parameter-free auto-weighted multiple graph learning: A framework for multiview clustering and semi-supervised classification.” in IJCAI, vol. 9, 2016, pp. 1881–1887. [25] C. Xu, J. Si, Z. Guan, W. Zhao, Y. Wu, and X. Gao, “Reliable conflictive multi-view learning,” in Proceedings of the AAAI conference on artificial intelligence, vol. 38, no. 14, 2024, pp. 16 129–16 137. [26] S. Liu, Q. Liao, S. Wang, X. Liu, and E. Zhu, “Robust and con-sistent anchor graph learning for multi-view clustering,” IEEE Transactions on Knowledge and Data Engineering, vol. 36, no. 8, pp. 4207–4219, 2024. [27] R. Wang, H. Sun, Y. Lin, C. Zuo, Y. Gong, Y. Yin, and W. Meng, “Seqmvrl: A sequential fusion framework for multi-view representation learning,” in Proceedings of the Computer Vision and Pattern Recognition Conference, 2025, pp. 25 822– 25 831. [28] X. Yu, Y. Jiang, G. Chao, and D. Chu, “Deep contrastive multi-view subspace clustering with representation and cluster interactive learning,” IEEE Transactions on Knowledge and Data Engineering, 2024. [29] C. Xu, H. Liu, Z. Guan, X. Wu, J. Tan, and B. Ling, “Adversar-ial incomplete multiview subspace clustering networks,” IEEE Transactions on Cybernetics, 2021. [30] X. Liu, X. Zhu, M. Li, L. Wang, C. Tang, J. Yin, D. Shen, H. Wang, and W. Gao, “Late fusion incomplete multi-view clus-tering,” IEEE transactions on Pattern Analysis and Machine Intelligence, vol. 41, no. 10, pp. 2410–2423, 2018. IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. XX, NO. XX, JANUARY 2026 16 
+
+[31] Z. Han, C. Zhang, H. Fu, and J. T. Zhou, “Trusted multi-view classification with dynamic evidential fusion,” IEEE Transac-tions on Pattern Analysis and Machine Intelligence, 2022. [32] C. Zhang, H. Fu, Q. Hu, P. Zhu, and X. Cao, “Flexible multi-view dimensionality co-reduction,” IEEE Transactions on Image Processing, vol. 26, no. 2, pp. 648–659, 2016. [33] D. Blalock, J. J. Gonzalez Ortiz, J. Frankle, and J. Guttag, “What is the state of neural network pruning?” Proceedings of machine learning and systems, vol. 2, pp. 129–146, 2020. [34] Y. Cheng, D. Wang, P. Zhou, and T. Zhang, “A survey of model compression and acceleration for deep neural networks,” arXiv preprint arXiv:1710.09282, 2017. [35] S. Han, J. Pool, J. Tran, and W. Dally, “Learning both weights and connections for efficient neural network,” Advances in neural information processing systems, vol. 28, 2015. [36] H. Li, A. Kadav, I. Durdanovic, H. Samet, and H. P. Graf, “Pruning filters for efficient convnets,” arXiv preprint arXiv:1608.08710, 2016. [37] Z. Liu, J. Li, Z. Shen, G. Huang, S. Yan, and C. Zhang, “Learning efficient convolutional networks through network slimming,” in Proceedings of the IEEE international conference on computer vision, 2017, pp. 2736–2744. [38] J.-H. Luo, J. Wu, and W. Lin, “Thinet: A filter level pruning method for deep neural network compression,” in Proceedings of the IEEE international conference on computer vision, 2017, pp. 5058–5066. [39] P. Molchanov, S. Tyree, T. Karras, T. Aila, and J. Kautz, “Pruning convolutional neural networks for resource efficient inference,” arXiv preprint arXiv:1611.06440, 2016. [40] Y. He, G. Kang, X. Dong, Y. Fu, and Y. Yang, “Soft filter pruning for accelerating deep convolutional neural networks,” arXiv preprint arXiv:1808.06866, 2018. [41] Z. Liu, H. Mu, X. Zhang, Z. Guo, X. Yang, K.-T. Cheng, and J. Sun, “Metapruning: Meta learning for automatic neural network channel pruning,” in Proceedings of the IEEE/CVF international conference on computer vision, 2019, pp. 3296– 3305. [42] J.-H. Luo and J. Wu, “Autopruner: An end-to-end trainable fil-ter pruning method for efficient deep model inference,” Pattern Recognition, vol. 107, p. 107461, 2020. [43] S. Han, J. Pool, S. Narang, H. Mao, E. Gong, S. Tang, E. Elsen, P. Vajda, M. Paluri, J. Tran et al., “Dsd: Dense-sparse-dense training for deep neural networks,” arXiv preprint arXiv:1607.04381, 2016. [44] H. Cheng, M. Zhang, and J. Q. Shi, “A survey on deep neural network pruning: Taxonomy, comparison, analysis, and recommendations,” IEEE Transactions on Pattern Analysis and Machine Intelligence, 2024. [45] S. Hu, B. Tian, W. Liu, and Y. Ye, “Self-supervised trusted contrastive multi-view clustering with uncertainty refined,” in Proceedings of the AAAI Conference on Artificial Intelligence, vol. 39, no. 16, 2025, pp. 17 305–17 313. [46] X. Fang, Y. Hu, P. Zhou, and D. O. Wu, “Unbalanced incom-plete multi-view clustering via the scheme of view evolution: Weak views are meat; strong views do eat,” IEEE Transactions on Emerging Topics in Computational Intelligence, vol. 6, no. 4, pp. 913–927, 2021. [47] W. Wang, R. Arora, K. Livescu, and J. Bilmes, “On deep multi-view representation learning,” in International conference on machine learning, 2015, pp. 1083–1092. [48] R. Guo, M. Yang, Y. Lin, X. Peng, and P. Hu, “Robust contrastive multi-view clustering against dual noisy correspon-dence,” Advances in Neural Information Processing Systems, vol. 37, pp. 121 401–121 421, 2024. [49] Q. Zheng, J. Zhu, Z. Li, and H. Tang, “Graph-guided unsuper-vised multi-view representation learning,” IEEE Transactions on Circuits and Systems for Video Technology, 2022. [50] Y. Wang, D. Chang, Z. Fu, J. Wen, and Y. Zhao, “Partially view-aligned representation learning via cross-view graph contrastive network,” IEEE Transactions on Circuits and Systems for Video Technology, vol. 34, no. 8, pp. 7272–7283, 2024. [51] Z. Shen, H. He, and Z. Kang, “Balanced multi-relational graph clustering,” in Proceedings of the 32nd ACM International Conference on Multimedia, 2024, pp. 4120–4128. [52] G. Chao, Y. Jiang, and D. Chu, “Incomplete contrastive multi-view clustering with high-confidence guiding,” in Proceedings of the AAAI conference on artificial intelligence, vol. 38, no. 10, 2024, pp. 11 221–11 229. [53] J. Wang, S. Feng, G. Lyu, and J. Yuan, “Surer: Structure-adaptive unified graph neural network for multi-view clus-tering,” in Proceedings of the AAAI conference on artificial intelligence, vol. 38, no. 14, 2024, pp. 15 520–15 527.

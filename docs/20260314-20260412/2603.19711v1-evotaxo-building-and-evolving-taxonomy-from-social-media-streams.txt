@@ -1,0 +1,443 @@
+Title: EvoTaxo: Building and Evolving Taxonomy from Social Media Streams
+
+URL Source: https://arxiv.org/pdf/2603.19711v1
+
+Published Time: Mon, 23 Mar 2026 00:35:31 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+# EvoTaxo: Building and Evolving Taxonomy from Social Media Streams 
+
+Yiyang Li 1, Tianyi Ma 1, Yanfang Ye 1† 
+
+> 1
+
+University of Notre Dame †Corresponding Author 
+
+{yli62, yye7}@nd.edu 
+
+Abstract 
+
+Constructing taxonomies from social media corpora is challenging because posts are short, noisy, semantically entangled, and temporally dynamic. Existing taxonomy induction meth-ods are largely designed for static corpora and often struggle to balance robustness, scalability, and sensitivity to evolving discourse. We pro-pose EvoTaxo , a LLM-based framework for building and evolving taxonomies from tempo-rally ordered social media streams. Rather than clustering raw posts directly, EvoTaxo converts each post into a structured draft action over the current taxonomy, accumulates structural evidence over time windows, and consolidates candidate edits through dual-view clustering that combines semantic similarity with tempo-ral locality. A refinement-and-arbitration pro-cedure then selects reliable edits before exe-cution, while each node maintains a concept memory bank to preserve semantic boundaries over time. Experiments on two Reddit corpora show that EvoTaxo produces more balanced taxonomies than baselines, with clearer post-to-leaf assignment, better corpus coverage at com-parable taxonomy size, and stronger structural quality. A case study on the Reddit community 
+
+/r/ICE_Raids further shows that EvoTaxo cap-tures meaningful temporal shifts in discourse. Our codebase is available here. 
+
+1 Introduction 
+
+Social media platforms have become a major arena for public discourse, providing continuous records of opinions, reactions, and collective narratives at an unprecedented scale (Dong and Lian, 2021; Deng and Yang, 2021; Li and Zhang, 2024; Zhu et al., 2025b). These data have supported a wide range of computational studies on public opin-ion, political communication, and social dynam-ics (Lazer et al., 2009; Zhuravskaya et al., 2020; Reveilhac et al., 2022). Yet the resulting discourse space is difficult to interpret directly: social me-dia corpora are large, noisy, and weakly structured, with massive numbers of short posts collectively ex-pressing a high-dimensional landscape of concerns, viewpoints, and events (Dong and Lian, 2021; Cor-tis and Davis, 2021; Wang et al., 2017). Taxonomies provide a useful abstraction for or-ganizing such discourse. By arranging concepts into hierarchical structures, they enable coarse-to-fine exploration of themes, support interpretable analysis, and serve as a foundation for downstream tasks such as opinion mining, stance detection, and structured knowledge construction (Liu et al., 2012; Cadilhac et al., 2010; Ju et al., 2022; Wan et al., 2024; Kargupta et al., 2025a; Pan et al., 2025). Taxonomy construction has broadly evolved from expert-curated hierarchies to scalable corpus-driven approaches based on clustering, hierarchical topic models, and term expansion, and more re-cently to LLM-assisted methods that can generate or refine taxonomies directly from text (Griffiths et al., 2003; Shen et al., 2018; Shang et al., 2020; Lee et al., 2022; Wan et al., 2024; Zhang et al., 2025; Zhu et al., 2025a). These advances have substantially reduced manual effort, but their as-sumptions remain only partially compatible with social media settings. Constructing taxonomies from social media cor-pora presents three challenges that are not ade-quately addressed by existing methods. First, social media posts are short, informal, and semantically sparse (Qian et al., 2022; Zhao et al., 2021, 2023), often exhibiting lexical variability, sarcasm, and fragmented context, which makes it hard to obtain reliable semantic clusters (Wang et al., 2017; Cortis and Davis, 2021; Dong and Lian, 2021). Second, social media streams are large and continuously growing, so methods that rely on repeated corpus-level passes can become computationally expensive and difficult to scale (Wan et al., 2024; Kargupta et al., 2025b). Third, social media discourse is inherently dynamic: viewpoints evolve over time, and bursty real-world events can trigger short-lived 
+
+> arXiv:2603.19711v1 [cs.CL] 20 Mar 2026
+
+yet meaningful concepts that static taxonomy in-duction may fail to preserve (Deng and Yang, 2021; Reveilhac et al., 2022; Zhu et al., 2025b). Exist-ing taxonomy construction frameworks are largely developed for static corpora and therefore make limited use of temporal signals during hierarchy in-duction (Lee et al., 2022; Wan et al., 2024; Zhang et al., 2025; Kargupta et al., 2025b). To address these limitations, we propose 
+
+EvoTaxo , a LLM-based framework for build-ing and evolving taxonomies from social media streams. Instead of clustering raw posts directly, EvoTaxo converts temporally ordered posts into structured actions over the current taxonomy. As illustrated in Figure 1, LLM-generated action repre-sentations exhibit substantially clearer cluster struc-ture than raw social media posts, motivating action-level consolidation in place of direct clustering over noisy short texts. Structural actions are accumu-lated within time windows and consolidated using both semantic-only and time-aware views. A two-step review procedure then refines and arbitrates candidate actions before execution. In addition, each node maintains a concept memory bank that stores its definition and conceptual boundaries, pro-viding a persistent semantic anchor for subsequent taxonomy decisions and refinement. These design choices allow EvoTaxo to ad-dress the three challenges above in a unified way. By transforming posts into structured actions and grounding nodes with concept memory banks, the framework improves robustness to informal and un-derspecified language. By consolidating evidence incrementally rather than repeatedly traversing the full corpus, it improves scalability. By process-ing posts chronologically and incorporating time-aware consolidation, it captures discourse evolution and surfaces transient but meaningful concepts that static approaches may overlook. Experiments show that EvoTaxo produces more balanced taxonomies with lower leaf-assignment entropy, stronger cor-pus coverage, and consistently better structural quality than baselines. A case study on Reddit com-munity /r/ICE_Raids further shows that EvoTaxo tracks major shifts in discourse. Our main contributions are as follows: • Problem Setting : We propose EvoTaxo, to the best of our knowledge, the first LLM-based tax-onomy construction framework tailored to tem-porally evolving social media corpora. • Methodology : We formulate taxonomy construc-Silhouette Score: 0.07 Silhouette Score: 0.45  
+
+> (a) Raw social media posts (b) LLM -proposed actions
+> Figure 1: K-Means clustering of raw social media posts and their corresponding LLM-generated actions, where the number of clusters is selected by the highest sil-houette score. Compared with raw posts, action repre-sentations form substantially clearer cluster structure, motivating action-level consolidation in EvoTaxo.
+
+tion as incremental structured editing over an evolving hierarchy, with targeted designs for ro-bustness, scalability, and temporal sensitivity. • Empirical Findings : We show empirically that EvoTaxo produces higher-quality taxonomies than strong baselines, while revealing inter-pretable discourse evolution over time. 
+
+2 Related Work 
+
+Automatic taxonomy construction has traditionally been studied in corpus-driven settings, where hi-erarchical structures are induced from text using unsupervised techniques such as topic modeling, clustering, and term expansion (Zhang et al., 2018; Shen et al., 2018; Shang et al., 2020; Lee et al., 2022). While effective on relatively clean and se-mantically coherent text collections, these methods depend heavily on the quality of corpus-level group-ings, which makes them less reliable for noisy and short social media texts. More recently, LLMs (Ye et al., 2025) have been used to automate taxonomy construction. Some ap-proaches combine clustering with LLM-based inter-pretation or hierarchy refinement (Katz et al., 2024; Zhang et al., 2025; Zhu et al., 2025a), while others use LLMs to induce an initial taxonomy and then iteratively refine or adapt it to a corpus (Wan et al., 2024; Hsu et al., 2024; Kargupta et al., 2025b). Al-though these methods reduce human effort, they remain limited for social media settings: clustering-based variants are still sensitive to corpus noise, and iterative LLM-based variants often require re-peated corpus-level traversals for optimization. In summary, existing taxonomy construction methods still lack a framework that is simultaneously robust to noisy social media text, computationally scal-able on large corpora, and capable of exploiting temporal information during taxonomy induction. This gap motivates the design of EvoTaxo. 
+
+3 Methodology 
+
+3.1 Preliminary Taxonomy and Problem Definition. Let D =
+
+{(xi, τ i)}Ni=1 denote a temporally ordered social media corpus, where xi is a post and τi is its times-tamp. We aim to incrementally construct a taxon-omy over this stream. We define a taxonomy as a rooted tree T =(V, E, r, ℓ ), where V is the set of nodes, E is the set of parent-child edges, r is the root node, and ℓ(v)
+
+is the label of node v. In our setting, children of the root are topic nodes, and children of topic nodes are subtopic nodes. Given D and the root node 
+
+r, EvoTaxo processes posts chronologically and incrementally updates T to organize the evolving corpus into coherent topics and subtopics. 
+
+Concept Memory Bank. A central difficulty in social media taxonomy construction is that node labels alone are often too underspecified to support stable decisions, since social media texts are short, informal, and semantically entangled. In particular, superficially similar wording may correspond to different concepts, while lexically different posts may express the same underlying concern. To miti-gate this issue, we associate each node v ∈ V with a concept memory bank (CMB), denoted by 
+
+m(v) =  δ(v), c +(v), c −(v), (1) where δ(v) is a short definition of the concept rep-resented by v, c+(v) is a set of inclusion cues, and 
+
+c−(v) is a set of exclusion cues. The concept mem-ory bank provides a more explicit semantic speci-fication of the node, which helps preserve clearer concept boundaries and supports more consistent taxonomy refinement over time. 
+
+3.2 Overview 
+
+Figure 2 illustrates the full framework. EvoTaxo be-gins with an LLM-generated seed taxonomy given root node r. It then processes posts in chronologi-cal order and partitions the stream into a sequence of time windows W = {W1, . . . , W M }. For each post xi, the system generates a draft action condi-tioned on the current taxonomy and the concept memory banks of its nodes. Non-structural actions are executed immediately, whereas structural ac-tions are accumulated in a backlog B. At the bound-ary of each window Wk, EvoTaxo consolidates the current backlog under two complementary views, one based on semantic similarity and the other com-bining semantic similarity with temporal locality. The resulting candidate clusters are then examined by a two-step review procedure that first refines local evidence and then selects a globally compat-ible set of edits. Finally, the accepted actions are applied to update both the taxonomy structure and its temporal grounding records. 
+
+3.3 Draft Action Generation 
+
+The first design question is how to convert noisy individual posts into a form that can contribute to taxonomy evolution. Since a single post rarely con-tains enough evidence to justify a structural change on its own, EvoTaxo first transforms each post into a draft action. This representation makes later ag-gregation more reliable since it avoids clustering directly over raw and noisy social media texts. Let Ti denote the current taxonomy state when processing post xi within time window Wk, includ-ing both the tree structure and the CMB of each node. The proposer is an LLM-based function 
+
+ai = fprop (xi, Ti), (2) which maps post xi to a draft action ai. Each action is associated with the timestamp of its source post, denoted by τ (ai) = τi.EvoTaxo considers five draft action types: • set_node : assign the post directly to an existing topic or subtopic node; • add_child : create a new child node under an existing node; • add_path : create a short path of the form root 
+
+→ topic → subtopic; • update_cmb : revise the concept memory bank of an existing node; • skip_post : mark the post as uninformative for taxonomy construction. In particular, set_node and skip_post are ex-ecuted immediately since they do not modify the taxonomy structure. By contrast, structural actions, namely add_child , add_path , and update_cmb ,are stored in a backlog B for later aggregation. By postponing structural execution until the win-dow boundary, EvoTaxo reduces the risk that the taxonomy overreacts to isolated posts, idiosyn-cratic phrasing, or transient noise. Definition : …    
+
+> Include_terms :
+> …
+> Exclude_terms :
+> …
+> Examples :
+> 1. …
+> 2. …
+> Post Post
+
+Concept Memory Bank Draft Actions 
+
+Action -Based Taxonomy Evolution Pipeline          
+
+> Updated Taxonomy
+> Action Pool Posts Pool Finalized Actions
+> Semantic Clustering
+> Time -Aware Clustering
+> Propose
+> Actions
+> Review
+> Actions
+> Apply
+> Topic A
+> Definition : …
+> Include_terms :
+> …
+> Exclude_terms :
+> …
+> Examples :
+> 1. …
+> 2. …
+> Definition : …
+> Include_terms :
+> …
+> Exclude_terms :
+> …
+> Examples :
+> 1. …
+> 2. …
+> Topic B Topic A Topic B
+> Proposer Two -Step
+> Review
+> Time
+> Prev. Taxonomy
+> add_child
+> add_path update_cmb
+> set_node
+
+Figure 2: Overview of EvoTaxo. The framework starts from an LLM-generated seed taxonomy with concept memory banks and processes posts chronologically. Each post is mapped to a draft action. Structural actions are accumulated and consolidated at the window boundary under semantic and semantic-temporal views, then refined and arbitrated into final actions. These final actions update both the taxonomy and its temporal grounding records. 
+
+3.4 Dual-View Action Consolidation 
+
+The next challenge is how to consolidate the draft actions in the backlog. Purely semantic clustering may smooth away short-lived but meaningful dis-course patterns. Therefore, EvoTaxo consolidates actions under two complementary views so that persistent semantic patterns and temporally con-centrated discourse bursts can both be preserved. Given the backlog B at a window boundary, we first partition it into smaller buckets G, where each bucket is indexed by the action’s type and its target node. This partition prevents actions with different edit semantics from being clustered together. Within each bucket G, each draft action a ∈ G is converted into a semantic embedding vector z(a)
+
+based on its action content. We then cluster actions in two passes. The first pass captures semantic consistency across time. For two actions am and an, we de-fine the semantic distance as 
+
+dsem (am, a n) = 1 − cos  z(am), z (an). (3) This view favors action groups that express similar structural update intent across time. The second pass additionally considers temporal locality. This is important because some mean-ingful concepts appear as concentrated bursts tied to unfolding events. Specifically, we define the normalized temporal distance within bucket G as 
+
+dtime (am, a n) = |τ (am) − τ (an)|
+
+τmax (G) − τmin (G) + ϵ , (4) where ϵ prevents division by zero. We then com-bine semantic and temporal information through 
+
+djoint (am, a n) = (1 − λ) dsem (am, a n)+ 
+
+λ d time (am, a n), (5) where λ ∈ [0 , 1] controls the contribution of tem-poral locality. For both views, we apply HDBSCAN (McInnes et al., 2017) as the clustering algorithm, since it does not require a predefined number of clusters and allows us to define custom distance functions. The semantic pass highlights globally recurring structural intents, whereas the joint pass highlights semantically coherent actions that are also concen-trated in time. EvoTaxo retains candidate clusters from both of them for downstream review. 
+
+3.5 Action Refinement and Arbitration 
+
+After consolidation, EvoTaxo must decide which candidate clusters should actually change the taxon-omy. This requires more than simply accepting all clusters, because some clusters may still be noisy, redundant, or mutually incompatible. For this rea-son, EvoTaxo uses a two-step decision procedure that first refines local cluster evidence and then resolves global conflicts among candidate edits. Cluster-level refinement. The first step operates at the level of an individual cluster. Its purpose is to determine whether the actions within a cluster sup-port a coherent structural update. For each cluster, an LLM reviewer is given representative posts, the corresponding draft actions, and the current taxon-omy context. Based on this evidence, the reviewer either defers the cluster or rewrites it into one of more refined actions . A refined action is therefore a cluster-level abstraction that summarizes what the supporting posts collectively justify. 
+
+Window-level arbitration. Although refined ac-tions are cleaner than raw draft actions, they are still produced independently from different clus-ters. Consequently, the current window may con-tain overlapping additions, competing node names, or edits that cannot be applied together without re-ducing structural coherence. To address this issue, EvoTaxo performs a second review step over the entire set of refined actions generated at the current window boundary. An LLM arbitration reviewer jointly examines these refined actions and outputs a set of final actions to be executed. After arbitration, committed proposals are re-moved from the backlog, while deferred or unsup-ported evidence is retained for possible reconsider-ation in future windows. 
+
+3.6 Taxonomy Update and Grounding 
+
+Once the final actions for a window are determined, EvoTaxo applies them deterministically to update the taxonomy. When a final action creates a new node or path, the corresponding nodes and edges are added to T . When a final action updates a concept memory bank, the memory bank of the cor-responding node is revised accordingly. In addition, associated posts are grounded to the node implied by the executed action. This grounding links the taxonomy back to the supporting corpus evidence and improves interpretability. Appendix A pro-vides the pseudo code for the full EvoTaxo pipeline. 
+
+4 Experiments 
+
+4.1 Experiment Setup Datasets. We evaluate EvoTaxo on datasets col-lected from two Reddit communities: /r/opiates 
+
+and /r/ICE_Raids . The two datasets stress com-plementary challenges of social media taxonomy induction. /r/opiates is a high-noise, experience-centered community whose posts often mix symp-toms, usage practices, recovery narratives, ad-vice seeking, and emotionally charged personal accounts, making it difficult to derive a stable hier-archical structure from informal and semantically entangled language. In contrast, /r/ICE_Raids is an event-driven corpus with strong temporal dy-namics, where discussions are shaped by unfolding incidents, rumor diffusion, political reactions, and short-lived news cycles. This makes it a useful test bed for evaluating whether temporal signals help identify bursty yet meaningful concepts. We use two temporal settings for /r/opiates :2015–2024 with yearly windows ( N = 15,846 posts), and 2022–2024 with quarterly windows ( N
+
+= 8,582 posts). For /r/ICE_Raids , we use data from February 2025 to February 2026 with monthly windows ( N = 18,394 posts). Data preprocessing details are deferred to Appendix B. 
+
+Baselines. We compare EvoTaxo against repre-sentative clustering-incorporated and pure LLM-based taxonomy construction baselines, includ-ing Knowledge Navigator (KN) (Katz et al., 2024), Chain-of-Layer (Zeng et al., 2024), TnT-LLM (Wan et al., 2024), and TaxoAdapt (Kar-gupta et al., 2025b). We use GPT-4o-mini (Hurst et al., 2024) as the LLM backbone for all the base-lines and EvoTaxo. More experiment and baseline details are discussed in Appendix C. 
+
+Evaluation Metrics. We assess EvoTaxo from two complementary perspectives: (1) post-level as-signment quality, which measures how decisively posts can be mapped to taxonomy leaves, and (2) structural quality, which measures whether the learned hierarchy is semantically well-formed. • Leaf Assignment Entropy. For each post, we use an NLI model to score all leaf labels together with an additional others class. After remov-ing others , we renormalize the distribution and compute the normalized entropy 
+
+H(x) = − 1log |L| 
+
+X
+
+> ℓ∈L
+
+p(ℓ | x) log p(ℓ | x),
+
+(6) where L is the set of leaf nodes. Lower values indicate sharper post-to-leaf assignment. • Unclassified Rate. The fraction of posts whose top predicted label is others . Lower values sug-gest more posts are covered by actual leaf nodes in the taxonomy. Table 1: Main results across datasets. EvoTaxo achieves the best trade-off between assignment quality and structural quality while maintaining a relatively balanced taxonomy. Tokens are reported in millions (M).                                                                                                                                                  
+
+> Dataset Method Nodes Leaf Ent ↓Uncls ↓NLIV-S ↑Path ↑Sib-C ↑Sib-S ↑Tokens /r/Opiates (2015-2024) KN 770.93 0.85 0.40 3.16 4.00 3.00 <1 Chain-of-Layer 40 40 0.83 0.16 0.58 4.13 4.00 3.00 <1 TnT-LLM 25 25 0.90 0.29 0.36 3.04 4.00 3.00 60.9 TaxoAdapt 73 62 0.95 0.30 0.52 3.38 4.27 3.36 164.4
+> EvoTaxo (Ours) 25 19 0.79 0.22 0.83 4.68 4.60 3.40 35.3 /r/Opiates (2022-2024) KN 660.93 0.86 0.46 2.83 3.00 4.00 <1 Chain-of-Layer 43 43 0.85 0.17 0.58 3.85 2.50 3.00 <1 TnT-LLM 25 25 0.91 0.28 0.35 3.50 4.00 3.50 33.5 TaxoAdapt 72 63 0.94 0.30 0.55 4.00 3.67 3.75 92.1
+> EvoTaxo (Ours) 29 20 0.80 0.22 0.80 4.54 4.43 3.75 18.3 /r/ICE_Raids KN 550.89 0.36 0.58 3.60 4.00 4.00 <1 Chain-of-Layer 33 33 0.77 0.24 0.24 4.00 4.00 3.00 <1 TnT-LLM 10 10 0.86 0.26 0.53 4.10 4.00 3.00 65.7 TaxoAdapt 71 60 0.93 0.20 0.18 4.67 4.46 3.36 166.3
+> EvoTaxo (Ours) 32 27 0.74 0.23 0.72 4.85 4.80 3.40 37.8
+
+Table 2: Ablation study on /r/opiates (2015–2024). Removing CMB weakens semantic stability, removing time-aware clustering harms coverage, and removing arbitration leads to reduced hierarchy consistency.                                         
+
+> Method Nodes Leaf Ent ↓Uncls ↓NLIV-S ↑Path ↑Sib-C ↑Sib-S ↑
+> EvoTaxo 25 19 0.79 0.22 0.83 4.68 4.60 3.40 - w/o CMB 14 80.82 0.28 0.78 4.53 4.50 3.50 - w/o Time-Aware Clustering 10 80.80 0.50 0.80 4.50 4.00 4.00
+> - w/o Arbitration 70 54 0.92 0.17 0.74 4.00 3.67 3.00
+
+• NLIV-S (Wullschleger et al., 2025). For each parent–child edge, we use an NLI model to mea-sure whether the child can be interpreted as a more specific abstraction of the parent. Higher values indicate more semantically valid hierar-chical relations. • Path Granularity (Kargupta et al., 2025b). An LLM judge evaluates whether each root-to-leaf path becomes progressively more specific in a coherent and sensible way. • Sibling Coherence (Kargupta et al., 2025b). An LLM judge evaluates whether the children under the same parent belong together conceptually and are of a comparable level of abstraction scope. • Sibling Separability. An LLM judge evaluates whether sibling nodes under the same parent are clearly distinguishable from one another, rather than overlapping or redundant. We use facebook/bart-large-mnli 1 as the NLI model and GPT-4o-mini as the LLM judge. LLM-based metrics are scored on a 5-point scale (Li et al., 2026). We provide the prompts for evaluation in Appendix D and the LLM-human agreement analysis in Appendix E. 
+
+> 1https://huggingface.co/facebook/bart-large-mnli
+
+4.2 Main Results 
+
+Table 1 reports the main results across the three evaluation settings. On the post-level metrics, EvoTaxo consistently attains the lowest Leaf Assignment Entropy , indi-cating that its leaf categories provide clearer desti-nations for individual posts. It also maintains a low 
+
+Unclassified Rate and clearly outperforms base-lines with taxonomy sizes closer to its own. These results suggest that EvoTaxo induces taxonomies whose leaves are both sufficiently specific for con-fident assignment and sufficiently representative to cover a large proportion of the corpus. EvoTaxo also performs strongest on structure-oriented metrics. It consistently achieves the best 
+
+NLIV-S , Path Granularity , and Sibling Coherence ,indicating that its parent–child relations are more semantically valid and that its paths exhibit cleaner broad-to-specific refinement. By contrast, KN, Chain-of-Layer, and TnT-LLM produce only one-layer taxonomies, which limits their ability to ex-press finer semantic stratification even when their sibling sets remain relatively separable. Moreover, the token statistics show that EvoTaxo is also more efficient than the other post-level LLM baselines, i.e., TnT-LLM and TaxoAdapt. Across 0
+
+> 500
+> 1000
+> 1500
+> 2000
+> Assigned posts
+> Personal-harm
+> split
+> Example new subtopics
+> Mistaken arrests / family separation
+> Intimidation / excessive force
+> Protest
+> burst
+> Example new subtopics
+> Safety planning for protests
+> State / local opposition to ICE
+> Community defense / direct action
+> Institutional
+> oversight surge
+> Example new subtopics
+> Hiring / civil-liberties controversies
+> Congressional limits on wrongful targets
+> Legislation / budget measures
+> 2025-02
+> 2025-03
+> 2025-04
+> 2025-05
+> 2025-06
+> 2025-07
+> 2025-08
+> 2025-09
+> 2025-10
+> 2025-11
+> 2025-12
+> 2026-01
+> 2026-02
+> 2026-03
+> 0
+> 2
+> 4
+> 6
+> New
+> subtopics
+> ICE enforcement actions and operations
+> Personal experiences with ICE
+> Legal rights, procedures, and advice related to ICE
+> Public opinion and political debate about ICE
+> ICE policies, leadership, and organizational news
+
+Figure 3: Monthly evolution of the taxonomy induced from /r/ICE_Raids , aggregated to the five top-level topics. The figure highlights three major turning points: an early concentration on personal-harm narratives, a mid-period protest-driven burst, and a later shift toward institutional oversight and policy discussion. The lower panel shows the number of newly introduced subtopics per month. 
+
+all settings, EvoTaxo uses substantially fewer to-kens while achieving stronger overall quality. This efficiency gain is consistent with the design of the framework: EvoTaxo processes the corpus in a single pass and accumulates structural evidence in-crementally, rather than repeatedly traversing the corpus for iterative taxonomy refinement. Overall, EvoTaxo achieves the strongest balance between post-level assignment quality, taxonomy structural quality, and computational efficiency, while maintaining a relatively compact taxonomy. 
+
+4.3 Ablation Study. 
+
+Table 2 reports an ablation study on /r/opiates 
+
+(2015–2024). Each component contributes to tax-onomy quality in a distinct way. Removing the concept memory bank (CMB) sub-stantially reduces the number of nodes and leaves, while increasing both Leaf Assignment Entropy 
+
+and Unclassified Rate . This suggests that, with-out CMB, the system is less able to preserve and accumulate fine-grained concept distinctions. As a result, the taxonomy collapses into a smaller set of broader categories, leaving more posts insuffi-ciently covered by leaf nodes. CMB therefore plays an important role in maintaining semantic bound-aries and supporting stable fine-grained expansion. Removing time-aware clustering further shrinks the taxonomy and causes the largest increase in 
+
+Unclassified Rate , indicating a substantial loss of corpus coverage. The resulting hierarchy becomes much smaller and less expressive, suggesting that semantic-only consolidation is less able to surface temporally localized meaningful distinctions. This result supports the role of time-aware clustering in preserving emerging concepts that are coherent not only semantically but also temporally. Removing arbitration review has the opposite effect on taxonomy size: the number of nodes and leaves increases dramatically, showing that many overlapping or conflicting refined actions are ap-plied simultaneously. However, this larger taxon-omy does not improve quality. Instead, entropy increases, NLIV-S decreases, and Sibling Coher-ence drops noticeably. This indicates that arbitra-tion is crucial for resolving redundancy and conflict before execution; without it, the taxonomy grows more aggressively but becomes less selective and internally less consistent. Overall, the ablation results confirm the intended roles of the three components: CMB improves se-mantic stability, time-aware clustering improves temporal sensitivity and corpus coverage, and arbi-tration prevents uncontrolled structural expansion while preserving hierarchy quality. ICE_Raids/                  
+
+> ├── 1. ICE enforcement actions and operations [created=2025 -02]
+> │├── ICE deportation record -keeping and transparency issues [created=2025 -05]
+> │├── ICE enforcement at immigration courts and civil proceedings [created=2025 -05]
+> │├── ICE raids and arrests at public venues and events [created=2025 -06]
+> │├── ICE use of force, home raids, and other abusive enforcement tactics [created=2025 -06]
+> │└── Masked or impersonating ICE officers and questionable enforcement authority [created=2025 -04]
+> ├── 2. ICE policies, leadership, and organizational news [created=2025 -02]
+> │├── ICE collaboration with contractors, corrections, and coerced labor in detention [created=2025 -04]
+> │├── Federal legislation and budget measures affecting ICE [created=2025 -06]
+> │└── ICE detention facility construction and siting [created=2025 -06]
+> ├── 3. Legal rights, procedures, and advice related to ICE [created=2025 -02]
+> ├── 4. Personal experiences with ICE [created=2025 -02]
+> │├── Mistaken arrests, citizen detentions, and family separation incidents involving ICE [created=2025 -03]
+> │└── Personal accounts of ICE intimidation and excessive force [created=2025 -03]
+> └── 5. Public opinion and political debate about ICE [created=2025 -02]
+> ├── Protests and resistance against ICE [created=2025 -05]
+> ├── Community defense and direct action against ICE operations [created=2025 -06]
+> ├── State and local government opposition to ICE cooperation [created=2025 -06]
+> └── Tactics, strategies, and safety planning for anti -ICE protests [created=2025 -06]
+
+Figure 4: Taxonomy snapshot for /r/ICE_Raids after the June 2025 update. Green highlights mark subtopics newly added in June, illustrating how EvoTaxo converts a temporally concentrated protest-driven discourse burst into explicit taxonomy growth. 
+
+4.4 Case Study 
+
+To examine whether EvoTaxo captures temporal discourse structure rather than merely producing a static hierarchy, we analyze the monthly evolution of the taxonomy induced from /r/ICE_Raids . Fig-ure 3 aggregates post assignments at the top-topic level and reveals several clear shifts over time. The first salient transition occurs in March 2025, when the discussion is dominated by Personal ex-periences with ICE . EvoTaxo introduces subtopics centered on mistaken arrests, family separation, in-timidation, and excessive force. This suggests that the taxonomy initially organizes around recurrent first-hand harm narratives rather than prematurely fragmenting broader institutional themes. A second major shift appears in June 2025, when discourse moves sharply toward Public opinion and political debate about ICE . During this pe-riod, EvoTaxo adds protest-related subtopics such as safety planning, state and local opposition, and community defense. These additions are both se-mantically coherent and temporally concentrated, illustrating the value of time-aware consolidation for preserving bursty but meaningful discourse phases that static induction could easily absorb into broader political categories. Figure 4 provides a snapshot of the taxonomy after the June 2025 update and shows that these new branches are in-troduced in a targeted rather than diffuse manner, concentrated around the parts of the hierarchy most directly affected by the protest surge. A final transition emerges around January 2026, when the dominant emphasis shifts toward ICE policies, leadership, and organizational news .Newly added subtopics focus on hiring contro-versies, civil-liberties oversight, and congressional limits on wrongful targets, indicating that the cen-ter of discourse has moved from street-level events and mobilization toward institutional accountabil-ity and governance. Overall, the case study shows that EvoTaxo tracks discourse evolution at both the structural and semantic levels: stable concepts are retained, while temporally localized developments are sur-faced as new branches when they become salient. Appendix F.1 further examines lower-volume but sharply time-concentrated subtopics, which pro-vide more direct evidence for the utility of the tem-poral clustering view. 
+
+5 Conclusion 
+
+We introduced EvoTaxo , a time-aware LLM-based framework for taxonomy construction from social media streams. By formulating taxonomy induc-tion as incremental structural editing over tempo-rally ordered posts, EvoTaxo improves robustness to noisy short texts, supports efficient evidence accumulation, and captures temporally localized discourse shifts. Experiments on two Reddit cor-pora show that EvoTaxo produces more balanced taxonomies than baselines, with clearer post-to-leaf assignment, strong coverage, and better structural quality at comparable taxonomy size. The case study further shows that EvoTaxo can reveal how discourse evolves over time by introducing new branches when emerging concepts become salient. 6 Limitations 
+
+EvoTaxo has several limitations. First, the frame-work depends on the quality of LLM-generated actions and reviews. Although the staged design helps reduce the impact of individual errors, inaccu-rate or biased generations can still affect structural updates, especially in low-support regions of the taxonomy. Second, some of our evaluation metrics rely on NLI models and LLM judges rather than fully human annotation. These automatic judges provide scalable proxies for taxonomy quality, but they may not perfectly align with expert judgment in all cases. Third, EvoTaxo requires the choice of a temporal window size, and the optimal granularity may vary across domains. Coarser windows may smooth over bursty developments, whereas finer windows may increase fragmentation and reduce the amount of evidence available for consolidation. Fourth, our experiments focus on two Reddit com-munities with distinct but still platform-specific discourse characteristics. Although these settings cover both noisy experiential discussion and event-driven discussion, further validation is needed on other platforms, languages, and domains. 
+
+7 Ethical Considerations 
+
+We use publicly available Reddit data from commu-nities discussing sensitive topics, including drug use and immigration enforcement. Although these data are public, they involve human-generated con-tent that may still carry privacy and re-identification risks. Accordingly, we focus on aggregate taxon-omy construction rather than individual-level anal-ysis, avoid identity inference, and minimize repro-duction of sensitive text in qualitative discussion. EvoTaxo is intended as a research tool for an-alyzing evolving discourse, not for surveillance, profiling, or enforcement. The induced taxonomies should be interpreted as heuristic summaries rather than ground truth, since they may reflect both dataset biases and biases introduced by LLM and NLI components. Future work should further ex-amine representational harms, bias mitigation, and appropriate human oversight in sensitive applica-tion settings. 
+
+References 
+
+Anaïs Cadilhac, Farah Benamara, and Nathalie Aussenac-Gilles. 2010. Ontolexical resources for feature-based opinion mining: a case-study. In Pro-ceedings of the 6th Workshop on Ontologies and Lex-ical Resources , pages 77–86. Keith Cortis and Brian Davis. 2021. Over a decade of social opinion mining: a systematic review. Artificial intelligence review , 54(7):4873–4965. Wen Deng and Yi Yang. 2021. Cross-platform compar-ative study of public concern on social media during the covid-19 pandemic: An empirical study based on twitter and weibo. International Journal of Environ-mental Research and Public Health , 18(12):6487. Xuefan Dong and Ying Lian. 2021. A review of social media-based public opinion analyses: Chal-lenges and recommendations. Technology in Society ,67:101724. Thomas Griffiths, Michael Jordan, Joshua Tenenbaum, and David Blei. 2003. Hierarchical topic models and the nested chinese restaurant process. Advances in neural information processing systems , 16. Chao-Chun Hsu, Erin Bransom, Jenna Sparks, Bailey Kuehl, Chenhao Tan, David Wadden, Lucy Lu Wang, and Aakanksha Naik. 2024. Chime: Llm-assisted hierarchical organization of scientific studies for liter-ature review support. Findings of the Association for Computational Linguistics: ACL 2024 , pages 118– 132. Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perelman, Aditya Ramesh, Aidan Clark, AJ Ostrow, Akila Welihinda, Alan Hayes, Alec Radford, and 1 others. 2024. Gpt-4o system card. arXiv preprint arXiv:2410.21276 .Mingxuan Ju, Wenhao Yu, Tong Zhao, Chuxu Zhang, and Yanfang Ye. 2022. Grape: Knowledge graph enhanced passage reader for open-domain question answering. In Findings of the Association for Compu-tational Linguistics: EMNLP 2022 , pages 169–181. Priyanka Kargupta, Runchu Tian, and Jiawei Han. 2025a. Beyond true or false: Retrieval-augmented hierarchical analysis of nuanced claims. In Proceed-ings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Pa-pers) , pages 29664–29679. Priyanka Kargupta, Nan Zhang, Yunyi Zhang, Rui Zhang, Prasenjit Mitra, and Jiawei Han. 2025b. Taxoadapt: Aligning llm-based multidimensional tax-onomy construction to evolving research corpora. In 
+
+Proceedings of the 63rd Annual Meeting of the As-sociation for Computational Linguistics (Volume 1: Long Papers) , pages 29834–29850. Uri Katz, Mosh Levy, and Yoav Goldberg. 2024. Knowl-edge navigator: Llm-guided browsing framework for exploratory search in scientific literature. In Find-ings of the Association for Computational Linguistics: EMNLP 2024 , pages 8838–8855. David Lazer, Alex Pentland, Lada Adamic, Sinan Aral, Albert-László Barabási, Devon Brewer, Nicholas Christakis, Noshir Contractor, James Fowler, My-ron Gutmann, and 1 others. 2009. Computational social science. Science , 323(5915):721–723. Dongha Lee, Jiaming Shen, SeongKu Kang, Susik Yoon, Jiawei Han, and Hwanjo Yu. 2022. Taxocom: Topic taxonomy completion with hierarchical discovery of novel topic clusters. In Proceedings of the ACM Web Conference 2022 , pages 2819–2829. Weiyue Li, Minda Zhao, Weixuan Dong, Jiahui Cai, Yuze Wei, Michael Pocress, Yi Li, Wanyan Yuan, Xi-aoyue Wang, Ruoyu Hou, and 1 others. 2026. Grad-ing scale impact on llm-as-a-judge: Human-llm align-ment is highest on 0-5 grading scale. arXiv preprint arXiv:2601.03444 .Yingjie Li and Yue Zhang. 2024. Pro-woman, anti-man? identifying gender bias in stance detection. In Findings of the Association for Computational Linguistics: ACL 2024 , pages 3229–3236. Xueqing Liu, Yangqiu Song, Shixia Liu, and Haixun Wang. 2012. Automatic taxonomy construction from keywords. In Proceedings of the 18th ACM SIGKDD international conference on Knowledge discovery and data mining , pages 1433–1441. Leland McInnes, John Healy, Steve Astels, and 1 others. 2017. hdbscan: Hierarchical density based clustering. 
+
+J. Open Source Softw. , 2(11):205. Huitong Pan, Qi Zhang, Mustapha Adamu, Eduard Dragut, and Longin Jan Latecki. 2025. Taxonomy-driven knowledge graph construction for domain-specific scientific applications. In Findings of the As-sociation for Computational Linguistics: ACL 2025 ,pages 4295–4320. Yiyue Qian, Chunhui Zhang, Yiming Zhang, Qianlong Wen, Yanfang Ye, and Chuxu Zhang. 2022. Co-modality graph contrastive learning for imbalanced node classification. Advances in Neural Information Processing Systems , 35:15862–15874. Maud Reveilhac, Stephanie Steinmetz, and Davide Morselli. 2022. A systematic literature review of how and whether social media data can complement traditional survey data to study public opinion. Mul-timedia tools and applications , 81(7):10107–10142. Jingbo Shang, Xinyang Zhang, Liyuan Liu, Sha Li, and Jiawei Han. 2020. Nettaxo: Automated topic taxonomy construction from text-rich network. In 
+
+Proceedings of the web conference 2020 , pages 1908– 1919. Jiaming Shen, Zeqiu Wu, Dongming Lei, Chao Zhang, Xiang Ren, Michelle T Vanni, Brian M Sadler, and Jiawei Han. 2018. Hiexpan: Task-guided taxonomy construction by hierarchical tree expansion. In Pro-ceedings of the 24th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining ,pages 2180–2189. Mengting Wan, Tara Safavi, Sujay Kumar Jauhar, Yujin Kim, Scott Counts, Jennifer Neville, Siddharth Suri, Chirag Shah, Ryen W White, Longqi Yang, and 1 others. 2024. Tnt-llm: Text mining at scale with large language models. In Proceedings of the 30th ACM SIGKDD Conference on Knowledge Discovery and Data Mining , pages 5836–5847. Chengyu Wang, Xiaofeng He, and Aoying Zhou. 2017. A short survey on taxonomy learning from text cor-pora: Issues, resources and recent advances. In Pro-ceedings of the 2017 Conference on Empirical Meth-ods in Natural Language Processing , pages 1190– 1203. Pascal Wullschleger, Majid Zarharan, Donnacha Daly, Marc Pouly, and Jennifer Foster. 2025. No gold standard, no problem: Reference-free evaluation of taxonomies. arXiv preprint arXiv:2505.11470 .Yanfang Ye, Zheyuan Zhang, Tianyi Ma, Zehong Wang, Yiyang Li, Shifu Hou, Weixiang Sun, Kaiwen Shi, Yijun Ma, Wei Song, and 1 others. 2025. Llms4all: A review of large language models across academic disciplines. arXiv preprint arXiv:2509.19580 .Qingkai Zeng, Yuyang Bai, Zhaoxuan Tan, Shangbin Feng, Zhenwen Liang, Zhihan Zhang, and Meng Jiang. 2024. Chain-of-layer: Iteratively prompting large language models for taxonomy induction from limited examples. In Proceedings of the 33rd ACM International Conference on Information and Knowl-edge Management , pages 3093–3102. Chao Zhang, Fangbo Tao, Xiusi Chen, Jiaming Shen, Meng Jiang, Brian Sadler, Michelle Vanni, and Jiawei Han. 2018. Taxogen: Unsupervised topic taxonomy construction by adaptive term embedding and clus-tering. In Proceedings of the 24th ACM SIGKDD international conference on knowledge discovery & data mining , pages 2701–2709. Haiqi Zhang, Zhengyuan Zhu, Zeyu Zhang, and Chengkai Li. 2025. Llmtaxo: Leveraging large lan-guage models for constructing taxonomy of factual claims from social media. In Findings of the Associa-tion for Computational Linguistics: ACL 2025 , pages 19627–19641. Jianan Zhao, Qianlong Wen, Mingxuan Ju, Chuxu Zhang, and Yanfang Ye. 2023. Self-supervised graph structure refinement for graph neural networks. In 
+
+Proceedings of the sixteenth ACM international con-ference on web search and data mining , pages 159– 167. Jianan Zhao, Qianlong Wen, Shiyu Sun, Yanfang Ye, and Chuxu Zhang. 2021. Multi-view self-supervised heterogeneous graph embedding. In Joint European conference on machine learning and knowledge dis-covery in databases , pages 319–334. Springer. Kun Zhu, Lizi Liao, Yuxuan Gu, Lei Huang, Xiaocheng Feng, and Bing Qin. 2025a. Context-aware hierar-chical taxonomy generation for scientific papers via llm-guided multi-aspect clustering. In Proceedings Algorithm 1 EvoTaxo                                                                                                         
+
+> Require: temporally ordered posts D={(xi, τ i)}Ni=1 , root node r, time windows W={W1, . . . , W M}
+> Ensure: taxonomy Tand temporal grounding records Γ
+> 1: T ← SEED TAXONOMY (r)
+> 2: B ← ∅ ,Γ← ∅
+> 3: for each time window Wk∈ W do
+> 4: Ck← ∅ ,Rk← ∅
+> 5: for each post (xi, τ i)such that τi∈Wkdo
+> 6: ai←fprop (xi,T)
+> 7: if aiis structural then
+> 8: B ← B ∪ { ai}
+> 9: else
+> 10: (T,Γ) ←EXECUTE IMMEDIATE (ai,T,Γ)
+> 11: end if
+> 12: end for
+> 13: {G 1, . . . , GJ} ← PARTITION BACKLOG (B)
+> 14: for each bucket Gjdo
+> 15: Ck← C k∪DUAL VIEW CLUSTER (Gj)
+> 16: end for
+> 17: for each candidate cluster C∈ C kdo
+> 18: Rk← R k∪REFINE CLUSTER (C, T)
+> 19: end for
+> 20: Fk←ARBITRATE (Rk,T)
+> 21: (T,Γ,B)←APPLY FINAL ACTIONS (Fk,T,Γ,B)
+> 22: end for
+> 23: return T,Γ
+
+of the 2025 Conference on Empirical Methods in Natural Language Processing , pages 15627–15645. Zhengyuan Zhu, Zeyu Zhang, Haiqi Zhang, and Chengkai Li. 2025b. Ratsd: Retrieval augmented truthfulness stance detection from social media posts toward factual claims. In Findings of the Association for Computational Linguistics: NAACL 2025 , pages 3366–3381. Ekaterina Zhuravskaya, Maria Petrova, and Ruben Enikolopov. 2020. Political effects of the internet and social media. Annual review of economics ,12(1):415–438. 
+
+Appendix A Algorithm 
+
+Algorithm 1 summarizes the full EvoTaxo pipeline. 
+
+B Data Preprocessing 
+
+We collect Reddit data from /r/opiates and 
+
+/r/ICE_Raids using Arctic Shift. 2 For each sub-reddit, we retrieve posts together with associated discussion content and construct the text units used in our experiments. We then use an NLI model (facebook/bart-large-mnli ) as a coarse filter-ing tool to separate broad discourse types, such as viewpoint exchange, advice seeking, and informa-tion sharing. Our purpose is to retain content that is 
+
+> 2https://arctic-shift.photon-reddit.com/
+
+more likely to contain substantive opinion-oriented discussion while filtering out lower-value or less relevant material for taxonomy construction. After scoring and sampling, we keep viewpoint-exchange data whose confidence score exceeds 0.75 . Data preprocessing is applied to all baseline methods. 
+
+C Experimental Settings 
+
+Unless otherwise noted, we use the same hyper-parameter settings across all datasets. All LLM calls use temperature 0.0. For EvoTaxo’s time-aware clustering view, we assign equal impor-tance to semantic distance and normalized tem-poral distance, with λ = 0 .5. For both the se-mantic and temporal HDBSCAN passes, we use 
+
+min_cluster_size =10, meaning that at least ten proposals are required before a group can be treated as a non-noise cluster candidate. We do not manu-ally tune min_samples ; instead, we leave it at the implementation default. We compare EvoTaxo against four representative baselines. Knowledge Navigator (KN) (Katz et al., 2024) combines clustering with LLM-based hier-archy construction: it first groups documents us-ing clustering-style organization and then asks the LLM to interpret and name the resulting structure. 
+
+Chain-of-Layer (Zeng et al., 2024) constructs a taxonomy from a provided entity set through iter-ative layer-wise prompting and filtering; in other words, it starts from candidate entities rather than directly inducing structure from post-level corpus interaction. We follow the implementation de-scribed in TaxoAdapt (Kargupta et al., 2025b) to provide the entity set. TnT-LLM (Wan et al., 2024) is implemented following the Delve framework: its taxonomy-construction stage first summarizes sampled texts and then iteratively refines the tax-onomy over those summaries, after which taxon-omy assignment is performed as a separate stage. 
+
+TaxoAdapt (Kargupta et al., 2025b) starts from an LLM-generated taxonomy and repeatedly adapts it to the corpus through iterative hierarchical classifi-cation and taxonomy expansion, requiring multiple rounds of corpus-level optimization. 
+
+D Evaluation Prompts 
+
+Below we show the prompt templates used for the three LLM-based structural evaluation met-rics in Section 4.1. In each case, placeholders such as <ROOT_TOPIC> , <PARENT> , <PATH> , and 
+
+<SIBLINGS> are replaced with the corresponding taxonomy content. 
+
+Path Granularity:                                                       
+
+> You are evaluating path granularity in a <ROOT_TOPIC> taxonomy. The path is: <PATH>. Score whether this path becomes progressively more specific from parent to child. Ahigh score means each child is a clear and sensible refinement of its parent. Alow score means the path has jumps in abstraction, inconsistent granularity, or overly broad/narrow transitions. Use a1–5 scale where 1=very poor granularity, 2=poor, 3=mixed/acceptable, 4=good, and 5=excellent granularity. Return a short rationale and an explicit machine-readable score in the form ’<score: X>’.
+
+Sibling Coherence:                                                        
+
+> You are evaluating sibling coherence in a <ROOT_TOPIC> taxonomy. The parent topic is: <PARENT>. The sibling categories are: <SIBLINGS>. Score how coherent this sibling set is as agroup. Ahigh score means the siblings belong together conceptually and operate at acomparable level of abstraction relative to the parent. Alow score means the set feels mixed, uneven, or poorly grouped. Use a1–5 scale where 1=very incoherent, 2=weak, 3=mixed/acceptable, 4=good, and 5=very strong coherence. Return a short rationale and an explicit machine-readable score in the form ’<score: X>’.
+
+Sibling Separability:                                             
+
+> You are evaluating sibling separability in a <ROOT_TOPIC> taxonomy. The parent topic is: <PARENT>. The sibling categories are: <SIBLINGS>. Score how clearly these sibling categories are distinguishable from one another. Ahigh score means each sibling has aclear, non-overlapping scope and could be reliably told apart from the others. Alow score means the siblings are confusing, redundant, or strongly overlapping. Use a1–5 scale where 1 = very poor separability, 2=weak, 3=mixed/acceptable, 4=good, and 5=excellent separability. Return a short rationale and an explicit machine-readable score in the form ’<score: X>’.
+
+E LLM-Human Agreement Analysis 
+
+Since part of our evaluation suite relies on LLM-based structural judgment, we conduct a small-scale human evaluation to assess the reliability of these metrics. We focus on the three LLM-judged metrics used in Section 4: Path Granularity , Sib-ling Coherence , and Sibling Separability .We randomly sample evaluation instances from the taxonomies produced by all compared methods across datasets. For Path Granularity , we sample 30 root-to-leaf paths. For Sibling Coherence and 
+
+Sibling Separability , we each sample 30 sibling sets. A human annotator independently evaluates each instance using the same rubric as the corre-sponding LLM prompt in Appendix D, assigning a score on the same 1–5 scale. We then compare the human scores with those produced by the LLM judge ( GPT-4o-mini ). Be-cause these metrics are ordinal, we report both exact agreement and relaxed agreement within ±1
+
+point. The results are shown in Table 3. Overall, the agreement levels indicate that the LLM judge is reasonably well aligned with human judgment, sup-porting the use of these metrics as scalable proxies for taxonomy structural quality. 
+
+Table 3: LLM-human agreement for the three LLM-judged structural metrics.              
+
+> Metric Sample Size Exact Agr. ±1Agr.
+> Path 30 0.67 0.90 Sib-C 30 0.70 0.87 Sib-S 30 0.57 0.83
+
+F Appendix Case Study 
+
+F.1 Temporal Micro-Bursts on /r/ICE_Raids 
+
+The main-text ICE case study highlights large month-level transitions, but the temporal view is also valuable at a finer scale. In several instances, EvoTaxo introduces subtopics whose total support is modest in absolute terms, yet whose evidence is concentrated within a few days. These cases are precisely the patterns most likely to be diluted un-der corpus-wide semantic grouping, since they do not require large aggregate volume to constitute a coherent structural development. One example is ICE coordination with private individuals and entities for enforcement . This subtopic accumulates only around 50 supporting posts overall, but 36 of them occur on a single day 2015 
+
+> 2016
+> 2017
+> 2018
+> 2019
+> 2020
+> 2021
+> 2022
+> 2023
+> 2024
+> 0
+> 250
+> 500
+> 750
+> 1000
+> 1250
+> 1500
+> Assigned posts
+> Recovery-oriented
+> refinement
+> Example changes
+> Recovery narratives / relapse
+> Off-label and combination MAT use
+> Experiential and
+> harm-reduction refinement
+> Example changes
+> Abusive / codependent relationships
+> Kratom substitution / withdrawal
+> Medical access
+> prominence
+> Example changes
+> Prescribing / treatment access becomes
+> the dominant topic in late years
+> Acute opiate withdrawal experiences
+> Opiate taper plans and quitting strategies
+> Opiate overdose, naloxone use, and emergency events
+> Subjective opiate effects and euphoria descriptions
+> Street opiate quality, adulterants, and harm reduction
+> Medical opioid prescribing and treatment access issues
+> Impact of opiate use on relationships, work, and daily life
+
+Figure 5: Yearly evolution of the taxonomy induced from /r/opiates , aggregated to the seven top-level topics. Early years are dominated by tapering/quitting and street-opiate quality and harm-reduction discussion. Later years show a stronger shift toward medical prescribing and treatment access. 
+
+in November 2025. Another example is ICE de-portation record-keeping and transparency issues ,which receives 53 of its 67 supporting posts within one week in May 2025. A third case is ICE en-forcement at immigration courts and civil proceed-ings , for which 64 of 112 supporting posts arrive within a one-week span centered at the end of May 2025. Although these subtopics are not dominant at the monthly aggregate level, each reflects a tempo-rally compact and semantically coherent discussion episode. These examples sharpen the interpretation of EvoTaxo’s temporal component. The value of time-aware clustering is not limited to capturing large protest waves or major policy surges; it also helps surface low-volume, short-lived developments that nonetheless warrant explicit representation in the taxonomy. In this sense, the temporal view acts as a sensitivity mechanism for emerging discourse fragments that are locally dense in time even when they are globally sparse in the corpus. 
+
+F.2 Yearly Evolution on /r/opiates 
+
+In contrast to the event-driven /r/ICE_Raids case in the main paper, the yearly evolution of the 
+
+/r/opiates taxonomy is characterized by gradual refinement over a relatively stable high-level struc-ture. The top-level organization is established early and remains largely intact across the full 2015– 2024 horizon. Rather than repeatedly reorganiz-ing the taxonomy around sudden bursts, EvoTaxo mainly refines persistent community concerns as they accumulate sufficient support over multiple years, as illustrated in Figure 5. The earliest years are dominated by two broad themes. First, Opiate taper plans and quitting strategies becomes the most consistently active topic across much of the timeline, indicating that quitting, tapering, and self-managed recovery are central organizing concerns. Second, Street opi-ate quality, adulterants, and harm reduction is es-pecially prominent in the early period, reflecting sustained attention to supply quality, contamina-tion, potency, and risk reduction. This combination suggests that the community is initially structured around a practical mixture of survival knowledge, self-management, and street-use realities. The structural updates introduced by EvoTaxo are correspondingly selective. In 2015, the taxon-omy adds subtopics related to recovery narratives and off-label or combination use of medication-assisted treatment, sharpening the distinction be-tween general tapering talk and more specific treatment-oriented quitting strategies. In 2016 and 2018, the taxonomy further refines recurring expe-riential themes by separating relationship burden, overdose-related family impact, street-safety inci-dents, and later kratom-related substitution or with-drawal discussion. These additions do not reflect abrupt discourse shocks; instead, they indicate that recurring motifs become stable enough over time to justify explicit branches in the hierarchy. Another notable pattern is that later refinements become more specialized. By 2019, the taxonomy introduces a subtopic for drug-specific subjective experiences and first-time expectations, indicating that the discussion is no longer captured only by broad euphoria or withdrawal categories. Rather, the community develops a more differentiated vo-cabulary for comparing effects, substances, and use trajectories. This kind of delayed refinement is consistent with a long-running discussion space in which distinctions emerge through repeated ex-periential reporting rather than through short-lived external events. At the topic-distribution level, the later years also show a gradual shift toward medical access and treatment systems. Medical opioid prescrib-ing and treatment access issues becomes substan-tially more prominent in 2022–2024. This suggests that the center of discussion increasingly moves toward prescription access, clinical interaction, and treatment navigation. Taken together, the yearly 
+
+/r/opiates case study highlights a different mode of taxonomy evolution from the ICE example: in-stead of temporally concentrated bursts, EvoTaxo captures slow semantic differentiation within a sta-ble community discourse structure.

@@ -1,0 +1,1851 @@
+Title: Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data
+
+URL Source: https://arxiv.org/pdf/2604.05857v1
+
+Published Time: Wed, 08 Apr 2026 01:04:22 GMT
+
+Number of Pages: 19
+
+Markdown Content:
+# Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 
+
+Lehao Li 1 Qiang Huang 2 Yihao Ang 1 Bryan Kian Hsiang Low 1 Anthony K. H. Tung 1 Xiaokui Xiao 1
+
+Abstract 
+
+Clustering mixed-type tabular data is fundamen-tal for exploratory analysis, yet remains challeng-ing due to misaligned numerical-categorical rep-resentations, uneven and context-dependent fea-ture relevance, and disconnected and post-hoc explanation from the clustering process. We pro-pose WISE , a Weight-Informed Self-Explaining framework that unifies representation, feature weighting, clustering, and interpretation in a fully unsupervised and transparent pipeline. WISE in-troduces Binary Encoding with Padding (BEP) to align heterogeneous features in a unified sparse space, a Leave-One-Feature-Out (LOFO) strat-egy to sense multiple high-quality and diverse feature-weighting views, and a two-stage weight-aware clustering procedure to aggregate alterna-tive semantic partitions. To ensure intrinsic in-terpretability, we further develop Discriminative FreqItems (DFI), which yields feature-level ex-planations that are consistent from instances to clusters with an additive decomposition guarantee. Extensive experiments on six real-world datasets demonstrate that WISE consistently outperforms classical and neural baselines in clustering quality while remaining efficient, and produces faithful, human-interpretable explanations grounded in the same primitives that drive clustering. 
+
+1. Introduction 
+
+Clustering is a cornerstone of exploratory data analysis, enabling structure discovery, cohort formation, and hypoth-esis generation in the absence of labels (Jain, 2010; Xu & Wunsch, 2005; Huang et al., 2023). In modern appli-cations, many high-value datasets are mixed-type tabular tables, combining both numerical and categorical attributes across domains such as demography, privacy analytics, elec-  
+
+> 1School of Computing, National University of Singapore, Sin-gapore 2School of Intelligence Science and Engineering, Harbin Institute of Technology (Shenzhen), China. Correspondence to: Qiang Huang <huangqiang@hit.edu.cn >.
+> Preprint. April 8, 2026.
+
+tronic health records, intrusion detection, behavioral mar-keting, and financial risk assessment (Huang et al., 1997; Ang et al., 2023; 2024; Gorishniy et al., 2021; Shwartz-Ziv & Armon, 2022). Effective clustering in this setting is par-ticularly valuable: it reveals latent subpopulations, guides feature engineering, and produces cohorts that downstream tasks, ranging from supervised modeling to causal analysis and auditing, can directly leverage Despite decades of progress, clustering mixed-type tabular data remains challenging due to three tightly coupled issues. 
+
+(1) Representation Misalignment A common strategy is to one-hot encode categorical attributes, concatenate them with normalized numerical features, and apply mixed-type distances (e.g., Gower (Gower, 1971)) or prototype-based objectives such as k-Prototypes (Huang et al., 1997). How-ever, this coupling is inherently brittle: one-hot encoding expands categorical attributes into high-dimensional, sparse vectors, while numerical features remain low-dimensional and ordered, forcing a single global scaling heuristic to rec-oncile incompatible geometries (Jain, 2010). An alternative line of work embeds heterogeneous features into dense la-tent spaces and performs clustering via k-Means or deep objectives (Guo & Berkhahn, 2016; Somepalli et al., 2021; Huang et al., 2020; Xie et al., 2016). While effective for predictive modeling (Arik & Pfister, 2021; Gorishniy et al., 2021; Rauf et al., 2025; Svirsky & Lindenbaum, 2024), these approaches shift similarity to latent dimensions whose semantics are opaque , difficult to align across feature types, and poorly suited for feature-level weighting or explanation in the original table (Shwartz-Ziv & Armon, 2022). 
+
+(2) Uneven and Context-Dependent Feature Rele-vance Real-world tabular data rarely exhibits uniform fea-ture importance: a small subset of attributes often dominates similarity, while many others are weak, redundant, or rele-vant only for specific subpopulations. Yet most clustering objectives implicitly weight all dimensions equally once a representation is fixed, diluting informative features and obscuring alternative but valid clusterings driven by differ-ent feature subsets (Agrawal et al., 1998; Aggarwal et al., 1999; Parsons et al., 2004). Metric learning and constraint-based clustering can adapt distances, but they typically rely on side information and do not yield multiple, diverse fea-ture weightings (Xing et al., 2002; Bilenko et al., 2004). 1
+
+> arXiv:2604.05857v1 [cs.LG] 7 Apr 2026 Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data
+
+Deep tabular embeddings face a related limitation, as latent dimensions are usually aggregated isotropically, making it difficult to audit which original features actually drive separation (Gorishniy et al., 2021; Grinsztajn et al., 2022; Shwartz-Ziv & Armon, 2022). 
+
+(3) Disconnected and Post-Hoc Explanations Although substantial work explains black-box predictions (Ribeiro et al., 2016; Lundberg & Lee, 2017; Lundberg et al., 2020), and advances interpretable clustering (Peng et al., 2022; Lawless et al., 2022; Moshkovitz et al., 2020), explanations for mixed-type tabular clustering are often post hoc , discon-nected from the similarity computations, or defined in latent spaces. As a result, cluster-level summaries do not reliably decompose into instance-level rationales in the original fea-ture space (Rauf et al., 2025; Svirsky & Lindenbaum, 2024; Spagnol et al., 2024). This gap matters in practice, where an-alysts require both global narratives (what defines a cohort) and local justifications (why a record belongs to it), derived from the same primitives that produce the clustering. To address these challenges, we introduce WISE (Weight-
+
+Informed Self-Explaining), a unified framework for clus-tering mixed-type tabular data, guided by three principles: (1) Granularity alignment , mapping numerical and cat-egorical attributes into a shared, type-respecting discrete space; (2) Feature weighting as a first-class object , sens-ing multiple, diverse feature-weightings directly from data to guide clustering under alternative semantic emphases; and (3) Intrinsic interpretability , embedding explanations into the clustering mechanism itself with instance-to-cluster consistency and an additive, Shapley-style decomposition (Shapley et al., 1953; Lundberg & Lee, 2017). 
+
+Contributions Our main contributions are summarized as: • Granularity-Aligned Mixed-Type Representation: 
+
+We propose Binary Encoding with Padding (BEP) , a unified sparse encoding that preserves categorical se-mantics and numerical order without a global numeric-categorical balance parameter. • Diverse Feature-Weight Sensing: We design a Leave-One-Feature-Out (LOFO) Random Forest framework that extracts multiple high-quality, diverse feature-weight vectors from reconstruction-based attributions. • Intrinsic and Consistent Interpretability: We de-velop Discriminative FreqItems (DFI) , which ties ex-planations directly to clustering primitives and yields coherent feature-level attributions across instance and cluster levels with a theoretical guarantee. 
+
+2. Related Work 
+
+Mixed-Type Tabular Clustering Clustering mixed-type tabular data has a long history, but most methods prioritize partition quality over interpretability. Classical algorithms such as k-Prototypes (Huang et al., 1997) extend k-Means (MacQueen, 1967; Lloyd, 1982) using hybrid numerical-categorical dissimilarities, while general frameworks use mixed-type similarities like Gower distance (Gower, 1971) for clustering (e.g., DBSCAN (Ester et al., 1996)). Re-cent learning-based methods embed heterogeneous features into latent spaces before clustering; for example, TableDC 
+
+(Rauf et al., 2025) employs autoencoder-based architectures. Although effective for separation, these methods define clus-ters via latent embeddings or prototypes, offering limited insight into which original features distinguish clusters. 
+
+Interpretable Clustering Motivated by this limitation, interpretable clustering has received growing attention. In-trinsically transparent models include TELL (Peng et al., 2022), which reformulates k-Means as a white-box neural network, and IDC (Svirsky & Lindenbaum, 2024), which jointly learns cluster assignments and sparse feature gates. Declarative approaches further impose explicit structures such as polytope regions (Lawless et al., 2022) or axis-aligned rules (Moshkovitz et al., 2020), while post-hoc techniques such as counterfactual explanations explain clus-tering outcomes without modifying the algorithm (Spagnol et al., 2024). However, most existing methods assume homo-geneous (typically numeric) features or impose restrictive structures, decoupling interpretability from the clustering objective and limiting applicability to mixed-type tables. 
+
+Feature Representation and Weighting Feature represen-tation and weighting pose additional challenges. Common encodings, including learned categorical embeddings (Ren-dle, 2010; Cheng et al., 2016; Guo & Berkhahn, 2016; Guo et al., 2017; Huang et al., 2020) and target encoding (Micci-Barreca, 2001), often rely on supervision or yield dense, weakly interpretable representations. Attention-based tab-ular models (e.g., SAINT (Somepalli et al., 2021)) are op-timized for supervised prediction rather than unsupervised clustering. Sparse methods such as k-FreqItems (Huang et al., 2023) improve interpretability for binary data but do not address heterogeneous feature weighting. Mean-while, feature relevance techniques from supervised learn-ing (Lundberg & Lee, 2017; Arik & Pfister, 2021) do not readily transfer to clustering due to the absence of labels. 
+
+WISE fills these gaps by integrating representation, feature weighting, clustering, and explanation into a unified, fully unsupervised framework for mixed-type tabular data. By operating directly on semantically meaningful feature-level signals, it yields human-interpretable cluster descriptions without opaque latent spaces or post-hoc explanations. 
+
+3. The WISE Framework 
+
+We introduce WISE , a weight-informed self-explaining framework for clustering mixed-type tabular data, which unifies representation, feature weighting, clustering, and explanation in a fully interpretable manner (Figure 1). 2Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data Input :       
+
+> Heterogeneous
+> Table
+> Weight Completion
+> Q-D Greedy
+> Select diverse trees
+> M
+> F
+> 20
+> 28
+> Binary Encoding with Padding
+> One-hot Encoding
+> -FreqItems -FreqItems -FreqItems
+> 2
+> -FreqItems
+> Round 1 Label Matrix
+> Sparse Encoding
+> Output : labels
+> FreqItems
+> Output : Cluster-level
+> Feature Weights
+> DFI
+> 𝟙
+> Output : Instance-level
+> Feature Weights
+> Age Sex
+> 20 M
+> 28 F
+> Second-stage
+> -FreqItems
+> Module 1: Mixed-Type Representation Module 3: Weight-Informed Clustering
+> Module 2: Feature Weighting Module 4: Intrinsic Interpretability
+
+Figure 1. Overview of WISE . It consists of four modules: Module 1 converts mixed-type tabular data into a unified representation using Binary Encoding with Padding (BEP); Module 2 senses and selects diverse feature-weight vectors via a Leave-One-Feature-Out (LOFO) strategy; Module 3 aggregates multiple weighted views through a two-stage, weight-informed clustering procedure; Finally, Module 4 
+
+produces intrinsic and consistent explanations at both the cluster and instance levels using Discriminative FreqItems (DFI). 
+
+3.1. Module 1: Mixed-Type Representation Challenges Clustering mixed-type tabular data requires rep-resentations that are both unified and feature-interpretable. Existing solutions largely follow two paradigms: distance-based approaches (Gower, 1971) reconcile numerical and categorical features via heuristic weighting across incompat-ible geometries, while neural tabular encoders (Lundberg & Lee, 2017; Arik & Pfister, 2021; Rauf et al., 2025) embed all features into dense latent spaces, enabling standard dis-tances but obscuring feature semantics and interpretability. 
+
+Binary Encoding with Padding (BEP) To overcome these limitations, we propose a BEP scheme, which maps both nu-merical and categorical features into a single sparse binary space . This unified representation supports feature-level weighting and similarity computation via weighted Jaccard distance, while preserving a direct and interpretable corre-spondence to the original tabular features. Concretely, each feature is encoded as a fixed-length binary vector of 2B bits. Categorical features are represented us-ing standard one-hot encoding. For numeric features, we propose a positional padding scheme: each value is mapped to a contiguous block of B ones, whose offset reflects its rel-ative magnitude within the column. Smaller values align to the left, larger values to the right, with intermediate values placed proportionally in between. BEP Representation 
+
+> Age = 20
+> Numeric Value
+> 20
+> 40
+> 20
+> 28
+> Distinct values
+> Similar values
+> Age = 28
+> Age = 40
+
+Figure 2. An illustrative example of the BEP scheme. 
+
+Remarks Figure 2 provides an illustrative example for a numerical feature. The smallest value (e.g., 20) has no overlap with the largest value (e.g., 40), but shares 2 bits with a nearby value (e.g., 28). Consequently, numerically distant values exhibit minimal overlap and large Jaccard distances, while similar values share more bits and have smaller distances. This design allows Jaccard distance in the BEP space to faithfully reflect original numeric similar-ity, while maintaining a unified, sparse, and interpretable representation across all feature types. 
+
+Lemma 3.1 (Quantization Error Bounds for BEP Jac-card Distance ). Let x, y ∈ [0 , 1] and define s(x) =round( Bx ) ∈ {0, · · · , B }. Let ϕ(x) ∈ {0, 1}2B de-note the BEP encoding with a contiguous block of B ones 
+
+3Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 
+
+starting at position s(x). Let t := |x − y|, and define 
+
+t− := max {0, t − 1 
+
+> B
+
+}, t+ := min {1, t + 1 
+
+> B
+
+}. Then the Jaccard distance between BEP codes satisfies:  
+
+> 2t−
+> 1+ t−
+
+≤ dJ (ϕ(x), ϕ(y)) ≤ 2t+ 
+
+> 1+ t+
+
+.
+
+Proof. By nearest rounding, we have | s(x) 
+
+> B
+
+− x| ≤ 12B and 
+
+| s(y) 
+
+> B
+
+− y| ≤ 12B . Applying the triangle inequality yields: 
+
+| s(x)−s(y) 
+
+> B
+
+| − | x − y| ≤ 1 
+
+> B
+
+.
+
+Let τ := | s(x)−s(y) 
+
+> B
+
+|. Then |τ − t| ≤ 1 
+
+> B
+
+, implying 
+
+t− ≤ τ ≤ t+.
+
+For BEP, the overlap and union depend only on the relative shift τ , yielding the closed-form Jaccard distance: 
+
+dJ (ϕ(x), ϕ(y)) = 2τ 
+
+> 1+ τ
+
+,
+
+which is monotone increasing in τ . Substituting the bounds on τ completes the proof. 
+
+3.2. Module 2: Feature Weighting 
+
+Beyond representation, effective clustering of mixed-type tabular data hinges on feature weighting . Unlike embedding dimensions, tabular features correspond to heterogeneous real-world measurements whose relevance is often uneven and context-dependent. Uniformly weighting all features can dilute informative attributes and obscure latent cluster structure. Yet, clustering is inherently unsupervised, making it difficult to estimate feature importance without labels. To address this, we reformulate unsupervised feature weight-ing as a set of supervised dependency estimation tasks via a 
+
+Leave-One-Feature-Out (LOFO) strategy. This design is conceptually inspired by masked reconstruction objectives in language (Devlin et al., 2019; Clark et al., 2020) and vision (Pathak et al., 2016; He et al., 2022; Xie et al., 2022), which uncover structured dependencies by predicting miss-ing components from observed context. For each feature xj ,we predict it from the remaining features X\j :
+
+fj : X\j → xj , j ∈ { 1, · · · , d }.
+
+This yields d supervised tasks, each quantifying how strongly a feature is supported by the rest of the table. 
+
+Sensing via LOFO and TreeSHAP We instantiate each predictor fj using a Random Forest (RF), chosen for its robustness to heterogeneous data and ability to capture non-linear interactions (Breiman, 2001; Au, 2018). RF clas-sifiers are used for categorical targets, and RF regressors for numerical targets. Crucially, RFs admit efficient and principled feature attributions via TreeSHAP (Lundberg et al., 2020), which provides Shapley-value-based credit assignment; more details are provided in Appendix A.2. For each target feature xj , we train an RF on a subsampled training set and evaluate it on held-out data. For each tree 
+
+u in the ensemble, we calculate a global attribution vector 
+
+sj,u ∈ Rd−1 
+
+> ≥0
+
+over the remaining features by aggregating absolute TreeSHAP values. These vectors encode how dif-ferent subsets of features contribute to explaining xj .
+
+Selection via Quality-Diversity Greedy Search Trees in an RF are stochastic and heterogeneous: some are accurate but redundant (provide near-duplicate dependency patterns), while others are diverse but unreliable. Since our goal is to produce multiple distinct yet trustworthy weighting views for each feature xj , we explicitly balance quality and diver-sity when selecting trees. For tree u predicting xj , we define 
+
+qj,u ∈ [0 , 1] as the normalized validation performance. We use the coefficient of determination R2 for regression tasks and accuracy for classification tasks. Diversity between trees is measured by the dissimilarity of their attribution vectors, quantified via cosine distance. Given T trees, we select a subset Uj ⊆ { 1, · · · , T } of size m by maximizing: 
+
+Jj (S) = λ
+
+> |S|
+
+P 
+
+> u∈S
+
+qj,u + (1 −λ)·2
+
+> |S| (|S|− 1)
+
+P 
+
+> u<v ∈S
+
+(1 −cos( u, v )) ,
+
+where λ ∈ [0 , 1] controls the trade-off between quality and diversity, and S denotes a candidate subset of trees. We optimize Jj via greedy selection (Gollapudi & Sharma, 2009; Borodin et al., 2017; Nemhauser et al., 1978), itera-tively adding the tree with the largest marginal gain. This yields a compact, diverse set Uj , in which each tree corre-sponds to a distinct dependency view of feature xj . Imple-mentation details are provided in Appendix A.3. 
+
+Completion into Full Feature-Weight Vectors Each se-lected tree u ∈ U j is then converted into a probability-like feature-weight vector wj,u ∈ ∆d, where ∆d = {w ∈ Rd :
+
+w ≥ 0, ∥w∥1 = 1 }; this enforces non-negativity and unit 
+
+ℓ1-norm. We normalize its attribution vector over the ob-served features, scale it by the validation quality qj,u , and assign the remaining mass to the held-out feature xj :
+
+wj,u (k) = 
+
+(qj,u · sj,u P   
+
+> k̸=jsj,u (k)
+
+, k̸ = j, 
+
+1 − qj,u , k = j. 
+
+This construction is deliberately conservative: when xj is highly predictable, weight mass shifts toward its supporting features; when xj is weakly predictable, mass remains on 
+
+xj itself. The result is a set of diverse, interpretable feature-weight vectors that faithfully reflect feature dependencies in the data and directly guide the subsequent clustering stage. 
+
+3.3. Module 3: Weight-Informed Clustering 
+
+Mixed-type tabular data often admits multiple plausible clusterings, as different subsets of features can dominate similarity under different semantics. WISE therefore treats 4Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 
+
+each feature-weight vector from Module 2 as a distinct view of the BEP-encoded data and aggregates these views through a two-stage weight-informed clustering procedure. 
+
+Stage I: Repeated Weighted k-FreqItems Let XBEP ∈{0, 1}n×p be the BEP encoding. Module 2 produces R
+
+feature-weight vectors {w(r)}Rr=1 , where each w(r) =[w(r)1 , · · · , w (r) 
+
+> d
+
+] ∈ ∆d assigns non-negative weights to the 
+
+d original features. Since each feature corresponds to a fixed group of BEP bits, we lift feature weights to the bit level by assigning all bits derived from feature j the same weight 
+
+w(r) 
+
+> j
+
+. Using these bit weights, we extend the standard Jac-card distance to a weighted form and employ a weighted variant of k-FreqItems (Huang et al., 2023) with a fixed base cluster count k0 (see Appendix A.4 for details). This proce-dure yields per-round cluster labels ℓr (i) ∈ { 0, · · · , k 0 − 1}
+
+and sparse binary cluster centers (FreqItems) {c(r) 
+
+> j
+
+}k0
+
+> j=1
+
+.
+
+Stage II: Record-Space Refinement The R base partitions provide complementary but noisy views. We summarize them in a record matrix L ∈ { 0, · · · , k 0 − 1}n×R with 
+
+L[i, r ] = ℓr (i). We then one-hot encode L to obtain a bi-nary embedding, where each round r contributes a length-k0
+
+indicator block. A final k-FreqItems run on this embedding with K clusters produces the final partition. 
+
+3.4. Module 4: Intrinsic Interpretability 
+
+Most clustering methods are not inherently interpretable, as assignments are driven by opaque objectives or latent embeddings with no direct linkage to original features. In contrast, WISE is end-to-end transparent: BEP preserves feature semantics, LOFO-derived weights explicitly shape similarity, and the two-stage clustering exposes all inter-mediate labels. This module quantifies the contribution of each weighted view and each instance to the final clus-ters, while guaranteeing consistency between instance- and cluster-level explanations. Let R be the number of weighted views, k0 and K be the cluster count in Stage I and Stage II respectively. Stage I yields per-round labels ℓr (i) for each instance 
+
+i ∈ { 1, · · · , n }. Each round r ∈ { 1, · · · , R } is associated with a feature-weight vector w(r) ∈ Rd 
+
+> ≥0
+
+with ∥w(r)∥1 = 1 .Stage II yields final clusters {C 1, · · · , CK }.
+
+Definition 3.2 (Cluster-Bit Frequency ). For a final cluster 
+
+Cj , round r, and label-bit t, define cluster-bit frequency: 
+
+Fj (r, t ) = 1 
+
+> |C j|
+
+P 
+
+> i∈C j
+
+I{ℓr (i) = t}.
+
+Definition 3.3 (Discriminative FreqItems (DFI) ). DFI measures how strongly a cluster Cj is over-represented at a given label-bit relative to competing clusters: 
+
+DFI j (r, t ) = max 0, F j (r, t ) − max k̸ =j Fk(r, t ) .
+
+The round credit for Cj is cj,r = Pk0−1 
+
+> t=0
+
+DFI j (r, t ).
+
+Definition 3.4 (Cluster-Level Feature Weights ). Let 
+
+L1(v) = v/∥v∥1 when ∥v∥1 > 0. Cluster-level feature weight is obtained by aggregating round weights weighted by their discriminative credits: 
+
+Wcluster (Cj ) = L1(PRr=1 cj,r w(r)) ∈ Rd
+
+> ≥0
+
+.
+
+Definition 3.5 (Instance-Level DFI and Feature Weights ).
+
+Let ε > 0 be a small constant. For an instance i ∈ C j , define its instance round contribution as ci[r] = DFI j (r,ℓ r (i)) max {ε,F j (r,ℓ r (i)) } ,and its instance-level feature weights as: 
+
+wraw  
+
+> i
+
+= PRr=1 ci[r] w(r), Winstance (i) = L1(wraw  
+
+> i
+
+).
+
+Lemma 3.6 (Instance-to-Cluster Consistency ). For any 
+
+Cj , averaging raw instance feature vectors over cluster members recovers the (pre-normalized) cluster vector:  
+
+> 1
+> |C j|
+
+P 
+
+> i∈C j
+
+wraw  
+
+> i
+
+= PRr=1 cj,r w(r),
+
+and L1-normalization recovers Wcluster (Cj ):
+
+L1( 1 
+
+> |C j|
+
+P 
+
+> i∈C j
+
+wraw  
+
+> i
+
+) = Wcluster (Cj ).
+
+Proof. Fix a cluster Cj and a round r. Group instances in 
+
+Cj by their round-r label t: 
+
+> 1
+> |C j|
+
+P 
+
+> i∈C j
+
+ci[r] = Pk0−1  
+
+> t=0 DFI j(r,t )max {ε,F j(r,t )}
+
+· 1 
+
+> |C j|
+
+P 
+
+> i∈C j
+
+I{ℓr (i) = t}.
+
+By Definition 3.2, the last factor is Fj (r, t ), hence  
+
+> 1
+> |C j|
+
+P 
+
+> i∈C j
+
+ci[r] = Pk0−1   
+
+> t=0 DFI j(r,t )max {ε,F j(r,t )}
+
+· Fj (r, t ).
+
+If Fj (r, t ) = 0 , then DFI j (r, t ) = 0 , and the term van-ishes. For Fj (r, t ) > 0 and ε ≪ 1, the denominator equals 
+
+Fj (r, t ), giving 1 
+
+> |C j|
+
+P 
+
+> i∈C j
+
+ci[r] = Pk0−1 
+
+> t=0
+
+DFI j (r, t ) = 
+
+cj,r . Multiplying by w(r) and summing over r yields:  
+
+> 1
+> |C j|
+
+P 
+
+> i∈C j
+
+wraw  
+
+> i
+
+= PRr=1 
+
+ 1 
+
+> |C j|
+
+P 
+
+> i∈C j
+
+ci[r]
+
+
+
+w(r)
+
+= PRr=1 cj,r w(r).
+
+L1-normalization on both sides completes the proof. 
+
+4. Experiments 
+
+4.1. Experimental Setup Datasets We evaluate WISE on six real-world mixed-type tabular datasets: Adult (Becker & Kohavi, 1996), Vermont 
+
+(Urban Institute, 2020b), Arizona (Urban Institute, 2020a), 
+
+Obesity (Palechor & De la Hoz Manotas, 2019), Credit 
+
+(Quinlan, 1987), and GeoNames (GeoNames, n.d.). These datasets span diverse scales, feature dimensionality, and 5Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 
+
+numerical-categorical composition, forming a comprehen-sive testbed for mixed-type clustering. Detailed statistics and preprocessing are provided in Appendix A.5. 
+
+Evaluation Metrics We evaluate clustering using six com-plementary metrics capturing quality and efficiency. When ground-truth is available, we report four external metrics: Adjusted Rand Index ( ARI ) (Hubert & Arabie, 1985), Nor-malized Mutual Information ( NMI ) (Vinh et al., 2009), Pu-rity (Manning et al., 2008), and Clustering Accuracy ( ACC ), to quantify agreement with reference labels. We addition-ally report the Silhouette Coefficient ( SWC ) (Rousseeuw, 1987) for intrinsic structure and end-to-end wall-clock time for efficiency. Metric definitions are given in Appendix A.6. 
+
+Baselines We compare WISE with five representative base-lines covering classical, neural, and representation-learning approaches for mixed-type tabular clustering. These in-clude the classical k-Prototypes ( k-Proto ) (Huang et al., 1997); neural clustering methods IDC (Svirsky & Linden-baum, 2024), TableDC (Rauf et al., 2025), and TELL (Peng et al., 2022); and a transformer-based representation base-line, SAINT (Somepalli et al., 2021) followed by k-Means, to assess whether representation learning alone suffices. Hy-perparameter settings and experiment environment are pro-vided in Appendices A.7 and A.8, respectively. 
+
+4.2. Clustering Quality Overall Results Table 1 summarizes results across five metrics and six datasets. WISE achieves the most consis-tent gains on the external metrics (ARI, NMI, Purity, and ACC), indicating robust alignment with ground-truth seman-tics across diverse datasets. Its advantages are most pro-nounced in challenging regimes with high dimensionality, complex categorical structure, or correlated features, where single global trade-offs or uniform weighting fail to capture fine-grained semantics. By contrast, WISE’s LOFO-based weighting emphasizes jointly informative subsets, yielding gains on ARI, NMI, and ACC rather than Purity alone. We also observe a recurring gap between intrinsic compact-ness and semantic alignment. Deep clustering baselines (e.g., TableDC and TELL ) often achieve high compactness (SWC) yet align poorly with ground truth, underscoring the limits of latent geometry in mixed-type data. WISE instead grounds similarity in feature-level relevance, producing clus-ters that are both coherent and semantically meaningful. 
+
+Ranking Analysis Table 2 reports average ranks across datasets. WISE achieves the best rank on all external met-rics and ties for the best on SWC, showing consistent gains rather than reliance on any single dataset or criterion. This stability is crucial for mixed-type clustering, where datasets stress different failure modes, such as correlated attributes (Adult), high categorical complexity (Arizona), or many weak or irrelevant features (GeoNames, Credit). 
+
+Table 1. Clustering quality of all methods. Bold and underlined denote the best and second-best results, respectively.                                                                                                                                                                                           
+
+> Dataset Method ARI ↑NMI ↑Purity ↑ACC ↑SWC ↑
+> Adult
+> k-Proto 0.259 0.266 0.616 0.475 0.146
+> IDC 0.010 0.052 0.446 0.380 -0.042
+> TableDC 0.359 0.412 0.682 0.454 0.116
+> TELL 0.049 0.109 0.479 0.248 0.094
+> SAINT 0.023 0.014 0.422 0.313 -0.002
+> WISE 0.663 0.515 0.671 0.633 0.165 Vermont  k-Proto 0.225 0.177 0.520 0.488 0.151
+> IDC 0.050 0.099 0.505 0.328 0.013
+> TableDC 0.249 0.247 0.534 0.534 0.164 TELL 0.213 0.232 0.556 0.470 0.116
+> SAINT 0.252 0.210 0.536 0.521 0.089
+> WISE 0.283 0.223 0.535 0.534 0.131
+> Arizona  k-Proto 0.168 0.149 0.607 0.430 0.130
+> IDC 0.004 0.016 0.590 0.294 0.024
+> TableDC 0.024 0.006 0.590 0.390 0.140
+> TELL 0.013 0.009 0.590 0.312 0.103
+> SAINT 0.058 0.060 0.590 0.398 0.121
+> WISE 0.309 0.321 0.607 0.607 0.185 Obesity  k-Proto 0.198 0.228 0.389 0.370 0.124
+> IDC 0.000 0.000 0.166 0.166 0.000
+> TableDC 0.179 0.240 0.406 0.383 0.228 TELL 0.095 0.207 0.309 0.282 0.181
+> SAINT 0.136 0.222 0.388 0.328 -0.031
+> WISE 0.222 0.263 0.441 0.392 0.223
+> Credit
+> k-Proto 0.325 0.245 0.786 0.786 0.184
+> IDC 0.200 0.233 0.725 0.725 0.121
+> TableDC 0.005 0.026 0.555 0.548 0.319 TELL 0.233 0.188 0.742 0.742 0.215
+> SAINT 0.051 0.076 0.622 0.622 0.113
+> WISE 0.328 0.285 0.787 0.787 0.234
+> GeoNames  k-Proto 0.082 0.133 0.447 0.287 0.132
+> IDC 0.004 0.064 0.297 0.255 0.096
+> TableDC 0.112 0.158 0.462 0.323 0.302
+> TELL 0.051 0.088 0.398 0.237 0.038
+> SAINT 0.024 0.054 0.338 0.212 0.021
+> WISE 0.146 0.182 0.491 0.337 0.368
+
+The rankings also reveal complementary baseline strengths: 
+
+k-Proto is a reliable runner-up on agreement metrics but lacks adaptability to uneven feature relevance, while 
+
+TableDC often excels on SWC, yet this compactness ad-vantage does not reliably translate to better semantic agree-ment. Overall, WISE ’s top ranks support the core claim that granularity-aligned representation with weight-informed clustering yields the most reliable performance. 
+
+Pairwise Comparisons For a finer-grained view, Figure 3 presents dataset-wise ARI scatter plots contrasting WISE 
+
+with each baseline. Each point denotes a dataset; points above the diagonal indicate improvements by WISE, with the dashed line marking a +10% margin. WISE consistently outperforms every baseline on all datasets. The average ARI gains are substantial, ranging from 0.116 over k-Proto to 0.281 over IDC , with similarly consistent improvements over TableDC , TELL , and SAINT . These uniform wins reinforce that WISE ’s advantages are systematic rather than dataset-specific, directly reflecting the benefits of sensing diverse feature weightings and aggregating them through a principled, weight-informed clustering mechanism. 6Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 0.0 0.2 0.4 0.6 0.8 1.0                     
+
+> k-Proto
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> WISE
+> 6 / 6 datasets
+> k-Proto vs WISE
+> Avg diff: 0.116
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> IDC
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> WISE
+> 6 / 6 datasets
+> IDC vs WISE
+> Avg diff: 0.281
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> TableDC
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> WISE
+> 6 / 6 datasets
+> TableDC vs WISE
+> Avg diff: 0.170
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> TELL
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> WISE
+> 6 / 6 datasets
+> TELL vs WISE
+> Avg diff: 0.216
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> SAINT
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> WISE
+> 6 / 6 datasets
+> SAINT vs WISE
+> Avg diff: 0.235
+
+Figure 3. Pairwise ARI comparisons between WISE and each baseline. Adult          
+
+> 10 0
+> 10 2
+> 10 4
+> 10 6
+> Time (s)
+> Vermont Arizona Obesity Credit GeoNames
+> k-Proto IDC TableDC TELL SAINT WISE
+
+Figure 4. Clustering efficiency of all methods on each dataset, measured on the same hardware and software stack. Reported times (seconds; log scale) include the complete clustering pipeline, covering preprocessing, representation learning (if any), and clustering. 
+
+Table 2. Average rank ( ↓) across datasets. For each dataset and metric, methods are ranked from 1 (best) to 6 (worst); ties are resolved by assigning the average of the tied ranks. 
+
+Method ARI NMI Purity ACC SWC k-Proto 2.67 3.00 2.92 2.67 3.00 
+
+IDC 5.67 4.83 5.25 5.00 5.33 
+
+TableDC 3.33 3.17 3.25 3.08 1.67 TELL 4.33 4.00 3.58 4.83 4.00 
+
+SAINT 4.00 4.67 4.42 4.33 5.33 
+
+WISE 1.00 1.33 1.58 1.08 1.67 
+
+4.3. Clustering Efficiency 
+
+Figure 4 summarizes end-to-end wall-clock times. WISE is consistently faster than deep clustering baselines, achieving 2∼250 × speedups over IDC and 6 ∼57 × over TELL , while remaining broadly competitive with k-Proto . Compared to SAINT , WISE is several times faster on four datasets and slower on Vermont and Arizona, where additional cost arises from feature-wise weight sensing and multi-view clus-tering; these steps are embarrassingly parallel and can be substantially accelerated in practice. TableDC is often the fastest overall, but WISE typically operates within the same practical regime (about 2 ∼10 × overhead) while delivering stronger clustering quality and intrinsic, feature-level expla-nations. Overall, WISE’s accuracy and interpretability gains come without prohibitive computational cost. 
+
+4.4. Ablation Study 
+
+We evaluate the contribution of WISE ’s LOFO-based weight sensing and weight-informed clustering by com-paring it against two baselines: BEP+ k-FreqItems and 
+
+BEP+Gaussian Weighting+ k-FreqItems . k-FreqItems is designed for sparse binary data; BEP serves as a fair adapter by mapping mixed-type tables into a unified sparse represen-tation. The Gaussian Weighting variant preserves WISE’s Adult   
+
+> Vermont
+> Arizona
+> Obesity
+> Credit
+> GeoNames
+> 0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> ARI
+> Adult
+> Vermont
+> Arizona
+> Obesity
+> Credit
+> GeoNames
+> NMI
+> BEP+k-FreqItems BEP+Gaussian Weighting+k-FreqItems WISE
+
+Figure 5. Ablation study of WISE evaluating modules 2 and 3. Clust.                
+
+> 90.2%
+> LOFO 9.53%
+> DFI 0.17%
+> BEP 0.06%
+> Adult
+> Clust.
+> 98.8%
+> LOFO 1.16%
+> DFI 0.01%
+> BEP 0.01%
+> Vermont
+> Clust.
+> 98.6%
+> LOFO 1.37%
+> BEP 0.01%
+> DFI 0.01%
+> Arizona
+> LOFO
+> 40.7% Clust.
+> 58.4%
+> DFI 0.83%
+> BEP 0.03%
+> Obesity
+> LOFO
+> 64.1%
+> Clust.
+> 35.7%
+> DFI 0.17%
+> BEP 0.02%
+> Credit
+> Clust.
+> 94.8%
+> LOFO 5.06%
+> DFI 0.09%
+> BEP 0.07%
+> GeoNames
+> BEP LOFO Clust. DFI
+
+Figure 6. Runtime breakdown of WISE across its four modules. 
+
+two-stage pipeline but replaces LOFO with randomly sam-pled Gaussian weights, isolating the effect of data-driven sensing. All methods use the same number of clusters K.As shown in Figure 5, WISE yields the most stable gains, improving NMI on all datasets and ARI on most, while remaining competitive elsewhere. In contrast, the Gaussian Weighting variant shows inconsistent behavior: although random weights can help in some cases, they often am-plify irrelevant dimensions and even underperform BEP+ k-FreqItems . These results confirm that weighting alone is insufficient ; effective clustering requires weights that are 
+
+aligned with true feature relevance .
+
+Runtime Breakdown Figure 6 decomposes the end-to-end runtime of WISE across its four modules. The cost is dom-7Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data Age     
+
+> WrkCls
+> FnlWgt
+> Edu
+> EduNum
+> Marital
+> Occ
+> Race
+> Sex
+> CapGain
+> CapLoss
+> HrsWeek
+> Ctry
+> Wage
+> 0.0
+> 0.2
+> 0.4
+> Weight
+> C0 C1 C2 C3 C4
+
+(a) Cluster-level feature weights. Marital    
+
+> Sex
+> Age
+> Marital
+> Sex
+> Occ
+> Edu
+> Occ
+> Age
+> Marital
+> Sex
+> Age
+> 0.0 0.1 0.2 0.3
+> Marital
+> Sex
+> Wage
+
+(b) Top-3 features per cluster. 0         
+
+> 1Sex C0 C1 C2 C3
+> C4
+> Cluster
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Proportion 0123456
+> Marital C0 C1 C2 C3
+> C4
+> Cluster
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Proportion
+
+(c) Cluster-wise histogram. 
+
+Figure 7. Case Study on Adult. 
+
+inated by Module 2 (LOFO-based feature weight sensing) and Module 3 (weight-informed clustering), which consti-tute the core modeling components of the framework. In contrast, BEP encoding and DFI explanation incur negligi-ble overhead. This confirms that WISE concentrates com-putation on its essential weighting and aggregation mecha-nisms, consistent with the design goals in Section 3. 
+
+4.5. Case Study 
+
+To showcase the intrinsic interpretability of WISE , we present case studies on Adult and GeoNames (Figures 7 and 8), using the exact cluster assignments from Section 4.2. Each figure contains three components: (a) cluster-level feature weights derived from DFI, (b) the top-3 discrim-inative features per cluster, and (c) cluster-wise feature histograms , validating explanations against the raw data. 
+
+Case Study on Adult The Adult dataset illustrates that fea-ture relevance in WISE is explicitly cluster-dependent . As shown in Figures 7a and 7b, clusters rely on distinct feature subsets to separate from others. For example, clusters C0 
+
+and C1 are primarily distinguished by Marital-status 
+
+and Sex , together with Age (C0) or Occupation (C1). In contrast, cluster C3 is more strongly characterized by 
+
+Edu and Occupation , indicating a different semantic grouping. These explanations are corroborated by the his-tograms in Figure 7c. For Marital-status and Sex ,clusters with higher DFI weights exhibit clearly separated distributions, while clusters with lower weights show sub-stantial overlap. This alignment between learned weights Lat         
+
+> Lon
+> Pop
+> Elev
+> Dem
+> Ctry
+> Adm1
+> Adm2
+> Adm3
+> Adm4
+> TZone
+> 0.0
+> 0.2
+> 0.4
+> Weight
+> C0 C1 C2 C3 C4 C5 C6 C7 C8
+
+(a) Cluster-level feature weights. Ctry          
+
+> Lat
+> Lon
+> Ctry
+> Lat
+> Lon
+> Ctry
+> Lat
+> Lon
+> Ctry
+> Lat
+> Lon
+> Ctry
+> Adm2
+> Lon
+> Ctry
+> Lat
+> Lon
+> 0.0 0.1 0.2 0.3
+> Ctry
+> Lat
+> Lon
+> 0.0 0.1 0.2 0.3
+> Ctry
+> Adm2
+> Lon
+> 0.0 0.1 0.2 0.3
+> Ctry
+> Lat
+> Lon
+
+(b) Top-3 feature per cluster. 0123456789
+
+> 10
+> 11
+> 12
+> 13 Ctry
+> C0
+> C1
+> C2
+> C3
+> C4
+> C5
+> C6
+> C7
+> C8
+> Cluster
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Proportion 0
+> 30000
+> 60000
+> 90000
+> 120000
+> Lat
+> C0
+> C1
+> C2
+> C3
+> C4
+> C5
+> C6
+> C7
+> C8
+> Cluster
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> 6
+> 1e  5
+> Proportion
+
+(c) Cluster-wise histogram. 
+
+Figure 8. Case Study on GeoNames. 
+
+and empirical distributions confirms that DFI captures gen-uine discriminative structure rather than post-hoc artifacts. 
+
+Case Study on GeoNames A similar pattern emerges for GeoNames. Figures 8a and 8b show that Latitude ,
+
+Longitude , and Country code dominate most clus-ters, reflecting the primacy of geographic location. However, certain clusters (e.g., C4 and C7 ) assign higher importance to Admin2 code , indicating that finer-grained administra-tive features are necessary when country-level signals alone are insufficient. Figure 8c validates these findings: while many clusters form distinct peaks on Country code and 
+
+Latitude , C4 and C7 exhibit notable overlap on these features, explaining their reduced discriminative weights and the increased reliance on administrative attributes. 
+
+5. Conclusions 
+
+We introduced WISE , a fully unsupervised and intrinsically interpretable framework for clustering mixed-type tabular data. WISE integrates granularity-aligned representation, data-driven feature weighting, weight-informed clustering, and explanation into a unified pipeline that operates directly on feature-level semantics rather than opaque latent spaces. Extensive experiments on six real-world datasets show that WISE consistently outperforms classical and neural base-lines on external agreement metrics, remains computation-ally efficient, and produces faithful, human-interpretable explanations that reflect true discriminative structure. 8Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 
+
+Impact Statement 
+
+This work improves unsupervised clustering for mixed-type tabular data by providing a transparent pipeline that aligns heterogeneous features, learns data-driven feature weights, and produces intrinsic, feature-level explanations of dis-covered cohorts. Such capabilities can benefit exploratory analysis in domains where tabular records are prevalent by enabling more faithful subgroup discovery, better hypothesis generation, and more auditable downstream use of clusters. Potential negative impacts arise when clustering is applied to sensitive populations or attributes: faster and more in-terpretable cohorting may facilitate profiling, targeted ma-nipulation, or discriminatory segmentation, and spurious or biased clusters may be mistaken as meaningful structure and propagated into downstream decisions. We recommend deploying the method with appropriate access controls and privacy safeguards, and conducting careful validation for stability, bias, and failure cases (especially when clusters in-form high-stakes decisions), including scrutiny of sensitive features and human oversight of any consequential use. 
+
+References 
+
+Shap documentation: shap.TreeExplainer . https: //shap.readthedocs.io/en/stable/ generated/shap.TreeExplainer.html .Aggarwal, C. C., Wolf, J. L., Yu, P. S., Procopiuc, C., and Park, J. S. Fast algorithms for projected clustering of high dimensional data. In SIGMOD , pp. 61–72, 1999. Agrawal, R., Gehrke, J., Gunopulos, D., and Raghavan, P. Automatic subspace clustering of high dimensional data for data mining applications. In SIGMOD , pp. 94–105, 1998. Ang, Y., Huang, Q., Tung, A. K., and Huang, Z. A stitch in time saves nine: Enabling early anomaly detection with correlation analysis. In ICDE , pp. 1832–1845, 2023. Ang, Y., Huang, Q., Tung, A. K., and Huang, Z. Eads: An early anomaly detection system for sensor-based multi-variate time series. In ICDE , pp. 5433–5436, 2024. Arik, S. ¨O. and Pfister, T. Tabnet: Attentive interpretable tabular learning. In AAAI , volume 35, pp. 6679–6687, 2021. Au, T. C. Random forests, decision trees, and categorical predictors: the “absent levels” problem. JMLR , 19(45): 1–30, 2018. Bahmani, B., Moseley, B., Vattani, A., Kumar, R., and Vassilvitskii, S. Scalable k-means++. arXiv preprint arXiv:1203.6402 , 2012. Becker, B. and Kohavi, R. Adult, 1996. URL https:// archive.ics.uci.edu/ml/datasets/adult .Bilenko, M., Basu, S., and Mooney, R. J. Integrating con-straints and metric learning in semi-supervised clustering. In ICML , pp. 11, 2004. Borodin, A., Jain, A., Lee, H. C., and Ye, Y. Max-sum diver-sification, monotone submodular functions, and dynamic updates. TALG , 13(3):1–25, 2017. Breiman, L. Random forests. Machine learning , 45(1): 5–32, 2001. Broder, A. Z., Charikar, M., Frieze, A. M., and Mitzen-macher, M. Min-wise independent permutations. In 
+
+Proceedings of the thirtieth annual ACM symposium on Theory of computing , pp. 327–336, 1998. Cheng, H.-T., Koc, L., Harmsen, J., Shaked, T., Chandra, T., Aradhye, H., Anderson, G., Corrado, G., Chai, W., Ispir, M., et al. Wide & deep learning for recommender systems. In Proceedings of the 1st workshop on deep learning for recommender systems , pp. 7–10, 2016. Clark, K., Luong, M.-T., Le, Q. V., and Manning, C. D. Elec-tra: Pre-training text encoders as discriminators rather than generators. In ICLR , 2020. Devlin, J., Chang, M.-W., Lee, K., and Toutanova, K. Bert: Pre-training of deep bidirectional transformers for lan-guage understanding. In NAACL , pp. 4171–4186, 2019. Ester, M., Kriegel, H.-P., Sander, J., and Xu, X. A density-based algorithm for discovering clusters in large spatial databases with noise. In KDD , pp. 226–231, 1996. GeoNames. GeoNames geographical database, n.d. URL https://www.kaggle.com/datasets/ geonames/geonames-database/ .Gollapudi, S. and Sharma, A. An axiomatic approach for result diversification. In WWW , pp. 381–390, 2009. Gorishniy, Y., Rubachev, I., Khrulkov, V., and Babenko, A. Revisiting deep learning models for tabular data. In 
+
+NeurIPS , pp. 18932–18943, 2021. Gower, J. C. A general coefficient of similarity and some of its properties. Biometrics , pp. 857–871, 1971. Grinsztajn, L., Oyallon, E., and Varoquaux, G. Why do tree-based models still outperform deep learning on typical tabular data? In NeurIPS , pp. 507–520, 2022. Guo, C. and Berkhahn, F. Entity embeddings of categorical variables, 2016. 9Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 
+
+Guo, H., Tang, R., Ye, Y., Li, Z., and He, X. Deepfm: A factorization-machine based neural network for ctr prediction. In IJCAI , pp. 1725–1731, 2017. He, K., Chen, X., Xie, S., Li, Y., Doll ´ar, P., and Girshick, R. Masked autoencoders are scalable vision learners. In 
+
+CVPR , pp. 16000–16009, 2022. Huang, Q., Luo, P., and Tung, A. K. A new sparse data clustering method based on frequent items. SIGMOD , 1 (1):1–28, 2023. Huang, X., Khetan, A., Cvitkovic, M., and Karnin, Z. Tab-transformer: Tabular data modeling using contextual em-beddings. arXiv preprint arXiv:2012.06678 , 2020. Huang, Z. et al. Clustering large data sets with mixed numeric and categorical values. In PAKDD , pp. 21–34, 1997. Hubert, L. and Arabie, P. Comparing partitions. Journal of Classification , 2(1):193–218, 1985. doi: 10.1007/ BF01908075. Ioffe, S. Improved consistent sampling, weighted minhash and l1 sketching. In 2010 IEEE international conference on data mining , pp. 246–255. IEEE, 2010. Jain, A. K. Data clustering: 50 years beyond k-means. 
+
+Pattern recognition letters , 31(8):651–666, 2010. Kuhn, H. W. The hungarian method for the assignment problem. Naval Research Logistics Quarterly , 2(1–2): 83–97, 1955. doi: 10.1002/nav.3800020109. Lawless, C., Kalagnanam, J., Nguyen, L. M., Phan, D. T., and Reddy, C. Interpretable clustering via multi-polytope machines. In AAAI , volume 36, pp. 7309–7316, 2022. Lloyd, S. Least squares quantization in pcm. TIT , 28(2): 129–137, 1982. Lundberg, S. M. and Lee, S.-I. A unified approach to in-terpreting model predictions. In NeurIPS , volume 30, 2017. Lundberg, S. M., Erion, G. G., and Lee, S.-I. Consistent in-dividualized feature attribution for tree ensembles. arXiv preprint arXiv:1802.03888 , 2018. Lundberg, S. M., Erion, G., Chen, H., DeGrave, A., Prutkin, J. M., Nair, B., Katz, R., Himmelfarb, J., Bansal, N., and Lee, S.-I. From local explanations to global under-standing with explainable ai for trees. Nature machine intelligence , 2(1):56–67, 2020. MacQueen, J. Some methods for classification and analy-sis of multivariate observations. In Proceedings of the Fifth Berkeley Symposium on Mathematical Statistics and Probability , pp. 281–297, 1967. Manasse, M. S. Consistent weighted sampling. 2010. Manning, C. D., Raghavan, P., and Sch ¨utze, H. Introduction to Information Retrieval . Cambridge University Press, Cambridge, UK, 2008. ISBN 9780521865715. Purity definition and discussion, Chapter 16. Micci-Barreca, D. A preprocessing scheme for high-cardinality categorical attributes in classification and pre-diction problems. ACM SIGKDD explorations newsletter ,3(1):27–32, 2001. Moshkovitz, M., Dasgupta, S., Rashtchian, C., and Frost, N. Explainable k-means and k-medians clustering. In ICML ,pp. 7055–7065, 2020. Nemhauser, G. L., Wolsey, L. A., and Fisher, M. L. An analysis of approximations for maximizing submodular set functions—i. Mathematical programming , 14(1):265– 294, 1978. Palechor, F. M. and De la Hoz Manotas, A. Dataset for estimation of obesity levels based on eating habits and physical condition in individuals from colombia, peru and mexico. Data in Brief , 25:104344, 2019. doi: 10. 1016/j.dib.2019.104344. URL https://doi.org/ 10.1016/j.dib.2019.104344 .Parsons, L., Haque, E., and Liu, H. Subspace clustering for high dimensional data: a review. Acm sigkdd explorations newsletter , 6(1):90–105, 2004. Pathak, D., Krahenbuhl, P., Donahue, J., Darrell, T., and Efros, A. A. Context encoders: Feature learning by in-painting. In CVPR , pp. 2536–2544, 2016. Peng, X., Li, Y., Tsang, I. W., Zhu, H., Lv, J., and Zhou, J. T. Xai beyond classification: Interpretable neural clustering. 
+
+JMLR , 23(107), 2022. Quinlan, J. R. Credit Approval, 1987. URL 
+
+https://archive.ics.uci.edu/ml/ datasets/credit%2Bapproval .Rauf, H. T., Freitas, A., and Paton, N. W. Tabledc: Deep clustering for tabular data. In SIGMOD , pp. 1–28, 2025. Rendle, S. Factorization machines. In ICDM , pp. 995–1000, 2010. Ribeiro, M. T., Singh, S., and Guestrin, C. “why should i trust you?”: Explaining the predictions of any classifier. In KDD , pp. 1135–1144, 2016. Rousseeuw, P. J. Silhouettes: A graphical aid to the in-terpretation and validation of cluster analysis. Journal of Computational and Applied Mathematics , 20:53–65, 1987. 10 Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 
+
+Shapley, L. S. et al. A value for n-person games. 1953. Shwartz-Ziv, R. and Armon, A. Tabular data: Deep learning is not all you need. Information Fusion , 81:84–90, 2022. Somepalli, G., Goldblum, M., Schwarzschild, A., Bruss, C. B., and Goldstein, T. Saint: Improved neural networks for tabular data via row attention and contrastive pre-training. arXiv preprint arXiv:2106.01342 , 2021. Spagnol, A., Sokol, K., Barbiero, P., Langheinrich, M., and Gjoreski, M. Counterfactual explanations for clustering models, 2024. Svirsky, J. and Lindenbaum, O. Interpretable deep clustering for tabular data. In ICML , pp. 47314–47330, 2024. Urban Institute. 2018 differential privacy synthetic data challenge datasets (match 3: Arizona pums) [dataset]. Urban Data Catalog, 2020a. Urban Institute. 2018 differential privacy synthetic data challenge datasets (match 3: Vermont pums) [dataset]. Urban Data Catalog, 2020b. Vinh, N. X., Epps, J., and Bailey, J. Information theoretic measures for clusterings comparison: is a correction for chance necessary? In JMLR , pp. 1073–1080, 2009. Weinberger, K., Dasgupta, A., Langford, J., Smola, A., and Attenberg, J. Feature hashing for large scale multitask learning. In Proceedings of the 26th annual international conference on machine learning , pp. 1113–1120, 2009. Xie, J., Girshick, R., and Farhadi, A. Unsupervised deep embedding for clustering analysis. In ICML , pp. 478–487. PMLR, 2016. Xie, Z., Zhang, Z., Cao, Y., Lin, Y., Bao, J., Yao, Z., Dai, Q., and Hu, H. Simmim: A simple framework for masked image modeling. In CVPR , pp. 9653–9663, 2022. Xing, E., Jordan, M., Russell, S. J., and Ng, A. Distance metric learning with application to clustering with side-information. In NeurIPS , volume 15, 2002. Xu, R. and Wunsch, D. Survey of clustering algorithms. 
+
+IEEE Transactions on neural networks , 16(3):645–678, 2005. 11 Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 
+
+A. Implementation Details 
+
+A.1. Binary Encoding with Padding 
+
+BEP assigns a per-column bit budget B, but the within-column encoding depends on the semantic type of the feature. In particular, we explicitly distinguish ordinal from nominal categorical attributes. 
+
+Numerical and ordinal features. For numerical features, we use the positional-padding scheme: after scaling to the column range, a value is encoded by a contiguous block of B ones whose offset reflects its relative magnitude. We treat ordinal categorical features in exactly the same way. Specifically, when a categorical column has a natural order available from domain semantics or dataset documentation, we first map its levels to ordered integers and then pass the resulting scalar values through the numerical BEP encoder. This preserves ordinal proximity in the BEP space: adjacent levels have overlapping blocks, while distant levels have less overlap or none. In other words, ordinal variables are not one-hot encoded in WISE; they are processed by the same BEP mechanism as numerical features. 
+
+Nominal categorical features. For nominal features, no intrinsic order is assumed, so categories are treated as equidistant. When a nominal feature xj has cj distinct categories and cj ≤ B, we use a collision-free one-hot block for column j.When cj > B , a collision-free length-B representation is impossible, and we support two practical treatments in our implementation. 
+
+Option 1: Hash-BEP We map categories to B buckets using a hash function hj (·) ∈ { 0, . . . , B − 1} and encode category 
+
+a by activating the single coordinate hj (a). This keeps the BEP dimensionality and runtime predictable while allowing collisions between distinct categories that hash to the same bucket (the standard trade-off in feature hashing) (Weinberger et al., 2009). 
+
+Option 2: Expand-BEP We allocate one bit per category and use a length-cj one-hot block for column j, i.e., we allow this column to exceed the nominal budget B. This preserves category identity exactly, but increases the overall BEP dimensionality and can raise memory/time costs downstream. These choices affect only the within-column encoding and do not change the rest of the WISE pipeline. Ordinal columns still pass through the same numerical BEP encoder, while nominal columns under standard one-hot, Hash-BEP, or Expand-BEP all produce sparse binary set vectors. As a result, the subsequent weighted-Jaccard computations and the weighted 
+
+k-FreqItems backbone operate unchanged; only the coordinate allocation differs. Moreover, Hash-BEP preserves sparsity and has controlled distortion guarantees, suggesting that occasional collisions have limited effect in practice when B is moderately sized (Weinberger et al., 2009). 
+
+A.2. From TreeSHAP to Feature Weight Vector 
+
+We explain how WISE uses TreeSHAP (Lundberg et al., 2020) to convert Leave-One-Feature-Out (LOFO) prediction models into feature weight vectors. For each target feature xj we construct a LOFO prediction problem with target y ← xj and inputs X ← X−j . We train a Random Forest (RF) model and view each tree with index u in the ensemble as a “local evaluator” of how other features contribute to predicting xj . We then use TreeSHAP to quantify, for this tree u, which input features in X−j are most responsible for its predictions. Given an input row xi with the j-th feature fj removed, TreeSHAP returns per-feature attributions ϕ(j,u )(xi) ∈ Rd−1 satisfying the standard additive decomposition 
+
+fj,u (xi) = E[fj,u (X)] + X 
+
+> k̸=j
+
+ϕ(j,u ) 
+
+> k
+
+(xi),
+
+where fj,u denotes the prediction function of tree u in the LOFO model for target xj (Lundberg & Lee, 2017; Lundberg et al., 2018; 2020). In practice, we compute TreeSHAP using shap.TreeExplainer with 
+
+feature perturbation="interventional" and a small background set sampled from training data, which defines the reference distribution used in the Shapley expectations (sha). WISE needs a global nonnegative dependency signature per tree, rather than per-instance explanations. We therefore aggregate local TreeSHAP values over a set of explained rows E by taking the mean absolute attribution: 
+
+sj,u (k) = 1
+
+|E|
+
+X
+
+> xi∈E
+
+ϕ(j,u ) 
+
+> k
+
+(xi) ∈ Rd−1 
+
+> ≥0
+
+,
+
+12 Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 
+
+for each input feature with index k̸ = j. This follows the standard “local-to-global” usage pattern: combine many faithful local explanations to summarize model structure at the population level (Lundberg et al., 2020). 
+
+A.3. Quality-Diversity Greedy Search 
+
+Given the Quality-Diversity objective (Gollapudi & Sharma, 2009; Borodin et al., 2017): 
+
+Jj (S) = λ
+
+|S|
+
+X
+
+> u∈S
+
+qj,u + (1 − λ) · 2
+
+|S|(|S| − 1) 
+
+X
+
+> u<v ∈S
+
+(1 − cos( u, v )) ,
+
+we maximize Jj via greedy search, starting from the highest quality tree U(1)  
+
+> j
+
+= {arg max u qj,u } and iteratively adding the tree with the largest marginal gain until |U j | = m.
+
+u⋆ = arg max 
+
+> r / ∈U (t)
+> j
+
+∆Jj
+
+ r; U(t)
+
+> j
+
+, U(t+1)  
+
+> j
+
+= U(t) 
+
+> j
+
+∪ { u⋆}.
+
+For efficient evaluation, let k = |S|, Q(S) = P 
+
+> u∈S
+
+qj,u , P (S) = P 
+
+> u<v ∈S
+
+1 − cos( u, v ), and A(r; S) = P 
+
+> u∈S
+
+1 −
+
+cos( u, r ). For any candidate r / ∈ S, the objective after inclusion admits the closed form 
+
+Jj (S ∪ { r}) = λ · Q(S) + qj,r 
+
+k + 1 + (1 − λ) · 2
+
+k(k + 1) 
+
+
+
+P (S) + A(r; S)
+
+
+
+,
+
+enabling the marginal gain ∆Jj (r; S) = Jj (S ∪ { r}) − Jj (S) to be computed in O(k) time, hence the greedy process is done in O(k2) time. 
+
+A.4. Weighted k-FreqItems From mixed-type tabular data to sparse set data After the BEP procedure, each recode is represented as a high-dimensional sparse binary vector x ∈ { 0, 1}d, or equivalently, a set of active coordinates. This allows us to use k-FreqItems, a scalable Lloyd-style clustering method for sparse set data under Jaccard distance (Huang et al., 2023). For two binary set-vectors x, y ∈ { 0, 1}d with supports X = {t : xt = 1 } and Y = {t : yt = 1 }, their Jaccard similarity and distance are 
+
+J(x, y) = |X ∩ Y ||X ∪ Y | , dJ (x, y) = 1 − J(x, y).
+
+FreqItem: A Sparse Center Representation Given a cluster S ⊆ X , k-FreqItems represents its center by a sparse set of frequent coordinates, called a FreqItem (Huang et al., 2023). Let ft = |{ x ∈ S : xt = 1 }| be the frequency of coordinate 
+
+t within S, and fmax = max t ft. With a sparsity control parameter α ∈ [0 , 1] , the (unweighted) FreqItem center keeps coordinates whose frequency is at least a fraction of the maximum: 
+
+FreqItem α(S) = t : ft ≥ max(1 , ⌈αf max ⌉) .
+
+This interpolates between a dense “Mode1”-style center ( α = 0 ) and a very sparse “Mode2”-style center ( α → 1) while remaining efficient to compute on sparse data. 
+
+k-FreqItems Iterations Given K centers {c1, . . . , cK } represented as FreqItems, the algorithm alternates: (i) assignment by nearest-center Jaccard distance; and (ii) update by recomputing each center as the FreqItem of its assigned cluster. 
+
+SILK Seeding Initialization is performed by SILK , which first overseeds via a two-level MinHash procedure and then reduces the overseeded set to K centers using a k-means ∥-style reclustering (Bahmani et al., 2012). Concretely, MinHash-based LSH produces buckets of similar data; a second MinHash pass groups buckets into bins, from which frequent data subsets are extracted, deduplicated, and converted into initial centers by FreqItem computation. The resulting center set is then downsampled to K centers before the standard k-FreqItems iterations proceed. 
+
+Why We Need Weights WISE senses diverse feature weightings via LOFO and bias clustering toward important features in the first-stage clustering. Since the original k-FreqItems is defined for unweighted set data, we extend it to a weighted 
+
+variant by modifying the distance, the LSH used in SILK seeding, and the center update. 13 Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 
+
+Weighted Set Representation We associate each coordinate t ∈ { 1, . . . , d } with a nonnegative weight ωt ≥ 0 derived from WISE. Each record becomes a sparse nonnegative vector v ∈ Rd 
+
+> +
+
+where 
+
+vt = ωt · xt (so vt ∈ { 0, ω t} under binary supports ).
+
+Weighted Jaccard For two weighted vectors v, u ∈ Rd
+
+> +
+
+, the weighted Jaccard similarity is 
+
+Jw(v, u) = 
+
+Pdt=1 min( vt, u t)
+
+Pdt=1 max( vt, u t) , dw(v, u) = 1 − Jw(v, u). (1) 
+
+Weighted MinHash Standard MinHash produces signatures whose collision probability equals Jaccard similarity and thus enables LSH for set similarity (Broder et al., 1998). SILK relies on MinHash-based LSH to efficiently propose candidate centers from massive sparse data (Huang et al., 2023). To extend SILK to weighted Jaccard, we replace MinHash with Weighted MinHash via Consistent Weighted Sampling (CWS), where hash collisions match weighted Jaccard similarity (Manasse, 2010; Ioffe, 2010). A common CWS instantiation samples, for each coordinate t and hash function h, random variables rt,h ∼ Gamma(2 , 1) , ct,h ∼ Gamma(2 , 1) , and βt,h ∼ Uniform(0 , 1) , and computes a key at,h from vt; the coordinate achieving the minimum key becomes the hash output. CWS satisfies 
+
+Pr h(v) = h(u) = Jw(v, u),
+
+making it an LSH primitive for weighted Jaccard (Ioffe, 2010). In the unweighted method, a center is a set of frequent coordinates selected by frequency thresholding. In the weighted variant, we additionally store a center weight for each selected coordinate. We aggregate within a cluster S for each coordinate t:
+
+ft = |{ x ∈ S : xt = 1 }| , st = X
+
+> x∈S
+
+vt,
+
+and keep coordinates whose aggregate weight st is large relative to the maximum: 
+
+I(S) = t : st ≥ α · smax , smax = max  
+
+> t
+
+st.
+
+For each retained coordinate, we store the average contribution 
+
+¯ωt = st
+
+max(1 , f t) ,
+
+and represent the center as a sparse weighted vector over I(S). This yields weighted FreqItems that remain sparse while aligning the center representation with the weighted assignment distance. 
+
+Summary Our weighted k-FreqItems extension differs from the original k-FreqItems in: (i) replacing Jaccard distance dJ
+
+with weighted Jaccard distance dw for assignments; (ii) replacing MinHash with CWS-based Weighted MinHash in SILK’s two-level LSH seeding; and (iii) updating centers using weighted aggregation. These extensions preserve the scalability benefits of the original pipeline, and make the backbone compatible with WISE’s learned feature weightings. 
+
+A.5. Dataset Details and Preprocessing 
+
+We evaluate WISE on six real-world mixed-type tabular datasets spanning demography, healthcare, finance, and geography. Table 3 summarizes their dataset sizes and numerical/categorical feature compositions. Unless otherwise specified, ground-truth labels are used only for ex post evaluation; all clustering methods operate in a fully unsupervised manner. • Adult: We use the UCI Adult (Census Income) dataset (Becker & Kohavi, 1996). While the original task is binary income prediction, we derive a multi-class ground truth by using the relationship attribute, which contains six categories. Records with missing values are removed, yielding the final sample size reported in Table 3. • Vermont and Arizona: These datasets are drawn from Match 3 of the 2018 Differential Privacy Synthetic Data Challenge, corresponding to US Census Bureau PUMS files for Vermont and Arizona (Urban Institute, 2020b;a). We use the wage attribute as ground truth and discretize it into four classes: 0 ( wage = 0 ), 1 ( 0 < wage ≤ 500 ), 2 (500 < wage ≤ 1,000 ), and 3 (wage > 1,000 ). 14 Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data                                                       
+
+> Table 3. The statistics of six real-world mixed-type tabular datasets.
+> Dataset # Samples # Dimensions # Num. Features # Cat. Features Ground-Truth Feature # Classes Adult 45,222 14 68Relationship 6
+> Vermont 129,816 48 840 INCWAGE 4
+> Arizona 203,353 50 842 INCWAGE 4
+> Obesity 2,111 16 88Obesity Level 7
+> Credit 690 15 69A16-class attribute 2
+> GeoNames 500,000 11 56Feature Class 10
+> Table 4. Evaluation metrics for clustering quality and efficiency.
+> Evaluation Facet Metric Computation External Agreement
+> ARI (Hubert & Arabie, 1985) Computed on non-noise set NMI (Vinh et al., 2009) Computed on non-noise set Purity (Manning et al., 2008) Computed on non-noise set ACC (Kuhn, 1955) Computed on non-noise set
+> Intrinsic Structural Quality SWC (Rousseeuw, 1987) Calculated using unweighted Gower’s distance (Gower, 1971)
+> Computational Efficiency Time Total wall-clock time (Seconds)
+
+• Obesity: We use the Obesity Levels dataset introduced by Palechor and de la Hoz Manotas (Palechor & De la Hoz Manotas, 2019), which provides seven obesity-level categories as ground-truth labels. • Credit: We use the UCI Credit Approval dataset (Quinlan, 1987), a mixed-attribute tabular dataset, with the target attribute A16 serving as ground truth. • GeoNames: We use the GeoNames geographical database (GeoNames, n.d.). The feature class field is used as the ground-truth label, while the finer-grained feature code is removed to avoid label redundancy. To ensure scalability, we uniformly subsample 500,000 records from the original dump. 
+
+A.6. Evaluation Metrics 
+
+We evaluate clustering performance using a comprehensive set of six widely adopted metrics that jointly capture external agreement, intrinsic structural quality, and computational efficiency (Table 4). Such a multi-faceted evaluation is particularly important for mixed-type tabular data, where different metrics highlight complementary aspects of clustering behavior. 
+
+External Agreement When ground-truth labels are available, we report four standard external metrics to quantify the agreement between predicted clusters and reference partitions. Specifically, we use (1) Adjusted Rand Index ( ARI ) (Hubert & Arabie, 1985), which corrects for chance agreement and penalizes both over- and under-segmentation; (2) Normalized Mutual Information ( NMI ) (Vinh et al., 2009), which measures shared information in an information-theoretic manner; (3) Purity (Manning et al., 2008), which reflects the dominance of ground-truth classes within clusters; and (4) Clustering Accuracy ( ACC ). Following standard practice, ACC is computed by optimally permuting cluster labels using the Hungarian algorithm (Kuhn, 1955) before measuring accuracy. Together, these metrics provide complementary perspectives on clustering correctness and label-level consistency. 
+
+Intrinsic Structural Quality To evaluate clustering structure independently of ground-truth labels, we additionally report the Silhouette Coefficient ( SWC ) (Rousseeuw, 1987), which jointly captures intra-cluster cohesion and inter-cluster separation. As our datasets consist of heterogeneous numerical and categorical attributes, SWC is computed using pairwise Gower distances (Gower, 1971), enabling a principled and unified treatment of mixed feature types and avoiding distortions introduced by purely Euclidean or categorical distances. 
+
+Computational Efficiency Beyond clustering quality, we assess computational efficiency using end-to-end wall-clock running time ( Time , in seconds). All methods are evaluated on the same hardware and software stack, and reported times include the complete clustering pipeline–covering preprocessing, representation learning (if applicable), and clustering, to ensure fair comparisons between classical and learning-based approaches and reflect practical deployment costs. 15 Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data    
+
+> Table 5. Shared candidate grids of Kused in the controlled cluster-recovery protocol.
+
+Dataset Candidate grid of K
+
+Adult {4, 5, 6, 7, 8}
+
+Obesity {2, . . . , 10 , 15 , 20 }
+
+Credit {1, 2, 3, 4, 5, 6}
+
+Vermont {2, . . . , 10 , 15 , 20 , 25 , 30 }
+
+Arizona {2, . . . , 10 , 15 , 20 , 25 , 30 }
+
+GeoNames {5, . . . , 15 , 20 , 25 , 30 }                                              
+
+> Table 6. Dataset-specific hyperparameter settings for WISE .Bis the number of bits assigned to each column in BEP. LOFO weight sensing uses Ttrees (shared defaults: m=3 ; Q-D balance λQD =0 .5;max depth = 20 ;min samples leaf = 50 ;train sample frac
+> = 0 .1). Clustering Stage I runs k-FreqItems on BEP with (k0, α 0, β 0); Stage II refines in record space with (K, α ).
+> Dataset BTStage I Clustering: (k0, α 0, β 0)Stage II Clustering: (K, α )
+> Adult 32 30 k0=15 , α 0=0 .4, β 0=0 .9K=5 , α =0 .4
+> Vermont 64 30 k0=10 , α 0=0 .4, β 0=0 .4K=4 , α =0 .4
+> Arizona 64 30 k0=5 , α 0=0 .7, β 0=0 .6K=6 , α =0 .5
+> Obesity 32 30 k0=25 , α 0=0 .4, β 0=0 .4K=5 , α =0 .7
+> Credit 32 10 k0=5 , α 0=0 .2, β 0=0 .1K=2 , α =0 .2
+> GeoNames 64 30 k0=50 , α 0=0 .2, β 0=0 .2K=9 , α =0 .2
+
+A.7. Hyperparameter Settings 
+
+For all baselines, we use the hyperparameters and training protocols recommended in their original papers and/or official implementations (Huang et al., 1997; Svirsky & Lindenbaum, 2024; Rauf et al., 2025; Peng et al., 2022; Somepalli et al., 2021). For baselines that cannot directly consume mixed-type inputs, we apply the preprocessing required by their original designs. In particular, for IDC, we evaluate both one-hot encoding and target encoding; for TableDC, we use its auto-encoding pipeline before clustering. For methods that require the number of clusters K as an input but do not infer K automatically, we adopt a controlled cluster-recovery protocol. Specifically, for each dataset with reference class count K∗, all such methods are evaluated on the same pre-specified candidate grid of K values that covers K∗,and we report the best-performing setting within that shared grid. This protocol uses external information and should therefore be interpreted as assessing how well each method recovers the benchmark partition granularity, rather than as fully unconstrained unsupervised model selection. Importantly, we do not choose a separate favorable K range for WISE or for any baseline. Different methods may attain their best performance at different values within the same grid; when a method peaks closer to K∗, this suggests that its preferred clustering granularity is more consistent with the reference partition. The shared candidate grids are listed in Table 5. 
+
+WISE WISE consists of (i) mixed-type conversion via BEP, (ii) LOFO-based weight sensing, (iii) two-stage weight-aware clustering, and (iv) DFI-based interpretation. In our implementation, most hyperparameters follow our released code defaults (or the defaults of the underlying libraries), and we report the key representation, sensing, and clustering hyperparameters that affect performance. Concretely, BEP maps each original feature column to a length-B binary block, where B controls the per-column encoding resolution. For LOFO-based weight sensing (Module 2), we train Random Forest predictors with 
+
+T trees and select m trees under a quality–diversity (Q–D) objective. For clustering (Module 3), Stage I runs repeated 
+
+k-FreqItems on BEP with (k0, α 0, β 0), and Stage II refines clusters in record space with (K, α ). Table 6 summarizes the dataset-specific settings and the shared defaults used across datasets. For Stage I, we follow the tuning guidance of the original k-FreqItems procedure (Huang et al., 2023): we run k-FreqItems on BEP representations and select (k0, α, β )
+
+by minimizing MSE under Jaccard distance, where k0 is chosen via an elbow-style sweep. In our setting, k0 is typically set larger than the final K, since Stage II can automatically merge overlapping Stage I clusters based on co-occurrence in the record embedding. Stage II parameters (K, α ) are tuned analogously on the one-hot record embedding of Stage I assignments, again using MSE under Jaccard distance as the objective. 
+
+Baselines Table 7 reports the key hyperparameters that materially affect performance for each baseline; all other hy-perparameters are left as default in the official code/recommended setup. For IDC, we additionally report the encoding choice (one-hot vs. target encoding). For TableDC, we report the embedding dimension and the mode used for converting 16 Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 
+
+Table 7. Key hyperparameters for baselines (others use official defaults). Abbreviations: OH = one-hot encoding; TE = target encoding; AE = auto-encoding; ER = entity-resolution mode. 
+
+Dataset Method Key Hyperparameters / Settings Adult k-Proto k=5 , γ =0 .06 (better than nominal k=6 )
+
+IDC epochs = 800 ; start global gates training on epoch = 400 ; encoding: TE 
+
+TableDC AE dim = 64 ; mode: ER; num clusters = 6 
+
+TELL num clusters = 6 
+
+SAINT k=6 
+
+Vermont k-Proto k=4 , γ =0 .107 
+
+IDC epochs = 2000 ; start global gates training on epoch = 1000 ; encoding: OH 
+
+TableDC AE dim = 64 ; mode: ER; num clusters = 4 
+
+TELL num clusters = 4 
+
+SAINT k=4 
+
+Arizona k-Proto k=5 , γ =0 .11 (better than nominal k=4 )
+
+IDC epochs = 2000 ; start global gates training on epoch = 1000 ; encoding: OH 
+
+TableDC AE dim = 64 ; mode: ER; num clusters = 4 
+
+TELL num clusters = 4 
+
+SAINT k=4 
+
+Obesity k-Proto k=5 , γ =0 .122 (better than nominal k=7 )
+
+IDC epochs = 400 ; start global gates training on epoch = 200 ; encoding: TE 
+
+TableDC AE dim = 64 ; mode: ER; num clusters = 7 
+
+TELL num clusters = 7 
+
+SAINT k=7 
+
+Credit k-Proto k=2 , γ =0 .05 
+
+IDC epochs = 100 ; start global gates training on epoch = 50 ; encoding: OH 
+
+TableDC AE dim = 64 ; mode: ER; num clusters = 2 
+
+TELL num clusters = 2 
+
+SAINT k=2 
+
+GeoNames k-Proto k=10 , γ =0 .065 
+
+IDC epochs = 2000 ; start global gates training on epoch = 1000 ; encoding: OH 
+
+TableDC AE dim = 64 ; mode: ER; num clusters = 10 
+
+TELL num clusters = 10 
+
+SAINT k=10 
+
+mixed-type inputs. When a nearby k yields better results than the nominal K, we use that value and note it in the table. 
+
+A.8. Experiment Environment 
+
+All experiments were conducted on a high-performance workstation equipped with an Intel ® Xeon ® Platinum 8480C @ 3.80GHz, 256 GB of RAM, and an NVIDIA H200 GPU to ensure consistent and comparable results. 
+
+B. Pseudocode 
+
+In this section, we provide high-level pseudocode for the WISE framework in Algorithm 1. 
+
+C. Additional Results 
+
+C.1. Additional Comparisons on Main Experiments 
+
+In this subsection, we further report pairwise comparisons between WISE and each baseline for NMI, Purity, ACC, and SWC. Each panel summarizes, across the six datasets, how often WISE outperforms a given baseline. 17 Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 
+
+Algorithm 1 WISE: Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 
+
+Require: Dataset X ∈ Rn×d with domain info; BEP bits B; LOFO params (T, m, λ QD ); Stage I clustering param k0;Stage II clustering param K.
+
+Ensure: Final labels y ∈ { 0, . . . , K − 1}n; explanations Wcluster , W instance . 
+
+> 1:
+
+(Module 1) XBEP ← BEP( X; B) {XBEP ∈ { 0, 1}n×p; feature j maps to a fixed bit-group } 
+
+> 2:
+
+(Module 2) {w(r)}Rr=1 ← LOFO-S ENSING (X; T, m, λ QD ) {w(r) ∈ Rd
+
+> ≥0
+
+, ∥w(r)∥1 = 1 } 
+
+> 3:
+
+(Module 3) Stage I Clustering  
+
+> 4:
+
+Initialize record matrix L ∈ { 0, . . . , k 0 − 1}n×R 
+
+> 5:
+
+for r = 1 to R do  
+
+> 6:
+
+Lift feature-weights to bit-weights: for each bit b from feature j, set v(r) 
+
+> b
+
+← w(r) 
+
+> j
+> 7:
+
+ℓr (·) ← WEIGHTED -k-F REQ ITEMS (XBEP , v(r), k 0) 
+
+> 8:
+
+for i = 1 to n do  
+
+> 9:
+
+L[i, r ] ← ℓr (i) 
+
+> 10:
+
+end for  
+
+> 11:
+
+end for  
+
+> 12:
+
+Stage II Clustering  
+
+> 13:
+
+Z ← ONE HOT (L; k0) {Z ∈ { 0, 1}n×(Rk 0)} 
+
+> 14:
+
+y(·) ← k-F REQ ITEMS (Z, K ) 
+
+> 15:
+
+(Module 4) (Wcluster , W instance , DFI) ← DFI-E XPLAIN (L, y, {w(r)}Rr=1 ) 
+
+> 16:
+
+RETURN (y, W cluster , W instance ) 
+
+> Table 8. Quantitative evaluation of DFI faithfulness.
+
+Feature subset #Features Accuracy Macro-F1 
+
+All features 14 0.988 0.986 
+
+Top-3 DFI 3 0.984 0.980 Top-5 DFI 5 0.988 0.986 
+
+Top-10 DFI 10 0.988 0.986 
+
+Random-3 3 0.536 0.300 Random-5 5 0.660 0.494 Random-10 10 0.873 0.814 
+
+External Metrics. The overall picture is consistent with the main results: WISE consistently dominates the baselines on label-based criteria. For NMI, WISE wins against k-Prototypes, IDC, and SAINT on all datasets, and wins on 5/6 datasets against TableDC and TELL, with clear average improvements. For Purity, WISE again improves over IDC on all datasets, and achieves 5/6 wins against the remaining baselines, with smaller average margins, as expected for Purity, which can saturate when clusters are already label-dominant. For ACC, WISE is uniformly strong: it wins on 6/6 datasets against k-Prototypes, IDC, TELL, and SAINT, and on 5/6 against TableDC, with the largest average gaps again appearing versus the deep baselines. 
+
+Intrinsic Metric (SWC). For SWC, WISE consistently outperforms IDC, TELL, and SAINT, and remains favorable to k-Prototypes (5/6). TableDC is notably competitive on SWC: WISE wins on 3/6 datasets, ties on one, and trails on 2/6, with a modest average gap of 0.047 . This pattern is expected since SWC is a purely structure-driven criterion that directly rewards within-cluster compactness and between-cluster separation. Despite optimizing a different objective, WISE remains broadly comparable and still achieves a slight overall advantage in SWC. 
+
+C.2. Quantitative Evaluation of Explanation Faithfulness 
+
+We further quantify the faithfulness of DFI by testing whether the features identified as important by DFI are indeed sufficient to recover the cluster assignments produced by WISE. Concretely, we first compute a global DFI ranking by taking a cluster-size-weighted average of the cluster-level DFI scores. We then train a shallow decision tree to predict the final 
+
+WISE cluster labels using only the selected features. 18 Weight-Informed Self-Explaining Clustering for Mixed-Type Tabular Data 0.0 0.2 0.4 0.6 0.8 1.0 
+
+k-Proto 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+6 / 6 datasets 
+
+k-Proto vs WISE 
+
+Avg diff: 0.098 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+IDC 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+6 / 6 datasets 
+
+IDC vs WISE 
+
+Avg diff: 0.221 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+TableDC 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+5 / 6 datasets 
+
+TableDC vs WISE 
+
+Avg diff: 0.125 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+TELL 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+5 / 6 datasets 
+
+TELL vs WISE 
+
+Avg diff: 0.162 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+SAINT 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+6 / 6 datasets 
+
+SAINT vs WISE 
+
+Avg diff: 0.192 
+
+(a) NMI 0.0 0.2 0.4 0.6 0.8 1.0 
+
+k-Proto 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+5 / 6 datasets 
+
+k-Proto vs WISE 
+
+Avg diff: 0.028 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+IDC 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+6 / 6 datasets 
+
+IDC vs WISE 
+
+Avg diff: 0.134 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+TableDC 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+5 / 6 datasets 
+
+TableDC vs WISE 
+
+Avg diff: 0.054 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+TELL 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+5 / 6 datasets 
+
+TELL vs WISE 
+
+Avg diff: 0.083 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+SAINT 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+5 / 6 datasets 
+
+SAINT vs WISE 
+
+Avg diff: 0.106 
+
+(b) Purity 0.0 0.2 0.4 0.6 0.8 1.0 
+
+k-Proto 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+6 / 6 datasets 
+
+k-Proto vs WISE 
+
+Avg diff: 0.076 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+IDC 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+6 / 6 datasets 
+
+IDC vs WISE 
+
+Avg diff: 0.190 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+TableDC 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+5 / 6 datasets 
+
+TableDC vs WISE 
+
+Avg diff: 0.110 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+TELL 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+6 / 6 datasets 
+
+TELL vs WISE 
+
+Avg diff: 0.167 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+SAINT 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+6 / 6 datasets 
+
+SAINT vs WISE 
+
+Avg diff: 0.149 
+
+(c) ACC 0.0 0.2 0.4 0.6 0.8 1.0 
+
+k-Proto 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+5 / 6 datasets 
+
+k-Proto vs WISE 
+
+Avg diff: 0.080 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+IDC 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+6 / 6 datasets 
+
+IDC vs WISE 
+
+Avg diff: 0.182 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+TableDC 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+3 / 6 datasets 
+
+TableDC vs WISE 
+
+Avg diff: 0.047 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+TELL 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+6 / 6 datasets 
+
+TELL vs WISE 
+
+Avg diff: 0.093 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+SAINT 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> WISE
+
+6 / 6 datasets 
+
+SAINT vs WISE 
+
+Avg diff: 0.166 
+
+(d) SWC 
+
+Figure 9. Pairwise comparisons between WISE and each baseline under remaining four metrics. 
+
+Table 8 reports the results on Adult. The top-3 DFI features already retain nearly all predictive power, and the top-5 DFI features exactly match the performance of using all 14 features. In contrast, random feature subsets are substantially weaker, even when using 10 features. The random baselines are averaged over 30 trials. These results indicate that DFI successfully identifies a small subset of features that captures the key decision structure underlying the final clustering. 19

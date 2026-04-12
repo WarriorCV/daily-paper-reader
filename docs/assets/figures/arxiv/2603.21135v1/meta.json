@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.21135v1/fig-001.webp",
+      "caption": "Fig. 1: Motivation for multi-cluster memory. (a) Stream clusterability analysis on CIFAR-100-C (PTTA): we fit GMMs with varying K to sliding windows of the test stream and select the optimal K∗ via BIC across three descriptor types. The consistently high K∗ values (µK∗ = 5.9–9.7) confirm that the target distribution is inherently multi-modal, far exceeding the K=1 assumption of single-cluster memory. (b) Under the same total capacity, SCM samples concentrate around similar regions of the descriptor space, whereas MCM distributes samples across distinct modes, extending coverage to under-represented regions (highlighted in red circle).",
+      "page": 2,
+      "index": 1,
+      "width": 721,
+      "height": 224
+    },
+    {
+      "url": "assets/figures/arxiv/2603.21135v1/fig-002.webp",
+      "caption": "Fig. 4: Diagnostic comparison of memory quality between SCM and MCM over the CIFAR-100-C stream (PTTA, PeTTA). We fit a GMM to the evolving stream and measure three properties of the stored memory: (a) imbalance ratio (lower is better), (b) distributional entropy (higher is more uniform), and (c) cluster coverage (fraction of GMM components with >1% representation). MCM maintains near-constant balance, entropy, and coverage throughout adaptation, whereas SCM exhibits high variance and progressive degradation.",
+      "page": 13,
+      "index": 2,
+      "width": 725,
+      "height": 204
+    },
+    {
+      "url": "assets/figures/arxiv/2603.21135v1/fig-003.webp",
+      "caption": "Table 1: Practical Test-time Adaptation (PTTA) error rates (%) on CIFAR10-C, CIFAR100-C, ImageNet-C, and DomainNet (severity 5). Lower is better. MCM is integrated into three memory-based baselines (RoTTA, PeTTA, ResiTTA) and yields consistent improvements across all configurations, with an average error reduction of 2.96%. Numbers in parentheses indicate improvement over the respective baseline. † denotes our re-implementation. “–” indicates the method was not evaluated on that dataset in the original publication.",
+      "page": 9,
+      "index": 3,
+      "width": 679,
+      "height": 471
+    },
+    {
+      "url": "assets/figures/arxiv/2603.21135v1/fig-004.webp",
+      "caption": "Fig. 2: Overview of the TTA system with Multi-Cluster Memory (MCM). Incoming samples are assigned to clusters via pixel-level descriptors (left). Uniform Cluster Retrieval (UCR) draws balanced samples across all clusters for adaptation (center). Adjacent Cluster Consolidation (ACC) merges the closest temporally adjacent pair when capacity is reached (right). The three stages jointly preserve the multi-modal structure of the target stream under bounded memory.",
+      "page": 5,
+      "index": 4,
+      "width": 713,
+      "height": 286
+    }
+  ]
+}

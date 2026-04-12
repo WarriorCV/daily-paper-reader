@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.19711v1/fig-001.webp",
+      "caption": "Table 1: Main results across datasets. EvoTaxo achieves the best trade-off between assignment quality and structural quality while maintaining a relatively balanced taxonomy. Tokens are reported in millions (M).",
+      "page": 6,
+      "index": 1,
+      "width": 943,
+      "height": 383
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19711v1/fig-002.webp",
+      "caption": "Figure 5: Yearly evolution of the taxonomy induced from /r/opiates, aggregated to the seven top-level topics. Early years are dominated by tapering/quitting and street-opiate quality and harm-reduction discussion. Later years show a stronger shift toward medical prescribing and treatment access.",
+      "page": 13,
+      "index": 2,
+      "width": 925,
+      "height": 326
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19711v1/fig-003.webp",
+      "caption": "Figure 4: Taxonomy snapshot for /r/ICE_Raids after the June 2025 update. Green highlights mark subtopics newly added in June, illustrating how EvoTaxo converts a temporally concentrated protest-driven discourse burst into explicit taxonomy growth.",
+      "page": 8,
+      "index": 3,
+      "width": 946,
+      "height": 390
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19711v1/fig-004.webp",
+      "caption": "Figure 2: Overview of EvoTaxo. The framework starts from an LLM-generated seed taxonomy with concept memory banks and processes posts chronologically. Each post is mapped to a draft action. Structural actions are accumulated and consolidated at the window boundary under semantic and semantic-temporal views, then refined and arbitrated into final actions. These final actions update both the taxonomy and its temporal grounding records.",
+      "page": 4,
+      "index": 4,
+      "width": 941,
+      "height": 469
+    }
+  ]
+}

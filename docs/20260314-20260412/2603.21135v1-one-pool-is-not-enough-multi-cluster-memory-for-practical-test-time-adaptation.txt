@@ -1,0 +1,371 @@
+Title: One Pool Is Not Enough: Multi-Cluster Memory for Practical Test-Time Adaptation
+
+URL Source: https://arxiv.org/pdf/2603.21135v1
+
+Published Time: Tue, 24 Mar 2026 01:11:55 GMT
+
+Number of Pages: 23
+
+Markdown Content:
+# One Pool Is Not Enough: Multi-Cluster Memory for Test-Time Adaptation 
+
+Yu-Wen Tseng 1*, Xingyi Zheng 1*, Ya-Chen Wu 1, I-Bin Liao 3, Yung-Hui Li 3,Hong-Han Shuai 2, and Wen-Huang Cheng 1 
+
+> 1
+
+National Taiwan University, Taiwan 
+
+{d12922018, wenhuang}@csie.ntu.edu.tw  
+
+> 2
+
+National Yang Ming Chiao Tung University, Taiwan  
+
+> 3
+
+Hon Hai Research Institute, Taiwan 
+
+> *
+
+Equal contribution 
+
+Abstract. Test-time adaptation (TTA) adapts pre-trained models to distribution shifts at inference using only unlabeled test data. Under the Practical TTA (PTTA) setting, where test streams are temporally cor-related and non-i.i.d., memory has become an indispensable component for stable adaptation, yet existing methods universally store samples in a single unstructured pool. We show that this single-cluster design is fun-damentally mismatched to PTTA: a stream clusterability analysis reveals that test streams are inherently multi-modal, with the optimal number of mixture components consistently far exceeding one. To close this struc-tural gap, we propose Multi-Cluster Memory (MCM) , a plug-and-play framework that organizes stored samples into multiple clusters using lightweight pixel-level statistical descriptors. MCM introduces three com-plementary mechanisms: descriptor-based cluster assignment to capture distinct distributional modes, Adjacent Cluster Consolidation (ACC) to bound memory usage by merging the most similar temporally adjacent clusters, and Uniform Cluster Retrieval (UCR) to ensure balanced su-pervision across all modes during adaptation. Integrated with three con-temporary TTA methods on CIFAR-10-C, CIFAR-100-C, ImageNet-C, and DomainNet, MCM achieves consistent improvements across all 12 configurations, with gains up to 5.00% on ImageNet-C and 12.13% on DomainNet. Notably, these gains scale with distributional complexity: larger label spaces with greater multi-modality benefit most from multi-cluster organization. GMM-based memory diagnostics further confirm that MCM maintains near-optimal distributional balance, entropy, and mode coverage, whereas single-cluster memory exhibits persistent imbal-ance and progressive mode loss. These results establish memory organi-zation as a key design axis for practical test-time adaptation. 
+
+## 1 Introduction 
+
+Deep learning models trained on large-scale datasets achieve remarkable per-formance within their intended scenarios, yet remain vulnerable to distribution shifts during real-world deployment [15, 24, 36, 37]. Retraining for every unseen  
+
+> arXiv:2603.21135v1 [cs.CV] 22 Mar 2026 2Y.-W. Tseng et al.
+
+(a) Stream Clusterability Analysis  (b) Sample Distribution Comparison                
+
+> Fig. 1: Motivation for multi-cluster memory. (a) Stream clusterability analysis on CIFAR-100-C (PTTA): we fit GMMs with varying Kto sliding windows of the test stream and select the optimal K∗via BIC across three descriptor types. The consis-tently high K∗values ( μK∗= 5.9–9.7) confirm that the target distribution is inherently
+> multi-modal , far exceeding the K= 1 assumption of single-cluster memory. (b) Under the same total capacity, SCM samples concentrate around similar regions of the descrip-tor space, whereas MCM distributes samples across distinct modes, extending coverage to under-represented regions (highlighted in red circle).
+
+condition is prohibitively costly, motivating test-time adaptation (TTA) [9, 32, 38], which adapts models during inference using only unlabeled test data without revisiting the source training set. TTA research has progressed through increasingly realistic protocols. Early methods [17, 32] assumed a single fixed target domain, while CoTTA [33] ex-tended this to continual TTA (CTTA) with evolving domains under i.i.d. sam-pling. Practical TTA (PTTA) [38] further introduces temporally correlated, non-i.i.d. sampling—the most demanding and realistic setting. Under PTTA, each mini-batch covers only a narrow slice of the target distribution, making 
+
+memory —the mechanism that accumulates informative samples over time— indispensable for stable adaptation [9, 10, 38]. Existing memory-based methods employ various selection criteria ( e.g ., pre-diction entropy, class balancing, heuristic scoring) to populate a single unstruc-tured pool, which we term single-cluster memory (SCM). While SCM alleviates the narrowness of pure in-batch adaptation, it implicitly assumes that the tar-get distribution is unimodal. This raises a fundamental question: can such an unstructured design faithfully represent the complex distributions encountered during practical test-time adaptation? 
+
+To answer this, we conduct a stream clusterability analysis . We collect sample descriptors within sliding windows of the test stream and fit Gaussian Mixture Models (GMMs) with varying numbers of components K, evaluating three de-scriptor types: pixel-level channel statistics, spatial mean, and color histograms. As shown in Fig. 1(a), the Bayesian Information Criterion (BIC) consistently selects K ≫ 1 (μK∗ ranging from 5.9 to 9.7), providing strong evidence that streams are inherently multi-modal even within a single corruption type. These results establish that SCM is structurally insufficient for PTTA. Multi-Cluster Memory for Test-Time Adaptation 3
+
+Motivated by this finding, we propose Multi-Cluster Memory (MCM) ,a structured memory framework that explicitly organizes samples into multiple clusters based on lightweight pixel-level statistical descriptors. MCM manages the memory lifecycle through three mechanisms: descriptor-based cluster assign-ment upon sample arrival to capture distinct distributional modes, Adjacent Cluster Consolidation (ACC) to bound memory usage by merging the most similar temporally adjacent clusters, and Uniform Cluster Retrieval (UCR) to ensure balanced supervision across all modes during adaptation. As illustrated in Fig. 1(b), MCM achieves substantially broader coverage than SCM under the same capacity. MCM is a plug-and-play module compatible with any existing memory-based TTA method. We evaluate MCM on CIFAR-10-C, CIFAR-100-C [11], ImageNet-C [7], and DomainNet [22] under the PTTA protocol. When integrated with RoTTA [38], PeTTA [9], and ResiTTA [39], MCM yields consistent improvements across all 12 baseline–dataset configurations, with an average error reduction of 2.96% and gains up to 5.00% on ImageNet-C and 12.13% on DomainNet. Beyond accuracy, we introduce a GMM-based diagnostic framework to directly assess memory quality —measuring imbalance ratio, distributional entropy, and mode coverage against the evolving stream. This analysis reveals that MCM maintains near-optimal balance and full mode coverage throughout adaptation, whereas SCM exhibits persistent skew and periodic mode loss, establishing a principled link between memory representativeness and downstream adaptation performance. Our contributions are: 
+
+– We present the first empirical evidence that PTTA data streams are inher-ently multi-modal, establishing a principled motivation for moving beyond single-cluster memory design. 
+
+– We propose Multi-Cluster Memory, a framework that organizes samples via pixel-level descriptor clustering, Adjacent Cluster Consolidation, and Uni-form Cluster Retrieval, applicable to any memory-based TTA method. 
+
+– We introduce a GMM-based diagnostic framework that measures memory quality through imbalance ratio, entropy, and coverage, and demonstrate consistent improvements across benchmarks and baselines, confirming that gains stem from structured organization rather than increased capacity. 
+
+## 2 Related Work 
+
+Evolution of Test-Time Adaptation Settings. Test-time adaptation (TTA) emerged as a paradigm for adapting pre-trained models to target domains during inference without access to source data. Early methods [17, 32] operated under a fully TTA setting, where the entire test set originates from a single fixed tar-get domain. In this setup, all corruptions are treated uniformly, and adaptation proceeds directly from the source-trained model without accounting for tem-poral variation or domain evolution. Subsequently, CoTTA [33] extended this formulation to continual TTA (CTTA), where models must adapt to a sequence of evolving domains. To mitigate catastrophic forgetting, CoTTA introduces 4 Y.-W. Tseng et al. 
+
+a stochastic restoration mechanism that intermittently resets the model to its source-pretrained state. Follow-up works [6,14,40] have further advanced CTTA through improved regularization and domain-aware strategies. To better approximate real-world conditions, where samples from consecutive time steps exhibit inherent correlations, LAME [1] was among the first to explic-itly address non-i.i.d. sampling. RoTTA [38] further unified this with continual domain shift, giving rise to the Practical TTA (PTTA) paradigm that more faithfully mirrors deployment scenarios. Building on this, PeTTA [9] introduced 
+
+recurring TTA , revealing that repeated adaptation cycles can eventually drive models toward collapse. In this work, we focus primarily on PTTA as the most demanding setting, with recurring TTA evaluations provided in the appendix. 
+
+Memory-Based TTA Systems. Memory has long served as a mechanism for preserving informative samples in adaptive systems. In the context of TTA, memory can be broadly categorized into explicit sample storage [25,27], implicit parametric memory [21, 31, 35], and retrieval from external knowledge [13, 34]. Among these, explicit memory has become indispensable for ensuring stability and mitigating catastrophic forgetting under practical TTA conditions. Most existing methods rely on what we term single-cluster memory (SCM), treating all stored samples as a homogeneous pool. RoTTA [38] employs heuris-tic scoring based on sample age and prediction uncertainty to manage mem-ory turnover. PeTTA [9] extends this with persistent strategies that maintain memory across recurring domain shifts. ECoTTA [27] proposes self-distilled reg-ularization to prevent model drift, MemBN [10] focuses on maintaining reliable batch normalization statistics, and ResiTTA [39] introduces residual connections to enhance robustness against normalization degradation. Despite their individ-ual contributions, all these methods manage memory as a flat pool without awareness of the underlying distributional modes, offering only a coarse approx-imation of multi-modal target domains—a limitation that becomes particularly pronounced under PTTA’s non-i.i.d. sampling. 
+
+Multi-Prototype and Structured TTA. Prior TTA methods have explored multi-prototype or structured representations, but their designs serve funda-mentally different goals. AdaContrast [2] maintains a per-sample memory queue for contrastive pseudo-label refinement via nearest-neighbor soft voting in the learned feature space. SoTTA [5] uses class-level centers to filter noisy or out-of-distribution samples through high-confidence uniform-class sampling. While these methods improve prediction quality within the classifier’s learned repre-sentations, they operate primarily in the semantic feature space and do not ex-plicitly model the multi-modal structure of domain shifts arising from different corruption types or environmental conditions. In contrast, MCM shifts the focus from semantic refinement to distribu-tional simulation . By organizing memory using low-level pixel descriptors— channel-wise mean and variance that directly reflect domain characteristics such as illumination, noise, and blur—MCM captures the diverse appearance modes inherent in PTTA streams. Rather than focusing on class boundaries, our de-sign ensures balanced and broad coverage of the target manifold, mitigating the Multi-Cluster Memory for Test-Time Adaptation 5streaming samples      
+
+> in-batch
+> samples
+> prediction
+> Adjacent Cluster
+> Consolidation (ACC)
+> descriptor-based
+> sample assignment
+> categories
+> of samples domains
+> of samples
+> step 1: build adjacent frame pairs
+> step 2: calculate descriptor distance
+> 0.7 0.3 0.1 0.9
+> step 3: merge the paired clusters
+> with closest distance
+> EMA
+> cluster
+> descriptor
+> UCR
+
+Fig. 2: Overview of the TTA system with Multi-Cluster Memory (MCM). Incoming samples are assigned to clusters via pixel-level descriptors ( left ). Uniform Cluster Re-trieval (UCR) draws balanced samples across all clusters for adaptation ( center ). Ad-jacent Cluster Consolidation (ACC) merges the closest temporally adjacent pair when capacity is reached ( right ). The three stages jointly preserve the multi-modal structure of the target stream under bounded memory. 
+
+distributional bias inherent in conventional SCM designs. As we demonstrate em-pirically, this distributional perspective yields consistent gains when integrated with existing memory-based TTA methods. 
+
+## 3 Methodology 
+
+3.1 Revisiting Memory-based Test-Time Adaptation 
+
+Current memory-based TTA approaches [9, 38] typically employ a single-cluster memory M = {xi}Ni=1 that stores samples selected via criteria such as prediction entropy, class balancing, or heuristic scoring. At each time step t, the model receives a mini-batch Bt and first evaluates the outputs of each sample. Based on these outputs, the memory bank is updated with informative samples, and a subset is retrieved from M to adapt the model by minimizing 
+
+Ladapt = Ex∼M 
+
+Lcons (fs(x), f t(x)) . (1) Following the Mean Teacher paradigm [29], fs and ft denote the student and teacher networks, respectively. The teacher network produces pseudo-labels and is updated via an exponential moving average (EMA). While this design alleviates the distributional narrowness inherent to pure in-batch adaptation, it treats all stored samples as a homogeneous, unstruc-tured pool—an implicit assumption that the target distribution is unimodal. As demonstrated in Sec. 1 (Fig. 1a), however, PTTA streams are inherently multi-modal: even within a single corruption type, the stream exhibits multi-ple distinct modes arising from visual diversity across semantic categories under 6 Y.-W. Tseng et al. 
+
+non-i.i.d. sampling. A single-cluster memory has no mechanism to preserve this modal structure; its selection criteria operate on individual samples indepen-dently, without awareness of the underlying distributional modes. Consequently, the memory provides limited coverage of the descriptor space compared to a structured alternative, as illustrated in Fig. 1(b). We provide further quantita-tive evidence in Sec. 4, where SCM consistently exhibits higher imbalance ratios and lower distributional coverage than our proposed MCM. This representativeness gap directly limits adaptation quality: the model is trained on a skewed sample pool that fails to reflect the full diversity of the incoming stream, reducing its ability to generalize across all modes of the tar-get distribution. This observation motivates a structured memory design that explicitly preserves multi-modal diversity—the subject of the following sections. 
+
+3.2 Test-time Adaptation System with Multi-Cluster Memory 
+
+To address the representativeness gap identified above, we propose Multi-Cluster Memory (MCM) , which partitions the memory bank M into up to Kmax clus-ters C1, C2, . . . , CK (K ∈ { 1, 2, . . . , K max }), starting from an empty state ( K = 0 ). MCM manages the memory through three stages that mirror the lifecycle of each sample: descriptor-based assignment upon arrival, Adjacent Cluster Consolida-tion when capacity is exceeded (Sec. 3.3), and Uniform Cluster Retrieval during adaptation (Sec. 3.4). We detail the first stage below. Each cluster Ck maintains up to N samples, ensuring a maximum total ca-pacity of Kmax × N . To efficiently manage cluster assignment and consolidation, we characterize each sample x by its channel-wise statistics descriptor: 
+
+dx = [ μ(1)  
+
+> x
+
+, σ (1)  
+
+> x
+
+, . . . , μ (c) 
+
+> x
+
+, σ (c) 
+
+> x
+
+], (2) where μ(c) 
+
+> x
+
+and σ(c) 
+
+> x
+
+denote the mean and variance of the c-th channel computed across spatial dimensions H × W of the raw image. Following previous work in test-time normalization [30], these channel-wise statistics effectively capture domain shift characteristics while maintaining computational efficiency. Each cluster Ck is summarized by its centroid descriptor Dk, computed as the average of all member descriptors: 
+
+Dk = 1
+
+|C k|
+
+X
+
+> x∈C k
+
+dx. (3) 
+
+Sample Assignment. Upon arrival of a sample xt at time t, we compute the Euclidean distance between its descriptor dxt and all existing cluster centroids: 
+
+k∗ = arg min 
+
+> k∈{ 1,...,K }
+
+∥dxt − Dk∥2. (4) If the minimum distance exceeds a threshold τ , a new cluster is spawned as 
+
+CK+1 = {xt}; otherwise, xt is assigned to the nearest cluster Ck∗ . The threshold τ
+
+governs the granularity of mode separation: smaller values yield finer partitioning Multi-Cluster Memory for Test-Time Adaptation 7
+
+that distinguishes subtle distributional variations, whereas larger values absorb greater diversity within each cluster. Because the descriptor operates on channel-wise pixel statistics whose scale is bounded and consistent across datasets, τ can be set once per descriptor type without per-dataset tuning. We empirically verify this robustness in Supplementary Materials. 
+
+Sample Replacement. When the target cluster Ck∗ reaches capacity ( |C k∗ | =
+
+N ), we employ a heuristic scoring function to identify the least valuable sample for replacement. Building upon the scoring function from [38], we incorporate descriptor distance as an additional term: 
+
+H(x) = λt · 11 + exp( −Ax/N ) + λu · Ux
+
+log NC
+
++ λd · ∥ dx − Dk∗ ∥2, (5) where Ax denotes the age of sample x (i.e., the number of steps since insertion), 
+
+Ux represents its prediction entropy, NC is the number of classes, and λt, λu, λd
+
+are reweighting coefficients that balance timeliness, uncertainty, and descriptor proximity, respectively. The sample with the highest score is replaced by xt. By extending RoTTA’s timeliness and uncertainty criteria with a descriptor distance term, this strategy ensures that clusters preserve not only temporal relevance and prediction confidence but also intra-cluster compactness. 
+
+3.3 Adjacent Cluster Consolidation (ACC) 
+
+When the number of clusters reaches Kmax , a consolidation step is triggered to free capacity while preserving the multi-modal coverage of the memory. The key design choice is which pair of clusters to merge. Inspired by the adjacent-frame merging strategy in long-video memory management [26], we restrict candidates to adjacent cluster pairs in the creation sequence. Under PTTA’s temporally correlated streams, consecutively created clusters are likely to originate from similar or transitioning domains, making them natural merge candidates whose consolidation least disrupts the overall distributional coverage. This restriction also reduces the search from O(K2) pairwise comparisons to O(K), yielding a favorable efficiency–quality trade-off (see comparison with alternative strategies in Sec. 4). For each adjacent pair (Ci, Ci+1 ), we compute their centroid distance 
+
+∆i,i +1 = ∥Di − Di+1 ∥2 and merge the pair with the minimum distance. The consolidation process unifies all samples from both clusters into a single pool and retains the N samples with the lowest prediction uncertainty. Formally, the merged cluster is defined as 
+
+Cmerged =
+
+(
+
+Ci ∪ C i+1 if |C i ∪ C i+1 | ≤ N
+
+top-K({x ∈ C i ∪ C i+1 : Ux ascending }, N ) otherwise . (6) Since the merged pair is the most similar adjacent clusters, their samples already share similar distributional characteristics; retaining the lowest-uncertainty sub-set thus prioritizes pseudo-label reliability without sacrificing cross-cluster di-versity. The merged cluster descriptor is then recomputed via Eq. (3). 8 Y.-W. Tseng et al. 
+
+3.4 Uniform Cluster Retrieval (UCR) 
+
+During adaptation, we retrieve an equal number of samples from every cluster in the memory bank. Concretely, given K active clusters each storing up to N
+
+samples, we draw ⌊Nadapt /K ⌋ samples from each cluster to form the retrieval set 
+
+Mretrieve , where Nadapt denotes the total number of samples used per adaptation step. This uniform strategy is a direct consequence of our multi-modal motiva-tion: since each cluster captures a distinct mode of the target distribution, equal representation during adaptation prevents the gradient signal from being domi-nated by any single mode. Following established TTA practices [9,38], we employ the Mean Teacher framework [29] with consistency regularization as defined in Eq. (1). The novelty lies not in the adaptation mechanism, but in the compo-sition of Mretrieve : by construction, it mirrors the multi-modal structure of the target stream, ensuring that the model receives balanced supervision across all distributional modes at every adaptation step. In contrast, single-cluster memory draws all adaptation samples from a single undifferentiated pool, where domi-nant modes inevitably receive disproportionate representation. 
+
+## 4 Experiments 
+
+4.1 Setup and Protocols 
+
+Datasets and Metrics. We evaluate our method on four benchmark datasets un-der the Practical Test-Time Adaptation (PTTA) setting [38]. For CIFAR10-C, CIFAR100-C, and ImageNet-C [8], we adopt corruption severity level 5, covering all 15 corruption types presented as a single temporally correlated stream. We further evaluate on DomainNet [22], using 126 categories with real as the source domain and clipart , painting , and sketch as three separate target domains. Fol-lowing prior work [38], performance is measured by the mean classification error rate (%) averaged over all corruption types (or target domains for DomainNet). 
+
+Implementation Details. All experiments are conducted on a single NVIDIA RTX 4090 GPU under the PTTA protocol of [38]. For MCM-specific hyper-parameters, we set the per-cluster capacity N = 64 and the descriptor dis-tance threshold τ = 0 .3. The maximum number of clusters is determined by 
+
+Kmax = min  5, max(1 , ⌊Nc/20 ⌋), where Nc denotes the number of semantic classes in the dataset, yielding Kmax = 1 for CIFAR10-C and Kmax = 5 for CIFAR100-C, ImageNet-C, and DomainNet. This design reflects the observa-tion that the degree of multi-modality in PTTA streams scales with the label space: a richer set of semantic categories produces greater visual diversity. 
+
+Baselines. We compare against a comprehensive set of methods: Source (no adaptation), BN [19], PL [12], TENT [32], LAME [1], CoTTA [33], NOTE [4], RDumb [23], ROID [16], TRIBE [28], and NEO [18]. For all baselines with pub-licly available code, we use the official implementations with their default hyper-parameters and the RobustBench [3] preprocessing pipeline to ensure a fair com-Multi-Cluster Memory for Test-Time Adaptation 9
+
+Table 1: Practical Test-time Adaptation (PTTA) error rates (%) on CIFAR10-C, CIFAR100-C, ImageNet-C, and DomainNet (severity 5). Lower is better. MCM is in-tegrated into three memory-based baselines (RoTTA, PeTTA, ResiTTA) and yields consistent improvements across all configurations, with an average error reduction of 2.96%. Numbers in parentheses indicate improvement over the respective baseline. 
+
+† denotes our re-implementation. “–” indicates the method was not evaluated on that dataset in the original publication. Method Venue CIFAR10-C CIFAR100-C ImageNet-C DomainNet Source – 43.50 46.40 82.00 –BN CoRR’20 75.20 52.90 – –PL ICML’13 82.90 88.90 – –TENT ICLR’21 86.00 92.80 – –LAME CVPR’22 39.50 40.50 80.90 –CoTTA CVPR’22 83.20 52.20 98.60 –NOTE NeurIPS’22 31.10 73.80 – –RDumb NeurIPS’23 31.10 36.70 72.20 44.30 ROID WACV’24 72.70 76.40 62.70 –TRIBE AAAI’24 15.30 33.80 63.60 –NEO ICLR’26 46.36 † 43.25 † 78.25 † –RoTTA CVPR’23 25.20 35.00 68.30 44.30 + MCM – 22.59 (-2.61) 33.75 (-1.25) 67.46 (-0.84) 42.53 (-1.77) PeTTA NeurIPS’24 24.30 35.80 65.30 43.80 + MCM – 21.55 (-2.75) 33.04 (-2.76) 60.30 (-5.00) 42.80 (-1.00) ResiTTA ICASSP’25 22.80 32.50 69.40 54.76 †
+
++ MCM – 20.69 (-2.11) 31.90 (-0.60) 66.65 (-2.75) 42.63 (-12.13) 
+
+parison. Results marked with † in the tables denote our own re-implementation when official results on a particular dataset were not reported. 
+
+4.2 Main Results 
+
+Table 1 reports error rates under the PTTA setting across benchmarks. We inte-grate MCM into three representative memory-based TTA methods, e.g ., RoTTA, PeTTA, and ResiTTA, to evaluate both effectiveness and generalizability. No-tably, NEO—the current state-of-the-art under the CTTA protocol—suffers sub-stantial degradation when evaluated under PTTA, underscoring the additional difficulty posed by temporally correlated, non-i.i.d. sampling. 
+
+Consistent improvements across baselines. MCM reduces the error rate for every baseline on every dataset, achieving an average improvement of 2.96% across all 12 baseline–dataset configurations. The largest single gains are observed with PeTTA on ImageNet-C ( 60.30% , −5.00 %) and with ResiTTA on DomainNet (42.63% , −12 .13 %). MCM also achieves the best overall result on CIFAR100-C 10 Y.-W. Tseng et al.                              
+
+> Table 2: Component ablation. Each module contributes independently; com-bining all three yields the lowest error. MCM ACC UCR Error (%) 35.80
+> ✓35.33
+> ✓✓34.09
+> ✓✓35.33
+> ✓✓✓33.04 Table 3: Descriptor and threshold sensi-tivity. Pixel-level statistics consistently out-perform CNN features by a large margin. Descriptor ( τ)Error (%) Time (s) CNN Feature (5.0) 43.30 827.67 Pixel Stat (0.1) 35.31 987.71
+> Pixel Stat (0.3) 33.04 1049.37 Pixel Stat (0.5) 35.59 1765.16 Pixel Stat (0.7) 36.85 1349.07
+
+(31.90% ) when combined with ResiTTA. The notably large gain on Domain-Net with ResiTTA is partly attributable to the baseline’s reliance on batch-normalization statistics, which degrade under the severe domain gap of the real → sketch/painting/clipart transfer; MCM’s multi-cluster structure provides more representative statistics for adaptation, substantially alleviating this issue. 
+
+Scaling with distributional complexity. The benefits of MCM scale with the com-plexity of the target distribution. On ImageNet-C and DomainNet, which exhibit larger label spaces and consequently higher multi-modality under non-i.i.d. sam-pling, the average improvements reach 2.86% and 4.97%, respectively. In con-trast, CIFAR10-C contains only 10 classes, limiting the degree of multi-modality in the stream and thus the headroom for multi-cluster organization; nonetheless, MCM still provides consistent gains of 2.11–2.75% over all three baselines. We note that TRIBE achieves 15.30% on CIFAR10-C via a tri-net self-training archi-tecture with balanced batch normalization, which adapts directly on the current mini-batch without maintaining a memory bank. As MCM is a memory-side module, it is not directly applicable to memory-free methods such as TRIBE; the two approaches address complementary aspects of TTA. 
+
+4.3 Ablation Study 
+
+In this section, we conduct extensive analyses to justify the design choices of MCM. Unless otherwise specified, all ablations are conducted on CIFAR-100-C (PTTA) with PeTTA [9] as the base method. 
+
+Component ablation. Table 2 isolates the contribution of each MCM compo-nent. Starting from PeTTA with its default single-cluster memory (35.80%), replacing it with a multi-cluster structure alone yields 35.33%. Adding ACC further reduces the error to 34.09%, confirming that temporally aware consoli-dation better preserves distributional diversity. Applying UCR alone on top of the multi-cluster structure also yields 35.33%, showing that balanced retrieval independently benefits adaptation. The full model achieves the lowest error of 33.04%, demonstrating clear synergy: ACC maintains diverse modes in storage, while UCR ensures each mode contributes equally during learning. Multi-Cluster Memory for Test-Time Adaptation 11                             
+
+> Table 4: Comparison of cluster consol-idation strategies. ACC leverages tem-poral adjacency to merge the most sim-ilar neighboring clusters, achieving the best accuracy and efficiency. All strate-gies use the same MCM framework with PeTTA on CIFAR-100-C (PTTA). Strategy Error (%) Time (s) GCC 34.26 1094 SCM 36.71 1665 LRU 33.78 1271 ACC 33.04 1049 Table 5: Recurring TTA error rates (%) on CIFAR-100-C (20 rounds, severity 5). Lower is better. MCM sustains long-term gains without catastrophic forgetting. Method Round 1 Avg (20) Source 46.5 46.5 CoTTA 53.4 83.1 RoTTA 35.5 61.4 RDumb 36.7 36.6 TRIBE 33.8 39.6 PeTTA 35.8 35.1 PeTTA + MCM 33.8 32.6
+
+Descriptor space and threshold sensitivity. Table 3 compares pixel-level and CNN-feature descriptors. Even at its best threshold ( τ = 5 .0, selected from seven candidates), the feature-based descriptor only reaches 43.30%, whereas the pixel-based descriptor achieves 33.04% at τ = 0 .3—a gap of over 10 percent-age points. We attribute this to the clustering objective in MCM: CNN features are trained to suppress low-level variations and amplify semantic differences, so feature-based clusters group samples by class rather than by corruption type. Pixel-level channel statistics, in contrast, directly capture domain-shift char-acteristics such as illumination and noise level, aligning with MCM’s goal of partitioning the stream by distributional mode. Among pixel-descriptor thresholds, τ = 0 .3 yields the best error rate while maintaining moderate runtime. Smaller values ( τ = 0 .1) create too many fine-grained clusters that are frequently consolidated, reducing effective diversity; larger values ( τ ≥ 0.5) absorb heterogeneous samples into the same cluster, di-luting mode separation. The narrow spread across all four thresholds (33.04– 36.85%) confirms that the pixel descriptor is robust to this hyperparameter. 
+
+Consolidation strategies. When the number of clusters reaches Kmax , a consoli-dation step is triggered. We compare four strategies (Table 4): Adjacent Cluster Consolidation (ACC) merges the closest pair among temporally adjacent clus-ters; Global Cluster Consolidation (GCC) merges the globally closest pair in descriptor space; Smallest Cluster Merging (SCM) merges the cluster with the fewest samples; and Least Recently Used (LRU) merges the least active cluster. ACC achieves both the lowest error (33.04%) and the fastest runtime (1049 s). GCC reaches 34.26%: although geometrically intuitive, it may merge clusters from distant time steps that cover complementary regions, inadvertently reduc-ing coverage. SCM performs worst (36.71%) because it systematically discards under-represented modes—precisely the minority modes MCM aims to preserve. LRU (33.78%) is competitive but slower, as inactivity does not reliably indi-cate redundancy. These results confirm that temporal adjacency is an effective inductive bias under PTTA’s correlated streams. 12 Y.-W. Tseng et al. 
+
+4.4 Further Analysis 
+
+Long-term stability under recurring TTA. We further evaluate MCM under the recurring TTA protocol introduced by PeTTA [9], where the model repeat-edly traverses the same corruption sequence over 20 rounds—a stringent test of whether adaptation remains stable or gradually collapses. As shown in Table 5, TRIBE—which achieves the best single-pass result on CIFAR10-C (15.30%)— escalates from 33.8% to 39.6% average over 20 rounds, revealing that strong initial performance does not guarantee long-term stability. PeTTA maintains a stable 35.1% average across all rounds, yet shows no further improvement over time. PeTTA+MCM not only preserves this stability but continues to improve, reaching a 20-round average of 32.6% (Round 1: 33.8% → Round 20: 32.5%). We attribute this to MCM’s structured memory: built upon PeTTA’s robust adaptation mechanism, the multi-cluster organization accumulates increasingly representative samples across all distributional modes as corruption types recur, translating better memory quality into sustained performance gains. 
+
+Structured vs. unstructured memory scaling. To verify that MCM’s gains stem from memory organization rather than increased capacity, we scale both single-cluster memory (SCM) and MCM to equal total sizes on CIFAR-100-C (Fig-ure 3). Enlarging SCM from 64 to 320 samples yields negligible accuracy im-provement across all three baselines while incurring up to 5× runtime growth, indicating that naively storing more samples fails to capture distributional di-versity. In contrast, MCM structures the same 320 samples into 5 clusters of 64, consistently achieving lower error at lower runtime. For example, PeTTA+MCM at 320 samples reaches 33.04% in 1049 s, whereas PeTTA with SCM at 192 sam-ples already exceeds both in error and runtime—and encounters out-of-memory errors beyond that point. These results confirm that the improvements of MCM arise from principled multi-cluster organization, not from raw storage capacity. 
+
+Memory quality diagnostics. To understand why MCM improves adaptation, we analyze the memory content itself. We fit a GMM to the evolving CIFAR-100-C stream as a reference distribution and track three diagnostic metrics over time (Figure 4). (a) The imbalance ratio measures the max-to-min cluster occupancy; SCM fluctuates between 10–40 × and settles at 23.5, while MCM remains near 1.8 throughout, indicating consistently balanced mode representation. (b) Distribu-tional entropy quantifies how uniformly samples are spread across GMM com-ponents; MCM sustains near-maximum entropy (2.98) whereas SCM drops to 2.74 with high variance, reflecting skewed coverage that shifts unpredictably over time. (c) Mode coverage tracks the fraction of GMM components with meaning-ful representation ( >1%) in memory; MCM maintains full coverage ( ≈1.0) while SCM periodically loses entire modes. Together, these results confirm that MCM’s performance gains are rooted in superior distributional representativeness: by ex-plicitly preserving multi-modal structure, MCM provides the adaptation process with a more faithful approximation of the target stream at every time step. Multi-Cluster Memory for Test-Time Adaptation 13 
+
+Fig. 3: Memory scaling comparison on CIFAR-100-C (PTTA). Bars denote error rate; lines denote runtime. For MCM, per-cluster capacity is fixed at 64 and total capacity is varied by the number of clusters. Across all three baselines, simply enlarging the single-cluster pool increases runtime with negligible accuracy gain, whereas MCM consistently achieves lower error at lower cost under equal total capacity. PeTTA with SCM at 256 and 320 samples encountered out-of-memory errors (middle panel). (a) Imbalance Ratio  (b) Cluster Distribution Entropy  (c) Cluster Coverage 
+
+Fig. 4: Diagnostic comparison of memory quality between SCM and MCM over the CIFAR-100-C stream (PTTA, PeTTA). We fit a GMM to the evolving stream and measure three properties of the stored memory: (a) imbalance ratio (lower is better), 
+
+(b) distributional entropy (higher is more uniform), and (c) cluster coverage (frac-tion of GMM components with >1% representation). MCM maintains near-constant balance, entropy, and coverage throughout adaptation, whereas SCM exhibits high variance and progressive degradation. 
+
+## 5 Discussion 
+
+Our study highlights a key but often overlooked design axis in memory-based test-time adaptation: how memory is organized . While prior work largely focuses on increasing memory capacity or refining sample selection, our results show that the main bottleneck lies not in how many samples are stored, but in how they are structured. Empirically, enlarging a single-cluster memory pool yields minimal gains while incurring substantial computational cost. In contrast, organizing the same capacity into multiple descriptor-based clusters consistently improves both adaptation accuracy and runtime efficiency. Our GMM-based diagnostics further support this finding: the improvements of MCM directly correspond to better distributional balance, higher entropy, and improved mode coverage. 14 Y.-W. Tseng et al. 
+
+The effectiveness of pixel-level descriptors also provides a broader insight for representation design. Many existing approaches rely on high-level CNN features to characterize samples in memory; however, such representations are optimized to suppress domain-specific variations. In corruption-based benchmarks, domain shifts instead manifest in low-level image statistics such as color distributions and channel-wise intensity patterns. Modeling memory structure in this space therefore provides a more faithful representation of distributional changes, sug-gesting that descriptor design may play a broader role across TTA components. 
+
+Limitations. Despite its effectiveness, MCM has several limitations. First, it in-troduces additional overhead from descriptor computation and cluster manage-ment. Although empirical measurements (Table 4) show that this cost remains modest relative to the adaptation process, it may become more noticeable when scaling to higher-resolution inputs or larger models. Second, the descriptor relies on channel-wise pixel statistics, implicitly assuming that domain shifts appear in low-order image statistics; this bias may be less effective for shifts driven by geometric transformations or high-level semantic changes. Third, our exper-iments focus on corruption-based image classification; extending the proposed memory organization strategy to other modalities ( e.g ., language or multi-modal systems) and tasks ( e.g ., detection, segmentation) remains an open direction. 
+
+Future Work. Two directions appear promising. First, replacing raw sample stor-age with compact or learned representations could reduce memory footprint and enable memory-based TTA for large foundation models and multi-modal systems. Second, while MCM currently orders clusters by creation time, richer structures may better capture evolving distributions. For instance, graph-based cluster management could relate clusters through descriptor distances rather than temporal adjacency, enabling more flexible consolidation. 
+
+## 6 Conclusion 
+
+We introduced Multi-Cluster Memory (MCM), a structured memory framework for test-time adaptation that organizes samples via descriptor-based cluster-ing, Adjacent Cluster Consolidation, and Uniform Cluster Retrieval. A stream clusterability analysis shows that PTTA data streams exhibit intrinsic multi-modal structure, motivating the transition from single-cluster to multi-cluster memory. Extensive experiments on CIFAR-10-C, CIFAR-100-C, ImageNet-C, and DomainNet show that MCM consistently improves existing memory-based TTA methods, with gains increasing alongside the distributional complexity of the test stream. Recurring TTA evaluations further demonstrate that these im-provements remain stable—and continue to grow—over 20 adaptation rounds. A GMM-based diagnostic framework links these gains to improved memory qual-ity in terms of distributional balance, entropy, and mode coverage. Overall, our results establish that memory organization —rather than memory capacity —is a fundamental design axis for effective test-time adaptation. Multi-Cluster Memory for Test-Time Adaptation 15 
+
+## References 
+
+1. Boudiaf, M., Mueller, R., Ben Ayed, I., Bertinetto, L.: Parameter-free online test-time adaptation. In: Proceedings of the IEEE/CVF Conference on Computer Vi-sion and Pattern Recognition. pp. 8344–8353 (2022) 2. Chen, D., Wang, D., Darrell, T., Ebrahimi, S.: Contrastive test-time adaptation. In: Proceedings of the IEEE/CVF conference on computer vision and pattern recog-nition. pp. 295–305 (2022) 3. Croce, F., Andriushchenko, M., Sehwag, V., Debenedetti, E., Flammarion, N., Chiang, M., Mittal, P., Hein, M.: Robustbench: a standardized adversarial robust-ness benchmark. In: 35th Conference on Neural Information Processing Systems (NeurIPS 2021) — Track on Datasets and Benchmarks (2021), also appears as a preprint at arXiv:2010.09670 4. Gong, T., Jeong, J., Kim, T., Kim, Y., Shin, J., Lee, S.J.: NOTE: Robust con-tinual test-time adaptation against temporal correlation. In: Advances in Neural Information Processing Systems (NeurIPS) (2022) 5. Gong, T., Kim, Y., Lee, T., Chottananurak, S., Lee, S.J.: Sotta: Robust test-time adaptation on noisy data streams. Advances in Neural Information Processing Systems 36 , 14070–14093 (2023) 6. Han, J., Na, J., Hwang, W.: Ranked entropy minimization for continual test-time adaptation. In: Forty-second International Conference on Machine Learning (2025) 7. Hendrycks, D., Dietterich, T.: Benchmarking neural network robustness to common corruptions and perturbations. arXiv preprint arXiv:1903.12261 (2019) 8. Hendrycks, D., Dietterich, T.: Benchmarking neural network robustness to common corruptions and perturbations. Proceedings of the International Conference on Learning Representations (2019) 9. Hoang, T.H., Vo, M., Do, M.: Persistent test-time adaptation in recurring testing scenarios. Advances in Neural Information Processing Systems 37 , 123402–123442 (2024) 10. Kang, J., Kim, N., Ok, J., Kwak, S.: Membn: Robust test-time adaptation via batch norm with statistics memory. In: European Conference on Computer Vision. pp. 467–483. Springer (2024) 11. Krizhevsky, A., Hinton, G., et al.: Learning multiple layers of features from tiny images (2009) 12. Lee, D.H., et al.: Pseudo-label: The simple and efficient semi-supervised learning method for deep neural networks. In: Workshop on challenges in representation learning, ICML. p. 896. Atlanta (2013) 13. Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., Küttler, H., Lewis, M., Yih, W.t., Rocktäschel, T., et al.: Retrieval-augmented generation for knowledge-intensive nlp tasks. Advances in neural information processing systems 
+
+33 , 9459–9474 (2020) 14. Liu, J., Yang, S., Jia, P., Zhang, R., Lu, M., Guo, Y., Xue, W., Zhang, S.: ViDA: Homeostatic visual domain adapter for continual test time adaptation. In: The Twelfth International Conference on Learning Representations (2024) 15. Lu, H., Wu, R., Li, Y., Li, S., Zhu, Z., Ning, C., Zhao, Y., Luo, L., Chen, Y., Dong, H.: Garmentlab: A unified simulation and benchmark for garment manipulation. Advances in Neural Information Processing Systems 37 , 11866–11903 (2024) 16. Marsden, R.A., Döbler, M., Yang, B.: Universal test-time adaptation through weight ensembling, diversity weighting, and prior correction. In: WACV. pp. 2555– 2565 (2024) 16 Y.-W. Tseng et al. 17. Mummadi, C.K., Hutmacher, R., Rambach, K., Levinkov, E., Brox, T., Metzen, J.H.: Test-time adaptation to distribution shift by confidence maximization and input transformation. arXiv preprint arXiv:2106.14999 (2021) 18. Murphy, A., Danilowski, M., Chatterjee, S., Ghosh, A.: Neo: No-optimization test-time adaptation through latent re-centering. arXiv preprint arXiv:2510.05635 (2025) 19. Nado, Z., Padhy, S., Sculley, D., D’Amour, A., Lakshminarayanan, B., Snoek, J.: Evaluating prediction-time batch normalization for robustness under covariate shift. arXiv preprint arXiv:2006.10963 (2020) 20. Niu, S., Wu, J., Zhang, Y., Chen, Y., Zheng, S., Zhao, P., Tan, M.: Efficient test-time model adaptation without forgetting. In: International conference on machine learning. pp. 16888–16905. PMLR (2022) 21. Omidi, P., Huang, X., Laborieux, A., Nikpour, B., Shi, T., Eshaghi, A.: Memory-augmented transformers: A systematic review from neuroscience principles to tech-nical solutions. arXiv preprint arXiv:2508.10824 (2025) 22. Peng, X., Bai, Q., Xia, X., Huang, Z., Saenko, K., Wang, B.: Moment matching for multi-source domain adaptation. In: Proceedings of the IEEE International Conference on Computer Vision. pp. 1406–1415 (2019) 23. Press, O., Schneider, S., Kuemmerer, M., Bethge, M.: RDumb: A simple approach that questions our progress in continual test-time adaptation. In: NeurIPS (2023) 24. Ren, Y., Chen, R., Cong, Y.: Autonomous manipulation learning for similar de-formable objects via only one demonstration. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 17069–17078 (2023) 25. Rolnick, D., Ahuja, A., Schwarz, J., Lillicrap, T., Wayne, G.: Experience replay for continual learning. Advances in neural information processing systems 32 (2019) 26. Song, E., Chai, W., Wang, G., Zhang, Y., Zhou, H., Wu, F., Chi, H., Guo, X., Ye, T., Zhang, Y., et al.: Moviechat: From dense token to sparse memory for long video understanding. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 18221–18232 (2024) 27. Song, J., Lee, J., Kweon, I.S., Choi, S.: Ecotta: Memory-efficient continual test-time adaptation via self-distilled regularization. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 11920–11929 (2023) 28. Su, Y., Xu, X., Jia, K.: Towards real-world test-time adaptation: Tri-net self-training with balanced normalization. AAAI 38 (13), 15126–15135 (Mar 2024) 29. Tarvainen, A., Valpola, H.: Mean teachers are better role models: Weight-averaged consistency targets improve semi-supervised deep learning results. Advances in neural information processing systems 30 (2017) 30. Tomar, D., Vray, G., Thiran, J.P., Bozorgtabar, B.: Un-mixing test-time normal-ization statistics: Combatting label temporal correlation. In: The Twelfth Interna-tional Conference on Learning Representations (2024) 31. Tseng, Y.W., Yang, S.P., Wu, J.C., Liao, I.B., Li, Y.H., Shuai, H.H., Cheng, W.H.: Memory-augmented re-completion for 3d semantic scene completion. In: Proceed-ings of the AAAI Conference on Artificial Intelligence. vol. 39, pp. 7446–7454 (2025) 32. Wang, D., Shelhamer, E., Liu, S., Olshausen, B., Darrell, T.: Tent: Fully test-time adaptation by entropy minimization. In: International Conference on Learning Representations (2021) 33. Wang, Q., Fink, O., Van Gool, L., Dai, D.: Continual test-time domain adaptation. In: Proceedings of Conference on Computer Vision and Pattern Recognition (2022) 34. Wang, X., Wang, Z., Gao, X., Zhang, F., Wu, Y., Xu, Z., Shi, T., Wang, Z., Li, S., Qian, Q., Yin, R., Lv, C., Zheng, X., Huang, X.: Searching for best practices in Multi-Cluster Memory for Test-Time Adaptation 17 retrieval-augmented generation. In: Al-Onaizan, Y., Bansal, M., Chen, Y.N. (eds.) Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing. pp. 17716–17736. Association for Computational Linguistics, Miami, Florida, USA (Nov 2024) 35. Wu, C.Y., Li, Y., Mangalam, K., Fan, H., Xiong, B., Malik, J., Feichtenhofer, C.: Memvit: Memory-augmented multiscale vision transformer for efficient long-term video recognition. In: Proceedings of the ieee/cvf conference on computer vision and pattern recognition. pp. 13587–13597 (2022) 36. Yang, M., Li, Y., Zhang, C., Hu, P., Peng, X.: Test-time adaptation against multi-modal reliability bias. In: The twelfth international conference on learning repre-sentations (2024) 37. Yasarla, R., Han, S., Cheng, H.P., Liu, L., Mahajan, S., Bhattacharyya, A., Shi, Y., Garrepalli, R., Cai, H., Porikli, F.: Roca: Robust cross-domain end-to-end autonomous driving. arXiv preprint arXiv:2506.10145 (2025) 38. Yuan, L., Xie, B., Li, S.: Robust test-time adaptation in dynamic scenarios. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recog-nition. pp. 15922–15932 (2023) 39. Zhou, X., Zhang, B., Tian, Z., Zhang, Y., Niu, X., Cheung, K.C., See, S., Zhang, N.L.: Resilient test-time adaptation by mitigating batch-normalization overfitting. In: ICASSP 2025-2025 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP). pp. 1–5. IEEE (2025) 40. Zhu, Z., Hong, X., Ma, Z., Zhuang, W., Ma, Y., Dai, Y., Wang, Y.: Reshaping the online data buffering and organizing mechanism for continual test-time adaptation. In: European Conference on Computer Vision. pp. 415–433 (2024) 18 Y.-W. Tseng et al. 
+
+## Appendix Overview 
+
+This appendix provides additional analyses and results organized as follows: 
+
+– Sec. A : Distance threshold τ sensitivity 
+
+– Sec. B : Distance metric ablation 
+
+– Sec. C : Maximum cluster count Kmax sensitivity 
+
+– Sec. D : Full per-round recurring TTA results (20 rounds) 
+
+– Sec. E : Memory sample distribution visualization 
+
+## A Distance Threshold Sensitivity 
+
+As discussed in the main paper (Sec. 3.2), the channel-wise pixel-statistics de-scriptor operates on a bounded and consistent scale, allowing the threshold τ
+
+to be set once without per-dataset tuning. Here we complement the single-pass PTTA ablation (main paper, Table 3) with a detailed sensitivity analysis under the more demanding recurring TTA protocol on CIFAR-100-C [11]. Table S1 reports per-round error rates for four thresholds across 20 recurring rounds using PeTTA [9]+MCM. The overall spread is narrow (33.1–34.9%), con-firming that MCM is robust to the choice of τ , with τ =0 .3 consistently achiev-ing the lowest average error (33.1%). Two complementary failure modes are visible at the extremes. A small threshold ( τ =0 .1, Avg 34.5%) over-fragments the descriptor space, spawning clusters for minor distributional variations that are then frequently merged by ACC, effectively erasing the diversity they were meant to capture. A large threshold ( τ =0 .7, Avg 34.9%) produces the opposite effect: heterogeneous samples are absorbed into the same cluster, conflating dis-tinct modes and diluting the representativeness of each cluster centroid. The intermediate value τ =0 .5 (Avg 34.3%) partially mitigates both issues but still under-separates certain corruption transitions compared to τ =0 .3.Beyond average performance, τ =0 .3 is also the only setting that exhibits a consistent downward trend in error over rounds (33.3% at Round 1 → 32.8% at Round 20), despite minor fluctuations in intermediate rounds. This progres-sive improvement indicates that the multi-cluster structure at this granularity accumulates increasingly representative samples as corruption types recur, trans-lating better memory quality into sustained adaptation gains. At other thresh-olds, error rates plateau after the first few rounds, suggesting that the memory composition stabilizes prematurely before reaching full distributional coverage. 
+
+## B Ablation on Distance Metrics 
+
+In the main paper, we adopt Euclidean distance for both cluster assignment (Eq. 4) and Adjacent Cluster Consolidation (Sec. 3.3). Here we ablate this choice by comparing distance metrics for descriptor-space computation. The experiment is conducted on CIFAR-100-C under the PTTA protocol using PeTTA [9]+MCM. For each metric, we perform a grid search over its corresponding distance thresh-old τ and report the best-performing configuration in Table S2. Multi-Cluster Memory for Test-Time Adaptation 19 
+
+Table S1: Sensitivity of the distance threshold τ on CIFAR-100-C (recurring TTA, severity 5). Columns 1–20 report per-round classification error rates (%); Avg 
+
+is the mean over all 20 rounds. All results use PeTTA+MCM. Bold indicates the best value per column.                            
+
+> τ12345678910 11 12 13 14 15 16 17 18 19 20 Avg 0.1 34.8 34.4 34.5 34.6 34.7 34.6 34.8 34.7 34.7 34.5 34.6 34.4 34.3 34.4 34.2 34.3 34.4 34.3 34.1 34.1 34.5
+> 0.3 33.3 33.1 33.3 33.3 33.4 33.2 33.2 33.2 33.0 33.0 33.0 33.1 33.0 33.0 33.0 32.9 32.9 32.9 32.9 32.8 33.1
+> 0.5 35.1 34.4 34.4 34.5 34.4 34.4 34.4 34.4 34.1 34.2 34.1 34.2 34.0 34.1 34.2 34.3 34.3 34.1 34.0 34.2 34.3 0.7 35.5 34.6 34.9 35.0 35.0 34.9 34.9 34.8 34.9 34.9 34.8 34.9 34.8 34.7 34.9 35.0 34.8 34.8 34.8 34.7 34.9
+
+Table S2: Ablation on distance metrics for MCM descriptor-space compu-tation. Evaluated on CIFAR-100-C (PTTA, severity 5) with PeTTA+MCM. Each metric is paired with its best threshold from a grid search. 
+
+Distance Metric Best Threshold ( τ ) Avg. Error (%) 
+
+Cosine 0.05 34.27 Mahalanobis 1.0 35.16 Manhattan ( L1) 0.5 33.90 
+
+Euclidean ( L2) (Ours) 0.3 33.04 
+
+Analysis. Euclidean distance ( L2) yields the lowest error (33.04%) by provid-ing an isotropic penalty that smoothly captures multidimensional domain shifts. Manhattan distance ( L1) is competitive at 33.90% but slightly less effective, likely because equal weighting of each coordinate does not account for the cor-related nature of channel-wise mean–variance pairs. Cosine distance performs worse (34.27%) because it evaluates only the angle between descriptors, discard-ing magnitude information. While angular differences alone capture most inter-mode distinctions, magnitude provides additional discriminative power for sepa-rating modes with similar corruption profiles but differing intensities, accounting for the 1.2-point gap relative to Euclidean distance. Mahalanobis distance yields the highest error (35.16%) despite being widely used for feature-space domain matching. In our setting, the lightweight descriptors already explicitly contain channel-wise variance, so a secondary covariance normalization distorts the nat-ural geometry of the descriptor space; moreover, estimating robust covariance matrices for dynamically forming micro-clusters in an online stream is numeri-cally unstable. These results confirm that Euclidean distance provides the best accuracy for MCM’s pixel-level descriptors. 
+
+## C Sensitivity of Maximum Cluster Count Kmax 
+
+The main paper (Sec. 4.1) sets the maximum number of clusters via Kmax =min  5, max(1 , ⌊Nc/20 ⌋), yielding Kmax =5 for CIFAR-100-C, ImageNet-C, and DomainNet, and Kmax =1 for CIFAR-10-C. Here we sweep Kmax ∈ { 1, 2, 3, 4, 5, 7, 10 }
+
+on CIFAR-100-C (PTTA, severity 5) with PeTTA [9]+MCM to justify this 20 Y.-W. Tseng et al.                 
+
+> Fig. S1: Sensitivity of Kmax on CIFAR-100-C (PTTA, severity 5) with PeTTA+MCM. Left : average error rate (%) vs. Kmax , showing a U-shaped trend with minimum at Kmax =4 (dashed red line). Right : per-corruption error heatmap (green = lower error). Most corruptions favor moderate Kmax (3–5), while contrast and impulse noise are most sensitive to this parameter.
+
+choice. The per-cluster capacity is fixed at N =64 , so increasing Kmax propor-tionally increases the total memory budget. 
+
+Overall trend. As shown in Fig. S1 (left), the average error follows a U-shaped curve. Kmax =1 reduces to single-cluster memory and yields the highest error, confirming that multi-cluster organization is essential. Performance improves steadily from Kmax =1 to 4, where it reaches its minimum, with Kmax =5 per-forming nearly identically. Beyond this range, over-fragmentation degrades ac-curacy: too many clusters lead to small, statistically unstable populations and trigger frequent ACC merges that discard useful samples. The total spread re-mains moderate ( ∼2.4 percentage points), indicating that MCM is not overly sensitive to this hyperparameter. 
+
+Per-corruption analysis. The heatmap (Fig. S1, right) shows that most cor-ruptions favor moderate cluster counts ( Kmax ∈ { 3, 4, 5}) and degrade at both extremes. Two corruptions stand out as particularly sensitive: contrast and im-pulse noise exhibit substantially higher error at Kmax =1 , as their pixel-level statistics diverge sharply from other corruption types and thus require dedi-cated clusters for adequate representation. Notably, impulse noise continues to improve even at Kmax =10 , suggesting that its distributional modes are especially fine-grained; however, this per-corruption gain is outweighed by the degradation of other types at high Kmax . Corruptions that primarily alter spatial structure (e.g., motion blur, elastic transform) remain stable across all settings, as their channel statistics overlap with neighboring corruption types. 
+
+Justification. The near-identical performance at Kmax =4 and 5 confirms that the formula in the main paper operates within the optimal range. We retain 
+
+Kmax =5 as the default because the difference is negligible and the extra cluster provides additional capacity for datasets with greater distributional complexity (ImageNet-C: 200 classes; DomainNet: 126 classes across heterogeneous styles). Multi-Cluster Memory for Test-Time Adaptation 21 
+
+Table S3: CIFAR-100-C, recurring TTA (severity 5). Per-round classifica-tion error rates (%) over 20 successive revisits to the corruption stream. Results use a ResNeXt-29 backbone with RobustBench [3] preprocessing. Bold = best; underline = second best per column.                                           
+
+> Method 12345678910 11 12 13 14 15 16 17 18 19 20 Avg Source 46.5 LAME 40.5 CoTTA 53.4 58.4 63.4 67.6 71.4 74.9 78.2 81.1 84.0 86.7 88.8 90.7 92.3 93.5 94.7 95.6 96.3 97.0 97.3 97.6 83.1 EATA 88.5 95.0 96.8 97.3 97.4 97.2 97.2 97.3 97.4 97.5 97.5 97.5 97.6 97.7 97.7 97.7 97.8 97.8 97.7 97.7 96.9 RMT 50.5 48.6 47.9 47.4 47.3 47.1 46.9 46.9 46.6 46.8 46.7 46.5 46.5 46.6 46.5 46.5 46.5 46.5 46.5 46.5 47.1 MECTA 44.8 44.3 44.6 43.1 44.8 44.2 44.4 43.8 43.8 43.9 44.6 43.8 44.4 44.6 43.9 44.2 43.8 44.4 44.9 44.2 44.2 RoTTA 35.5 35.2 38.5 41.9 45.3 49.2 52.0 55.2 58.1 61.5 64.6 67.5 70.7 73.2 75.4 77.1 79.2 81.5 82.8 84.5 61.4 RDumb 36.7 36.7 36.6 36.6 36.7 36.8 36.7 36.5 36.6 36.5 36.7 36.6 36.5 36.7 36.5 36.6 36.6 36.7 36.6 36.5 36.6 ROID 76.4 76.4 76.2 76.2 76.3 76.1 75.9 76.1 76.3 76.3 76.6 76.3 76.8 76.7 76.6 76.3 76.2 76.0 75.9 76.0 76.3 TRIBE 33.8 33.3 35.3 34.9 35.3 35.1 37.1 37.2 37.2 39.1 39.2 41.1 41.0 43.1 45.1 45.1 45.0 44.9 44.9 44.9 39.6 PeTTA 35.8 34.4 34.7 35.0 35.1 35.1 35.2 35.3 35.3 35.3 35.2 35.3 35.2 35.2 35.1 35.2 35.2 35.2 35.2 35.2 35.1 PeTTA + MCM 33.8 33.8 33.0 33.0 33.1 33.9 33.9 33.9 32.7 32.7 32.7 32.8 32.7 32.7 32.7 32.6 32.6 32.6 32.6 32.5 32.6
+
+Coupling Kmax to the label space via ⌊Nc/20 ⌋ thus provides a tuning-free heuris-tic that adapts to dataset complexity without requiring per-dataset sweeps. 
+
+## D Recurring TTA: Full Per-Round Results 
+
+The main paper (Table 5) summarizes the recurring TTA experiment with Round 1 and 20-round average error rates. Here we provide the complete per-round breakdown on both CIFAR-100-C and CIFAR-10-C [11] (Tables S3 and S4), enabling a fine-grained view of how each method behaves as the model repeatedly traverses the same corruption sequence. 
+
+CIFAR-100-C (Table S3). Several methods exhibit clear instability over ex-tended adaptation. CoTTA [33] and EATA [20] collapse rapidly, rising from 
+
+∼50 –88 % at Round 1 to over 97% by Round 20, confirming severe catastrophic forgetting. RoTTA [38] follows a similar but slower trajectory (35.5% → 84.5%). Among stable methods, PeTTA [9] maintains a consistent ∼35 % but shows no improvement over time. TRIBE [28] starts competitively (33.8% at Round 1) but degrades steadily to 44.9% by Round 20, indicating that strong single-pass performance does not guarantee long-term stability. PeTTA+MCM achieves the best result at every round from Round 3 onward and is the only method whose er-ror decreases over time (33.8% → 32.5%), reaching a 20-round average of 32.6%. We attribute this progressive improvement to the multi-cluster memory accumu-lating increasingly representative samples as corruption types recur, providing higher-quality supervision in later rounds. 
+
+CIFAR-10-C (Table S4). On CIFAR-10-C, TRIBE [28] dominates with 17.5% average error. As discussed in the main paper (Sec. 4.2), TRIBE employs a tri-net self-training architecture with balanced batch normalization that adapts directly on the current mini-batch without maintaining a memory bank; MCM, 22 Y.-W. Tseng et al. 
+
+Table S4: CIFAR-10-C, recurring TTA (severity 5). Per-round classification error rates (%) over 20 revisits. All methods use a WideResNet-28 backbone from 
+
+RobustBench [3] with its official preprocessing.                                          
+
+> Method 12345678910 11 12 13 14 15 16 17 18 19 20 Avg Source 43.5 LAME 31.1 CoTTA 82.2 85.6 87.2 87.8 88.2 88.5 88.7 88.7 88.9 88.9 88.9 89.2 89.2 89.2 89.1 89.2 89.2 89.1 89.3 89.3 88.3 EATA 81.6 87.0 88.7 88.7 88.9 88.7 88.6 89.0 89.3 89.6 89.5 89.6 89.7 89.7 89.3 89.6 89.6 89.8 89.9 89.4 88.8 RMT 77.5 76.9 76.5 75.8 75.5 75.5 75.4 75.4 75.5 75.3 75.5 75.6 75.5 75.5 75.7 75.6 75.7 75.6 75.7 75.8 75.8 MECTA 72.2 82.0 85.2 86.3 87.0 87.3 87.3 87.5 88.1 88.8 88.9 88.9 88.6 89.1 88.7 88.8 88.5 88.6 88.3 88.8 86.9 RoTTA 24.6 25.5 29.6 33.6 38.2 42.8 46.2 50.6 52.2 54.1 56.5 57.5 59.4 60.2 61.7 63.0 64.8 66.1 68.2 70.3 51.3 RDumb 31.1 32.1 32.3 31.6 31.9 31.8 31.8 31.9 31.9 32.1 31.7 32.0 32.5 32.0 31.9 31.6 31.9 31.4 32.3 32.4 31.9 ROID 72.7 72.6 73.1 72.4 72.7 72.8 72.7 72.7 72.9 72.8 72.9 72.9 72.8 72.5 73.0 72.8 72.5 72.5 72.7 72.7 72.7 TRIBE 15.3 16.6 16.6 16.3 16.7 17.0 17.3 17.4 17.4 18.0 17.9 18.0 17.9 18.6 18.2 18.8 18.0 18.2 18.4 18.0 17.5
+> PeTTA 24.3 23.0 22.6 22.4 22.4 22.5 22.3 22.5 22.8 22.8 22.6 22.7 22.7 22.9 22.6 22.7 22.6 22.8 22.9 23.0 22.8 PeTTA+MCM 21.7 21.0 20.4 19.8 20.7 20.1 20.9 20.2 20.1 20.4 20.5 20.3 20.1 20.0 19.8 20.1 20.0 20.3 20.5 20.7 20.4
+
+Fig. S2: Descriptor-space visualization of memory contents under SCM and MCM on CIFAR-100-C (PTTA, severity 5). Grey points denote the incom-ing test stream; coloured points are stored memory samples (blue for SCM; orange/-green/red for distinct MCM clusters). SCM concentrates its budget in a narrow region, yielding high imbalance ratios (imb). MCM spreads samples across distinct clusters, reducing imbalance by 4.1× and 2.5× at t=2220 and t=1400 , respectively. 
+
+as a memory-side module, is orthogonal to this design. Among memory-based methods, PeTTA+MCM reduces the average error from 22.8% (PeTTA alone) to 20.4%, a 2.4-point gain. The more moderate improvement compared to CIFAR-100-C is consistent with the main paper’s finding that gains scale with distri-butional complexity: CIFAR-10-C has only 10 classes, limiting the degree of multi-modality in the stream and thus the headroom for multi-cluster organiza-tion. Nonetheless, PeTTA+MCM is the second-best method overall and shows stable behavior across all 20 rounds, with no sign of degradation. 
+
+## E Visualization of Memory Sample Distribution 
+
+To provide intuitive insight into how MCM organizes its memory budget, we visualize the descriptor-space distribution of stored samples at two representa-tive time steps on CIFAR-100-C (Fig. S2). We extract the channel-wise pixel-statistics descriptor (main paper, Sec. 3.2) for every sample in the memory bank and project them into two dimensions via PCA. Both snapshots ( t=2220 and Multi-Cluster Memory for Test-Time Adaptation 23 
+
+t=1400 ) correspond to transitions between consecutive corruption types, where domain diversity within the buffer is highest. Under SCM, reservoir sampling over-represents the most recent domain, con-centrating stored samples in a narrow descriptor-space region and producing high imbalance ratios (imb =11 .0 and 5.0, respectively). MCM instead partitions the budget across dynamically formed clusters, each anchored by a centroid ( ⋆), spreading samples over a substantially wider area of the descriptor manifold and reducing imbalance by 4.1× and 2.5×. This broader coverage yields more rep-resentative mini-batches during adaptation, directly contributing to the lower error rates reported in the main paper (Tables 1–3).
