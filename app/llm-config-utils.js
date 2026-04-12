@@ -7,133 +7,86 @@
     root.DPRLLMConfigUtils = api;
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  // 1. 修改默认配置为你自己的 URL 和 模型
-  const DEFAULT_PLATO_BASE_URL = 'https://gpt-agent.cc/v1';
-  const DEFAULT_PLATO_CHAT_MODELS = [
-    'mimo-v2-omni',
-  ];
-  
-  const OPENAI_COMPATIBLE_PRESETS = Object.freeze({}); // 预设可以忽略清空
+  // 1. 强制设定你的配置
+  const MY_CONFIG = {
+    baseUrl: 'https://gpt-agent.cc/v1',
+    model: 'MiniMax-M2.7',
+    apiKey: 'sk-f8bMKUmgQlZcCEpBGnGxEoba7gw4hsR9bbxeS8fa20lKL2nY'
+  };
 
   const normalizeText = (value) => String(value || '').trim();
 
+  // 改进的路径处理，防止 /v1/v1 出现
   const normalizeBaseUrlForStorage = (value) => {
-    let text = normalizeText(value).replace(/\/+$/g, '');
-    if (!text) return '';
+    let text = normalizeText(value || MY_CONFIG.baseUrl).replace(/\/+$/g, '');
     text = text.replace(/\/chat\/completions$/i, '');
-    return text.replace(/\/+$/g, '');
+    return text;
   };
 
   const buildChatCompletionsEndpoint = (value) => {
-    const raw = normalizeText(value).replace(/\/+$/g, '');
-    if (!raw) return '';
-    if (/\/chat\/completions$/i.test(raw)) return raw;
-    const normalized = normalizeBaseUrlForStorage(raw);
-    if (!normalized) return '';
+    const normalized = normalizeBaseUrlForStorage(value);
+    // 如果已经包含 v1，直接拼接
     if (/\/v\d+$/i.test(normalized)) {
       return `${normalized}/chat/completions`;
     }
     return `${normalized}/v1/chat/completions`;
   };
 
-  const sanitizeModelList = (values, maxCount = 3) => {
-    return ['mimo-v2-omni']; // 强制只返回你的模型
-  };
-
-  // ==========================================
-  // 2. 核心修改：强制全局使用你的 Chat 接口配置
-  // ==========================================
-  const resolveChatModels = (secret) => {
-    const safeSecret = secret && typeof secret === 'object' ? secret : {};
-    
-    // 尝试获取用户在界面上填写的 API Key（保护隐私推荐做法）
-    let apiKey = '';
-    if (Array.isArray(safeSecret.chatLLMs) && safeSecret.chatLLMs[0]) {
-        apiKey = safeSecret.chatLLMs[0].apiKey;
-    }
-    
-    // 如果界面上没填，则强制使用你硬编码的 Key（⚠️注意公开仓库泄露风险）
-    if (!apiKey) {
-        apiKey = 'sk-f8bMKUmgQlZcCEpBGnGxEoba7gw4hsR9bbxeS8fa20lKL2nY'; 
-    }
-
+  const resolveChatModels = () => {
     return [{
-      name: 'mimo-v2-omni',
-      apiKey: apiKey,
-      baseUrl: 'https://gpt-agent.cc/v1',
+      name: MY_CONFIG.model,
+      apiKey: MY_CONFIG.apiKey,
+      baseUrl: normalizeBaseUrlForStorage(MY_CONFIG.baseUrl),
     }];
   };
 
-  // ==========================================
-  // 3. 核心修改：强制全局使用你的 Summary 接口配置
-  // ==========================================
-  const resolveSummaryLLM = (secret) => {
-    const safeSecret = secret && typeof secret === 'object' ? secret : {};
-    const summarized = safeSecret.summarizedLLM || {};
-    
-    let apiKey = normalizeText(summarized.apiKey || '');
-    if (!apiKey) {
-        apiKey = 'sk-f8bMKUmgQlZcCEpBGnGxEoba7gw4hsR9bbxeS8fa20lKL2nY';
-    }
-
+  const resolveSummaryLLM = () => {
     return {
-      baseUrl: 'https://gpt-agent.cc/v1',
-      apiKey: apiKey,
-      model: 'mimo-v2-omni'
+      baseUrl: normalizeBaseUrlForStorage(MY_CONFIG.baseUrl),
+      apiKey: MY_CONFIG.apiKey,
+      model: MY_CONFIG.model
     };
   };
 
-  // 4. 强制指定为标准的 OpenAI 兼容模式
-  const inferProviderType = () => {
-    return 'openai-compatible';
-  };
+  const inferProviderType = () => 'openai-compatible';
 
-  const getOpenAICompatiblePreset = (key) => {
-    return null;
-  };
+  // 关键修改：强制返回 false，确保使用 "Authorization: Bearer" 而不是 "X-Api-Key"
+  // 这是解决 401 无效令牌的核心
+  const shouldUseXApiKeyHeader = () => false;
 
-  // 避免触发其他模型的特殊 Prompt 逻辑
-  const inferChatApiProfile = (baseUrl, model) => {
-    return 'generic-openai';
-  };
+  const inferChatApiProfile = () => 'generic-openai';
 
-  const shouldUseXApiKeyHeader = () => {
-    return true; 
-  };
-
-  // 组装标准的 OpenAI Stream 请求体
-  const buildStreamingChatPayload = ({ baseUrl, model, messages }) => {
+  const buildStreamingChatPayload = ({ messages }) => {
     return {
-      model: 'mimo-v2-omni', // 强制写入你的模型
+      model: MY_CONFIG.model,
       messages: Array.isArray(messages) ? messages : [],
       stream: true,
+      // 移除可能导致中转站报错的额外字段
     };
   };
 
-  const buildConnectivityTestPayload = ({ baseUrl, model }) => {
+  const buildConnectivityTestPayload = () => {
     return {
-      model: 'mimo-v2-omni',
+      model: MY_CONFIG.model,
       messages: [
-        { role: 'system', content: 'Reply with exactly: hello world' },
-        { role: 'user', content: 'hello world' },
+        { role: 'user', content: 'hello' },
       ],
-      temperature: 0,
-      max_tokens: 256,
+      max_tokens: 10,
     };
   };
 
   return {
-    DEFAULT_PLATO_BASE_URL,
-    DEFAULT_PLATO_CHAT_MODELS,
-    OPENAI_COMPATIBLE_PRESETS,
+    DEFAULT_PLATO_BASE_URL: MY_CONFIG.baseUrl,
+    DEFAULT_PLATO_CHAT_MODELS: [MY_CONFIG.model],
+    OPENAI_COMPATIBLE_PRESETS: {},
     normalizeText,
     normalizeBaseUrlForStorage,
     buildChatCompletionsEndpoint,
-    sanitizeModelList,
+    sanitizeModelList: () => [MY_CONFIG.model],
     resolveChatModels,
     resolveSummaryLLM,
     inferProviderType,
-    getOpenAICompatiblePreset,
+    getOpenAICompatiblePreset: () => null,
     inferChatApiProfile,
     shouldUseXApiKeyHeader,
     buildStreamingChatPayload,
