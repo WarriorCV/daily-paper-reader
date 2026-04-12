@@ -25,3 +25,50 @@ subscriptions:
     stage: A
     diff_threshold_pct: 15
   keyword_recall_mode: or
+  intent_profiles:
+    - tag: MVC
+      description: 多视图聚类（Multi-view Clustering）在流式/在线场景下的不完整视图与噪声鲁棒性研究，结合大模型与对比学习。
+      enabled: true
+      paper_sources:
+        - arxiv
+      keywords:
+        - keyword: Safe Multi-view Clustering
+          keyword_cn: 安全多视图聚类
+          query: Safe Multi-view Clustering
+        - keyword: Contrastive Multi-view Clustering
+          keyword_cn: 对比多视图聚类
+          query: Contrastive Multi-view Clustering
+        - keyword: Noisy Multi-view Clustering
+          keyword_cn: 噪声多视图聚类
+          query: Online Multi-view Clustering
+        - keyword: Streaming Multi-view Clustering
+          keyword_cn: 流式多视图聚类
+          query: Streaming Multi-view Clustering
+        - keyword: streaming clustering
+          keyword_cn: 流式聚类
+          query: streaming clustering
+        - keyword: Robust Multi-view Clustering
+          keyword_cn: 鲁棒多视图聚类
+          query: multi-view clustering
+      intent_queries:
+        - query: How to handle noise, missing views, and outliers in streaming multi view clustering?
+          query_cn: 流式多视图聚类中如何处理噪声、视图缺失和异常值？
+          enabled: true
+          source: manual
+          note: ''
+      updated_at: '2026-04-12T07:41:19.594Z'
+source_backends:
+  arxiv:
+    papers_table: arxiv_papers
+    use_vector_rpc: true
+    vector_rpc: match_arxiv_papers
+    vector_rpc_exact: match_arxiv_papers_exact
+    use_bm25_rpc: true
+    bm25_rpc: match_arxiv_papers_bm25
+    sync_table: arxiv_sync_status
+    sync_success_value: success
+    schema: public
+    kind: supabase
+    enabled: true
+    url: https://lyucdwgefyfbmaiopjbk.supabase.co
+    anon_key: sb_publishable_lX-oi64Uxyd7SIVv3_w2Uw_MTOojeKq
